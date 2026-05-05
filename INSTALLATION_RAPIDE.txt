@@ -1,0 +1,18 @@
+INSTALLATION RAPIDE — SYMBALYX IA
+
+1) Dézipper ce dossier.
+2) Aller sur GitHub.
+3) Créer un repository privé : symbalyx-ia
+4) Upload tous les fichiers de ce dossier.
+5) Vérifier que index.html est directement à la racine.
+6) Aller sur Cloudflare Pages.
+7) Importer le repo GitHub.
+8) Framework : None / Aucun.
+9) Build command : vide.
+10) Output directory : / ou vide selon l'interface.
+11) Déployer.
+
+Résultat attendu : une URL du type https://symbalyx-ia.pages.dev
+
+Ne mets pas le ZIP directement dans GitHub.
+Il faut mettre les fichiers dézippés.

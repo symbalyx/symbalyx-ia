@@ -1,0 +1,8 @@
+{
+  "ok": true,
+  "crm_updated": true,
+  "draft_created": true,
+  "email_sent": false,
+  "next_action": "Relire le brouillon Gmail avant tout envoi manuel.",
+  "log": "Brouillon créé après checks sécurité Make."
+}

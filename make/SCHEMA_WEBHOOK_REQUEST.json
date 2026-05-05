@@ -1,0 +1,33 @@
+{
+  "source": "symbalyx_ia_frontend",
+  "action": "prepare_gmail_draft",
+  "version": "v14.2",
+  "human_validation_required": true,
+  "gmail_mode": "create_draft_only",
+  "no_auto_send": true,
+  "frontend_trusted": false,
+  "prospect": {
+    "name": "Salon Test Bordeaux",
+    "sector": "coiffeur",
+    "city": "Bordeaux",
+    "email": "contact@example.com",
+    "phone": "",
+    "website": "https://example.com",
+    "source_url": "https://example.com",
+    "need": "Site peu clair / pas assez orienté prise de contact",
+    "score": 72,
+    "money_score": 64,
+    "opt_out": false
+  },
+  "assigned_to": "Arsène",
+  "requested_by": "Arsène",
+  "draft_type": "mini_audit_gratuit",
+  "safety_rules": [
+    "Gmail Create Draft only",
+    "No source = no CRM",
+    "Human validation required",
+    "Respect opt-out",
+    "No final price promise",
+    "No fixed deadline promise"
+  ]
+}
