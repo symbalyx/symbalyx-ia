@@ -1,0 +1,209 @@
+{
+  "name": "Symbalyx — WF9 Weekly Summary",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "11000001-0000-0000-0000-000000000001",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 480]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "weeks", "weeksInterval": 1, "triggerAtDay": [1], "triggerAtHour": 8}]
+        }
+      },
+      "id": "11000002-0000-0000-0000-000000000002",
+      "name": "Schedule (lundi 8h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 280]
+    },
+    {
+      "parameters": {
+        "workflowId": "REPLACE_WITH_WF7_ID",
+        "source": "parameter",
+        "options": {}
+      },
+      "id": "11000003-0000-0000-0000-000000000003",
+      "name": "Execute WF7 (Prioritization)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [420, 380],
+      "notesInFlow": true,
+      "notes": "Remplace REPLACE_WITH_WF7_ID par l'ID du workflow 07_prioritization_engine après import."
+    },
+    {
+      "parameters": {
+        "workflowId": "REPLACE_WITH_WF8_ID",
+        "source": "parameter",
+        "options": {}
+      },
+      "id": "11000004-0000-0000-0000-000000000004",
+      "name": "Execute WF8 (Advisor)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [640, 380],
+      "notesInFlow": true,
+      "notes": "Remplace REPLACE_WITH_WF8_ID par l'ID du workflow 08_business_advisor après import."
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "business_control", "mode": "name"},
+        "options": {}
+      },
+      "id": "11000005-0000-0000-0000-000000000005",
+      "name": "Lire business_control",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [860, 280]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "kpi_snapshots", "mode": "name"},
+        "options": {}
+      },
+      "id": "11000006-0000-0000-0000-000000000006",
+      "name": "Lire kpi_snapshots",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [860, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Récupère le run_id le plus récent de WF8 (advisor) et regroupe les top items WF7 du jour\nconst bcl = $('Lire business_control').all().map(i => i.json);\nconst kpis = $('Lire kpi_snapshots').all().map(i => i.json);\n\nconst sortByTsDesc = (a, b) => String(b.ts || '').localeCompare(String(a.ts || ''));\n\nconst lastAdvisor = bcl.filter(b => b.source_workflow === 'WF8').sort(sortByTsDesc)[0] || {};\nconst lastWF7Run  = (bcl.filter(b => b.source_workflow === 'WF7').sort(sortByTsDesc)[0] || {}).run_id || '';\nconst topItems = bcl\n  .filter(b => b.source_workflow === 'WF7' && b.run_id === lastWF7Run)\n  .slice(0, 10)\n  .map(b => ({\n    item_type: b.item_type,\n    item_id: b.item_id,\n    title: b.title,\n    priority_level: b.priority_level,\n    recommended_action: b.recommended_action,\n    assigned_to: b.assigned_to,\n    recommendation: b.recommendation\n  }));\n\nconst lastKpi = kpis.sort(sortByTsDesc)[0] || {};\nlet advisorPayload = {};\ntry {\n  advisorPayload = lastAdvisor.notes ? JSON.parse(lastAdvisor.notes) : {};\n} catch (e) { advisorPayload = {}; }\n\nconst week_label = lastKpi.period || (() => {\n  const d = new Date();\n  const oj = new Date(d.getFullYear(), 0, 1);\n  const w = Math.ceil((((d - oj) / 86400000) + oj.getDay() + 1) / 7);\n  return `${d.getFullYear()}-W${String(w).padStart(2, '0')}`;\n})();\n\nreturn [{\n  json: {\n    week_label,\n    top_items: topItems,\n    advisor: {\n      weekly_priorities: (lastAdvisor.recommendation || '').split(' | ').filter(Boolean),\n      ...advisorPayload\n    },\n    kpis: lastKpi\n  }\n}];"
+      },
+      "id": "11000007-0000-0000-0000-000000000007",
+      "name": "Build digest context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{"name": "Content-Type", "value": "application/json"}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL || 'gpt-4o-mini'}}\",\n  \"temperature\": 0.3,\n  \"max_tokens\": 1500,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Tu rédiges la synthèse hebdo interne de Symbalyx pour Arsène et Kentin. Court (≤250 mots), factuel, lisible en 60s. Pas de chiffres financiers absolus. Pas de promesses client. JSON strict sans markdown.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Semaine: \" + {{ JSON.stringify($json.week_label) }} + \"\\n\\nTop items WF7:\\n\" + {{ JSON.stringify($json.top_items) }} + \"\\n\\nAdvisor WF8:\\n\" + {{ JSON.stringify($json.advisor) }} + \"\\n\\nKPIs:\\n\" + {{ JSON.stringify($json.kpis) }} + \"\\n\\nRetourne STRICTEMENT:\\n{\\n  \\\"subject\\\": \\\"Symbalyx — Synthèse semaine \" + {{ JSON.stringify($json.week_label) }} + \"\\\",\\n  \\\"digest_markdown\\\": \\\"≤250 mots, sections : Top priorités / Risques / Charge équipe / À pousser / À abandonner / Décisions à valider\\\",\\n  \\\"decisions_to_validate\\\": [\\\"...\\\"],\\n  \\\"must_be_validated_by_humans\\\": true\\n}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 45000,
+          "response": {"response": {"neverError": true}}
+        }
+      },
+      "id": "11000008-0000-0000-0000-000000000008",
+      "name": "A9 — LLM Weekly Summary",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 380],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse digest et prépare draft Gmail interne\nconst llm = $json;\nlet d = {};\ntry {\n  const c = llm && llm.choices && llm.choices[0] && llm.choices[0].message && llm.choices[0].message.content;\n  if (c) d = JSON.parse(c);\n} catch (e) { d = { _llm_error: String(e && e.message || e) }; }\n\nreturn [{\n  json: {\n    subject: d.subject || 'Symbalyx — Synthèse hebdo',\n    digest_markdown: d.digest_markdown || (d._llm_error ? ('Erreur LLM: ' + d._llm_error) : ''),\n    decisions_to_validate: d.decisions_to_validate || [],\n    to_email: $env && $env.INTERNAL_DIGEST_TO ? $env.INTERNAL_DIGEST_TO : 'arsene+kentin@symbalyx.local'\n  }\n}];"
+      },
+      "id": "11000009-0000-0000-0000-000000000009",
+      "name": "Parse digest",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 380]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.subject }}",
+        "emailType": "text",
+        "message": "={{ $json.digest_markdown }}",
+        "options": {
+          "sendTo": "={{ $json.to_email }}"
+        }
+      },
+      "id": "1100000a-0000-0000-0000-00000000000a",
+      "name": "Gmail Create Draft (interne)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1740, 380],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Brouillon interne pour l'équipe. Variable env: INTERNAL_DIGEST_TO."
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "logs", "mode": "name"},
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "",
+            "phase": "weekly_summary",
+            "status": "digest_drafted",
+            "level": "info",
+            "message": "Synthèse hebdo brouillon Gmail créé",
+            "meta": "={{ JSON.stringify({ subject: $json.subject, decisions_to_validate: $json.decisions_to_validate }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "1100000b-0000-0000-0000-00000000000b",
+      "name": "Log: weekly_summary",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1960, 380]
+    }
+  ],
+  "connections": {
+    "Trigger Manuel":     { "main": [[{"node": "Execute WF7 (Prioritization)", "type": "main", "index": 0}]] },
+    "Schedule (lundi 8h)":{ "main": [[{"node": "Execute WF7 (Prioritization)", "type": "main", "index": 0}]] },
+    "Execute WF7 (Prioritization)": { "main": [[{"node": "Execute WF8 (Advisor)", "type": "main", "index": 0}]] },
+    "Execute WF8 (Advisor)": {
+      "main": [[
+        {"node": "Lire business_control", "type": "main", "index": 0},
+        {"node": "Lire kpi_snapshots", "type": "main", "index": 0}
+      ]]
+    },
+    "Lire business_control": { "main": [[{"node": "Build digest context", "type": "main", "index": 0}]] },
+    "Lire kpi_snapshots":    { "main": [[{"node": "Build digest context", "type": "main", "index": 0}]] },
+    "Build digest context":  { "main": [[{"node": "A9 — LLM Weekly Summary", "type": "main", "index": 0}]] },
+    "A9 — LLM Weekly Summary": { "main": [[{"node": "Parse digest", "type": "main", "index": 0}]] },
+    "Parse digest":          { "main": [[{"node": "Gmail Create Draft (interne)", "type": "main", "index": 0}]] },
+    "Gmail Create Draft (interne)": { "main": [[{"node": "Log: weekly_summary", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "weekly"}, {"name": "wf9"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000009",
+  "meta": {"instanceId": "symbalyx-wf9"}
+}
