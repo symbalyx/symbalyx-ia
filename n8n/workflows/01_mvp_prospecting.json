@@ -1,0 +1,469 @@
+{
+  "name": "Symbalyx — MVP Prospecting (multi-agent)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "0a000001-0000-0000-0000-000000000001",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "prospects_in",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "0a000002-0000-0000-0000-000000000002",
+      "name": "Lire Prospects (Sheets)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 300],
+      "notesInFlow": true,
+      "notes": "Lit l'onglet prospects_in. Remplace {{GOOGLE_SHEET_ID}} par l'ID réel."
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Validation & normalisation ===\n// Entrée: lignes brutes du Sheet prospects_in\n// Sortie: 1 item par prospect valide, normalisé\n\nconst REQUIRED = ['company_name', 'email', 'city', 'niche'];\nconst now = new Date().toISOString();\n\nconst out = [];\nlet idx = 0;\n\nfor (const item of items) {\n  const r = item.json || {};\n  idx += 1;\n\n  // ID auto si manquant\n  const id = (r.id && String(r.id).trim()) || `p_${Date.now()}_${idx.toString().padStart(4, '0')}`;\n\n  // Validation des champs obligatoires\n  const missing = REQUIRED.filter(k => !r[k] || String(r[k]).trim() === '');\n\n  // Validation email simple\n  const email = String(r.email || '').trim().toLowerCase();\n  const emailOk = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email);\n\n  // opt_out (string \"true\"/\"false\" ou bool)\n  const optOut = r.opt_out === true || String(r.opt_out || '').toLowerCase() === 'true';\n\n  const errors = [];\n  if (missing.length) errors.push(`missing:${missing.join(',')}`);\n  if (!emailOk) errors.push('invalid_email');\n  if (optOut) errors.push('opt_out');\n\n  const prospect = {\n    id,\n    company_name: String(r.company_name || '').trim(),\n    contact_name: String(r.contact_name || '').trim(),\n    email,\n    website_url: String(r.website_url || '').trim(),\n    city: String(r.city || '').trim(),\n    niche: String(r.niche || '').trim().toLowerCase(),\n    notes: String(r.notes || '').trim(),\n    source_url: String(r.source_url || '').trim(),\n    opt_out: optOut,\n    status: errors.length ? 'error' : 'pending',\n    created_at: now,\n    updated_at: now,\n    errors\n  };\n\n  out.push({ json: prospect });\n}\n\nreturn out;"
+      },
+      "id": "0a000003-0000-0000-0000-000000000003",
+      "name": "Valider & Normaliser",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-status-pending",
+              "leftValue": "={{ $json.status }}",
+              "rightValue": "pending",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0a000004-0000-0000-0000-000000000004",
+      "name": "If status=pending",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "0a000005-0000-0000-0000-000000000005",
+      "name": "Boucle Prospect (1 par 1)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1080, 200]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "logs",
+          "mode": "name"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.id }}",
+            "phase": "ingest",
+            "status": "started",
+            "level": "info",
+            "message": "Prospect entré dans le pipeline",
+            "meta": "={{ JSON.stringify({ niche: $json.niche, city: $json.city }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0a000006-0000-0000-0000-000000000006",
+      "name": "Log: Started",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1300, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL || 'gpt-4o-mini'}}\",\n  \"temperature\": 0.2,\n  \"max_tokens\": 500,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Tu es un analyste commercial pour Symbalyx, agence qui crée des sites web IA pour TPE/PME locales (plombiers, coiffeurs, artisans, coachs). Réponds UNIQUEMENT en JSON valide, sans markdown. N'invente jamais. Si tu ne sais pas mets 'unknown'. Pas de promesses (prix, délais, garanties Google).\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Voici les données du prospect (JSON):\\n\\n\" + {{ JSON.stringify($json) }} + \"\\n\\nRetourne STRICTEMENT ce JSON :\\n{\\n  \\\"business_summary\\\": \\\"1-2 phrases neutres\\\",\\n  \\\"website_status\\\": \\\"no_website|likely_outdated|unknown|decent\\\",\\n  \\\"website_status_reason\\\": \\\"courte justification factuelle\\\",\\n  \\\"opportunity_score\\\": 1-10,\\n  \\\"opportunity_reason\\\": \\\"1 phrase\\\",\\n  \\\"suggested_angle\\\": \\\"angle d'approche en 1 phrase, sans pression\\\"\\n}\\n\\nRègles: no_website si website_url vide; likely_outdated si indices d'obsolescence; decent sinon; unknown si rien à dire. Score 9-10 si pas de site + niche locale rentable; 7-8 si site obsolète; 4-6 site décent; 1-3 si peu pertinent.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "0a000007-0000-0000-0000-000000000007",
+      "name": "A1 — LLM Analyse Prospect",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 200],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse réponse LLM A1 et merge dans le prospect\nconst out = [];\nfor (const item of items) {\n  const prev = item.json.prospect_in || item.json; // tolère les deux formes\n  // En SplitInBatches le prospect courant est dans $json à la racine d'origine,\n  // mais ici on reçoit le résultat du HTTP Request. Le prospect est passé par n8n via $('Boucle Prospect (1 par 1)').\n  // On reconstruit en lisant l'item input via $items.\n  const llmRaw = item.json;\n  let parsed = {};\n  try {\n    const content = llmRaw && llmRaw.choices && llmRaw.choices[0] && llmRaw.choices[0].message && llmRaw.choices[0].message.content;\n    if (!content) throw new Error('LLM_NO_CONTENT');\n    parsed = JSON.parse(content);\n  } catch (e) {\n    parsed = { _llm_error: String(e && e.message || e) };\n  }\n  // récupère prospect courant depuis le node SplitInBatches\n  const prospect = $('Boucle Prospect (1 par 1)').first().json;\n  out.push({\n    json: {\n      ...prospect,\n      analysis: parsed,\n      status: parsed._llm_error ? 'error' : 'analyzed',\n      updated_at: new Date().toISOString()\n    }\n  });\n}\nreturn out;"
+      },
+      "id": "0a000008-0000-0000-0000-000000000008",
+      "name": "Parser Analyse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1740, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL || 'gpt-4o-mini'}}\",\n  \"temperature\": 0.2,\n  \"max_tokens\": 400,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Tu es chef de projet technique chez Symbalyx. Tu estimes la difficulté d'un site vitrine pour TPE/PME. Stack par défaut: vitrine moderne, 1-4 semaines, prise de RDV/contact. Pas de e-commerce complexe. Sois conservateur. Réponds en JSON valide sans markdown.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Données prospect:\\n\" + {{ JSON.stringify({ company_name: $json.company_name, niche: $json.niche, city: $json.city, website_url: $json.website_url, notes: $json.notes }) }} + \"\\n\\nAnalyse précédente:\\n\" + {{ JSON.stringify($json.analysis) }} + \"\\n\\nRetourne STRICTEMENT:\\n{\\n  \\\"project_difficulty_score\\\": 1-10,\\n  \\\"project_difficulty_label\\\": \\\"simple|medium|complex\\\",\\n  \\\"project_difficulty_reason\\\": \\\"1-2 phrases factuelles\\\"\\n}\\n\\nBarème: simple 1-3 = vitrine 3-5p, contenu fourni; medium 4-7 = RDV/agenda, intégrations simples; complex 8-10 = e-commerce, espace client, intégrations métier.\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "0a000009-0000-0000-0000-000000000009",
+      "name": "A2 — LLM Score Projet",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1960, 200],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nfor (const item of items) {\n  const llmRaw = item.json;\n  let parsed = {};\n  try {\n    const content = llmRaw && llmRaw.choices && llmRaw.choices[0] && llmRaw.choices[0].message && llmRaw.choices[0].message.content;\n    if (!content) throw new Error('LLM_NO_CONTENT');\n    parsed = JSON.parse(content);\n  } catch (e) {\n    parsed = { _llm_error: String(e && e.message || e) };\n  }\n  const prev = $('Parser Analyse').first().json;\n  out.push({\n    json: {\n      ...prev,\n      score: parsed,\n      status: parsed._llm_error ? 'error' : 'scored',\n      updated_at: new Date().toISOString()\n    }\n  });\n}\nreturn out;"
+      },
+      "id": "0a00000a-0000-0000-0000-00000000000a",
+      "name": "Parser Score",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2180, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL || 'gpt-4o-mini'}}\",\n  \"temperature\": 0.7,\n  \"max_tokens\": 700,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Tu es l'assistant commercial de Symbalyx. Tu écris UN brouillon d'email de prise de contact à froid pour TPE/PME française. Cet email sera relu et envoyé manuellement. Règles absolues: pas de promesse de prix, pas de délai ferme, pas de garantie SEO/Google, pas de jargon ('boostez', 'explosez'), pas d'émojis, vouvoiement, 80-130 mots max, mentionner la ville, CTA doux (mini-audit gratuit ou échange 15 min), signer 'Arsène – Symbalyx'. Réponds en JSON valide strict.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Prospect:\\n\" + {{ JSON.stringify({ company_name: $json.company_name, contact_name: $json.contact_name, niche: $json.niche, city: $json.city }) }} + \"\\n\\nAnalyse:\\n\" + {{ JSON.stringify($json.analysis) }} + \"\\n\\nScore projet:\\n\" + {{ JSON.stringify($json.score) }} + \"\\n\\nRetourne STRICTEMENT:\\n{\\n  \\\"draft_email_subject\\\": \\\"max 60 caractères, sans Re:/Fwd:, sans URGENT/OFFRE\\\",\\n  \\\"draft_email_body\\\": \\\"corps avec \\\\n\\\\n entre paragraphes, signature 'Arsène – Symbalyx'\\\"\\n}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000,
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "0a00000b-0000-0000-0000-00000000000b",
+      "name": "A3 — LLM Rédaction Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2400, 200],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nfor (const item of items) {\n  const llmRaw = item.json;\n  let parsed = {};\n  try {\n    const content = llmRaw && llmRaw.choices && llmRaw.choices[0] && llmRaw.choices[0].message && llmRaw.choices[0].message.content;\n    if (!content) throw new Error('LLM_NO_CONTENT');\n    parsed = JSON.parse(content);\n  } catch (e) {\n    parsed = { _llm_error: String(e && e.message || e) };\n  }\n  const prev = $('Parser Score').first().json;\n  out.push({\n    json: {\n      ...prev,\n      email: parsed,\n      status: parsed._llm_error ? 'error' : 'drafted',\n      updated_at: new Date().toISOString()\n    }\n  });\n}\nreturn out;"
+      },
+      "id": "0a00000c-0000-0000-0000-00000000000c",
+      "name": "Parser Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2620, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construit la ligne finale prête pour review_queue\nconst out = [];\nfor (const item of items) {\n  const p = item.json;\n  const a = p.analysis || {};\n  const s = p.score || {};\n  const e = p.email || {};\n\n  // Règle d'attribution simple :\n  // - Difficulté simple/medium → Arsène (commercial + delivery)\n  // - Difficulté complex → Arsène + Kentin\n  let assigned_to = 'Arsène';\n  if ((s.project_difficulty_label || '').toLowerCase() === 'complex') {\n    assigned_to = 'Arsène+Kentin';\n  }\n\n  out.push({\n    json: {\n      id: p.id,\n      created_at: p.created_at,\n      updated_at: new Date().toISOString(),\n      status: 'queued_for_review',\n      company_name: p.company_name,\n      contact_name: p.contact_name,\n      email: p.email,\n      website_url: p.website_url,\n      city: p.city,\n      niche: p.niche,\n      business_summary: a.business_summary || '',\n      website_status: a.website_status || 'unknown',\n      opportunity_score: a.opportunity_score || '',\n      opportunity_reason: a.opportunity_reason || '',\n      suggested_angle: a.suggested_angle || '',\n      project_difficulty_score: s.project_difficulty_score || '',\n      project_difficulty_label: s.project_difficulty_label || '',\n      project_difficulty_reason: s.project_difficulty_reason || '',\n      draft_email_subject: e.draft_email_subject || '',\n      draft_email_body: e.draft_email_body || '',\n      assigned_to,\n      human_decision: '',\n      human_notes: ''\n    }\n  });\n}\nreturn out;"
+      },
+      "id": "0a00000d-0000-0000-0000-00000000000d",
+      "name": "Construire Ligne Review",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2840, 200]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "review_queue",
+          "mode": "name"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "0a00000e-0000-0000-0000-00000000000e",
+      "name": "Append → review_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [3060, 200]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "logs",
+          "mode": "name"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.id }}",
+            "phase": "queue",
+            "status": "queued_for_review",
+            "level": "info",
+            "message": "Prospect ajouté en review_queue",
+            "meta": "={{ JSON.stringify({ assigned_to: $json.assigned_to, opportunity_score: $json.opportunity_score, project_difficulty_label: $json.project_difficulty_label }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0a00000f-0000-0000-0000-00000000000f",
+      "name": "Log: Done",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [3280, 200]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "seconds"
+      },
+      "id": "0a000010-0000-0000-0000-000000000010",
+      "name": "Wait (anti rate-limit)",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [3500, 200]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "logs",
+          "mode": "name"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.id }}",
+            "phase": "ingest",
+            "status": "error",
+            "level": "error",
+            "message": "Prospect rejeté à la validation",
+            "meta": "={{ JSON.stringify({ errors: $json.errors }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0a000011-0000-0000-0000-000000000011",
+      "name": "Log: Rejet validation",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1080, 460]
+    }
+  ],
+  "connections": {
+    "Trigger Manuel": {
+      "main": [[{"node": "Lire Prospects (Sheets)", "type": "main", "index": 0}]]
+    },
+    "Lire Prospects (Sheets)": {
+      "main": [[{"node": "Valider & Normaliser", "type": "main", "index": 0}]]
+    },
+    "Valider & Normaliser": {
+      "main": [[{"node": "If status=pending", "type": "main", "index": 0}]]
+    },
+    "If status=pending": {
+      "main": [
+        [{"node": "Boucle Prospect (1 par 1)", "type": "main", "index": 0}],
+        [{"node": "Log: Rejet validation", "type": "main", "index": 0}]
+      ]
+    },
+    "Boucle Prospect (1 par 1)": {
+      "main": [
+        [{"node": "Log: Started", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "Log: Started": {
+      "main": [[{"node": "A1 — LLM Analyse Prospect", "type": "main", "index": 0}]]
+    },
+    "A1 — LLM Analyse Prospect": {
+      "main": [[{"node": "Parser Analyse", "type": "main", "index": 0}]]
+    },
+    "Parser Analyse": {
+      "main": [[{"node": "A2 — LLM Score Projet", "type": "main", "index": 0}]]
+    },
+    "A2 — LLM Score Projet": {
+      "main": [[{"node": "Parser Score", "type": "main", "index": 0}]]
+    },
+    "Parser Score": {
+      "main": [[{"node": "A3 — LLM Rédaction Email", "type": "main", "index": 0}]]
+    },
+    "A3 — LLM Rédaction Email": {
+      "main": [[{"node": "Parser Email", "type": "main", "index": 0}]]
+    },
+    "Parser Email": {
+      "main": [[{"node": "Construire Ligne Review", "type": "main", "index": 0}]]
+    },
+    "Construire Ligne Review": {
+      "main": [[{"node": "Append → review_queue", "type": "main", "index": 0}]]
+    },
+    "Append → review_queue": {
+      "main": [[{"node": "Log: Done", "type": "main", "index": 0}]]
+    },
+    "Log: Done": {
+      "main": [[{"node": "Wait (anti rate-limit)", "type": "main", "index": 0}]]
+    },
+    "Wait (anti rate-limit)": {
+      "main": [[{"node": "Boucle Prospect (1 par 1)", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveExecutionProgress": true,
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [
+    {"name": "symbalyx"},
+    {"name": "prospecting"},
+    {"name": "mvp"}
+  ],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000001",
+  "meta": {
+    "instanceId": "symbalyx-mvp"
+  }
+}
