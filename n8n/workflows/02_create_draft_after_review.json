@@ -1,0 +1,311 @@
+{
+  "name": "Symbalyx — WF2 Create Draft After Review",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 15
+            }
+          ]
+        }
+      },
+      "id": "0b000001-0000-0000-0000-000000000001",
+      "name": "Schedule Trigger (15 min)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {},
+      "id": "0b000002-0000-0000-0000-000000000002",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 480]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "review_queue",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "0b000003-0000-0000-0000-000000000003",
+      "name": "Lire review_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [440, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Filtre: human_decision == 'approved' ET status != 'drafted_in_gmail' ET non vide\nconst out = [];\nfor (const item of items) {\n  const r = item.json || {};\n  const decision = String(r.human_decision || '').trim().toLowerCase();\n  const status = String(r.status || '').trim().toLowerCase();\n  if (decision === 'approved' && status !== 'drafted_in_gmail' && status !== 'sent') {\n    out.push({ json: r });\n  }\n}\nreturn out;"
+      },
+      "id": "0b000004-0000-0000-0000-000000000004",
+      "name": "Filtrer approved & non draftés",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 380]
+    },
+    {
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      },
+      "id": "0b000005-0000-0000-0000-000000000005",
+      "name": "Boucle (1 par 1)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [880, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Anti-double-draft: vérifier opt_out une dernière fois et préparer le draft\nconst r = $json;\nconst optOut = r.opt_out === true || String(r.opt_out || '').toLowerCase() === 'true';\nif (optOut) {\n  return [{ json: { ...r, _skip: true, _skip_reason: 'opt_out' } }];\n}\nif (!r.email || !r.draft_email_subject || !r.draft_email_body) {\n  return [{ json: { ...r, _skip: true, _skip_reason: 'missing_fields' } }];\n}\nreturn [{ json: { ...r, _skip: false } }];"
+      },
+      "id": "0b000006-0000-0000-0000-000000000006",
+      "name": "Pré-check sécurité",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 380]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": false, "typeValidation": "loose"},
+          "conditions": [
+            {
+              "id": "cond-skip",
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": true,
+              "operator": {"type": "boolean", "operation": "equals"}
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0b000007-0000-0000-0000-000000000007",
+      "name": "If skip ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 380]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.draft_email_subject }}",
+        "emailType": "text",
+        "message": "={{ $json.draft_email_body }}",
+        "options": {
+          "sendTo": "={{ $json.email }}"
+        }
+      },
+      "id": "0b000008-0000-0000-0000-000000000008",
+      "name": "Gmail Create Draft",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1540, 280],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Crée un brouillon Gmail. JAMAIS Send."
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "review_queue",
+          "mode": "name"
+        },
+        "operation": "update",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "status": "drafted_in_gmail",
+            "updated_at": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": ["id"],
+          "schema": [
+            {"id": "id", "displayName": "id", "required": true, "defaultMatch": true, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "updated_at", "displayName": "updated_at", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0b000009-0000-0000-0000-000000000009",
+      "name": "Update review_queue → drafted",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1760, 280]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "logs",
+          "mode": "name"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.id }}",
+            "phase": "draft",
+            "status": "draft_created",
+            "level": "info",
+            "message": "Brouillon Gmail créé après validation humaine",
+            "meta": "={{ JSON.stringify({ subject: $json.draft_email_subject, to: $json.email }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0b00000a-0000-0000-0000-00000000000a",
+      "name": "Log: draft_created",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1980, 280]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "logs",
+          "mode": "name"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.id }}",
+            "phase": "draft",
+            "status": "skipped",
+            "level": "warn",
+            "message": "Draft skippé",
+            "meta": "={{ JSON.stringify({ reason: $json._skip_reason }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0b00000b-0000-0000-0000-00000000000b",
+      "name": "Log: skipped",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1540, 480]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      },
+      "id": "0b00000c-0000-0000-0000-00000000000c",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [2200, 380]
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (15 min)": {
+      "main": [[{"node": "Lire review_queue", "type": "main", "index": 0}]]
+    },
+    "Trigger Manuel": {
+      "main": [[{"node": "Lire review_queue", "type": "main", "index": 0}]]
+    },
+    "Lire review_queue": {
+      "main": [[{"node": "Filtrer approved & non draftés", "type": "main", "index": 0}]]
+    },
+    "Filtrer approved & non draftés": {
+      "main": [[{"node": "Boucle (1 par 1)", "type": "main", "index": 0}]]
+    },
+    "Boucle (1 par 1)": {
+      "main": [
+        [{"node": "Pré-check sécurité", "type": "main", "index": 0}],
+        []
+      ]
+    },
+    "Pré-check sécurité": {
+      "main": [[{"node": "If skip ?", "type": "main", "index": 0}]]
+    },
+    "If skip ?": {
+      "main": [
+        [{"node": "Log: skipped", "type": "main", "index": 0}],
+        [{"node": "Gmail Create Draft", "type": "main", "index": 0}]
+      ]
+    },
+    "Gmail Create Draft": {
+      "main": [[{"node": "Update review_queue → drafted", "type": "main", "index": 0}]]
+    },
+    "Update review_queue → drafted": {
+      "main": [[{"node": "Log: draft_created", "type": "main", "index": 0}]]
+    },
+    "Log: draft_created": {
+      "main": [[{"node": "Wait", "type": "main", "index": 0}]]
+    },
+    "Log: skipped": {
+      "main": [[{"node": "Wait", "type": "main", "index": 0}]]
+    },
+    "Wait": {
+      "main": [[{"node": "Boucle (1 par 1)", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "draft"}, {"name": "wf2"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000002",
+  "meta": {"instanceId": "symbalyx-wf2"}
+}

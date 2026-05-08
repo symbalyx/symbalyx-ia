@@ -1,4 +1,4 @@
-# Symbalyx — Système multi-agents n8n
+# Symbalyx — Système multi-agents n8n (V2)
 
 Architecture pragmatique d'un pipeline de prospection B2B pour TPE/PME locales,
 opéré par une équipe de 2 personnes (Arsène / Kentin), avec validation humaine
@@ -7,6 +7,35 @@ obligatoire avant tout envoi.
 > **Règle d'or héritée du système Make** : Gmail = **Create Draft only**.
 > Le système ne doit JAMAIS envoyer un email automatiquement. La file
 > `review_queue` est la frontière entre l'IA et l'humain.
+
+## Workflows livrés (V2)
+
+| Fichier | Trigger | Rôle |
+|---|---|---|
+| `workflows/01_mvp_prospecting.json` | Manual | Ingestion + 3 agents (analyse/score/email) → review_queue |
+| `workflows/02_create_draft_after_review.json` | Schedule 15min + Manual | Lit review_queue (approved) → Gmail Create Draft → update statut |
+| `workflows/04_reply_classifier.json` | Gmail Trigger | Classe les réponses entrantes en 6 catégories → update review_queue → exec WF5 si interested/needs_quote |
+| `workflows/05_project_brief.json` | Execute Workflow + Manual | Génère brief projet structuré → append project_queue |
+| `workflows/06_internal_ops.json` | Manual | Lit project_queue + team_state → table de répartition Arsène/Kentin |
+
+## Sheets requis
+
+| Onglet | Écrit par |
+|---|---|
+| `prospects_in` | toi (à la main) |
+| `review_queue` | WF1 (append), WF2 (update), WF4 (update) |
+| `project_queue` ✨ | WF5 (append), WF6 (read) |
+| `team_state` ✨ | toi (à la main) |
+| `weekly_recommendations` ✨ | WF6 (append) |
+| `logs` | tous |
+
+> ✨ = nouveaux en V2. Headers exacts dans `schemas/*.csv`.
+
+## Colonnes à ajouter à `review_queue` pour V2
+
+En plus des 23 colonnes V1, ajoute pour le tracking des réponses :
+
+`reply_category, reply_text, reply_received_at, reply_opt_out, follow_up_date`
 
 ---
 

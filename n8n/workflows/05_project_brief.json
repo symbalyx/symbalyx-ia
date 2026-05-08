@@ -1,0 +1,209 @@
+{
+  "name": "Symbalyx — WF5 Project Brief Generator",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {"name": "prospect_id", "type": "string"},
+            {"name": "reply_text", "type": "string"},
+            {"name": "reply_category", "type": "string"}
+          ]
+        }
+      },
+      "id": "0d000001-0000-0000-0000-000000000001",
+      "name": "Trigger Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {},
+      "id": "0d000002-0000-0000-0000-000000000002",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 480],
+      "notes": "Pour test manuel: hardcoder un prospect_id ci-dessous."
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "review_queue",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "id",
+              "lookupValue": "={{ $json.prospect_id || 'p_TEST_REMPLACER' }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0d000003-0000-0000-0000-000000000003",
+      "name": "Lookup prospect (review_queue)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [440, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine prospect data + reply context (depuis trigger inputs)\nconst prospect = $json;\nconst inputs = $('Trigger Sub-workflow').first() ? $('Trigger Sub-workflow').first().json : {};\nreturn [{\n  json: {\n    ...prospect,\n    reply_text_input: inputs.reply_text || prospect.reply_text || '',\n    reply_category_input: inputs.reply_category || prospect.reply_category || ''\n  }\n}];"
+      },
+      "id": "0d000004-0000-0000-0000-000000000004",
+      "name": "Build context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{"name": "Content-Type", "value": "application/json"}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL_PREMIUM || 'gpt-4o'}}\",\n  \"temperature\": 0.3,\n  \"max_tokens\": 1200,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Tu es chef de projet Symbalyx. Sur réponse positive d'un prospect, tu prépares un brief exploitable pour Arsène (sites/design) et Kentin (recherche/QA). Pas de prix, pas de date ferme. Réponds JSON strict sans markdown.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Données prospect:\\n\" + {{ JSON.stringify({ company_name: $json.company_name, contact_name: $json.contact_name, niche: $json.niche, city: $json.city, website_url: $json.website_url }) }} + \"\\n\\nAnalyse précédente:\\n\" + {{ JSON.stringify({ business_summary: $json.business_summary, website_status: $json.website_status, opportunity_reason: $json.opportunity_reason, suggested_angle: $json.suggested_angle }) }} + \"\\n\\nEstimation projet précédente:\\n\" + {{ JSON.stringify({ project_difficulty_score: $json.project_difficulty_score, project_difficulty_label: $json.project_difficulty_label, project_difficulty_reason: $json.project_difficulty_reason }) }} + \"\\n\\nClassification réponse:\\n\" + {{ JSON.stringify({ category: $json.reply_category_input }) }} + \"\\n\\nContenu réponse client:\\n\\\"\\\"\\\"\\n\" + {{ JSON.stringify($json.reply_text_input || '') }} + \"\\n\\\"\\\"\\\"\\n\\nRetourne STRICTEMENT:\\n{\\n  \\\"client_brief_summary\\\": \\\"5-8 lignes\\\",\\n  \\\"recommended_website_prompt\\\": \\\"prompt prêt pour le builder Symbalyx (audience, ton, sections, CTA)\\\",\\n  \\\"estimated_project_scope\\\": {\\n    \\\"pages\\\": [\\\"...\\\"],\\n    \\\"features\\\": [\\\"...\\\"],\\n    \\\"integrations\\\": [\\\"...\\\"],\\n    \\\"content_to_collect_from_client\\\": [\\\"...\\\"]\\n  },\\n  \\\"estimated_project_complexity\\\": \\\"simple|medium|complex\\\",\\n  \\\"next_questions_to_ask\\\": [\\\"q1\\\", \\\"q2\\\", \\\"q3\\\"],\\n  \\\"suggested_owner\\\": \\\"Arsène|Kentin|Arsène+Kentin\\\",\\n  \\\"suggested_owner_reason\\\": \\\"1 phrase basée sur les rôles fixes\\\"\\n}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 45000,
+          "response": {"response": {"neverError": true}}
+        }
+      },
+      "id": "0d000005-0000-0000-0000-000000000005",
+      "name": "A5 — LLM Build Brief",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 380],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nfor (const item of items) {\n  const llm = item.json;\n  let parsed = {};\n  try {\n    const c = llm && llm.choices && llm.choices[0] && llm.choices[0].message && llm.choices[0].message.content;\n    if (!c) throw new Error('NO_CONTENT');\n    parsed = JSON.parse(c);\n  } catch (e) {\n    parsed = { _llm_error: String(e && e.message || e) };\n  }\n  const prospect = $('Build context').first().json;\n  const now = new Date().toISOString();\n  out.push({\n    json: {\n      id: 'proj_' + Date.now(),\n      prospect_id: prospect.id,\n      created_at: now,\n      updated_at: now,\n      status: parsed._llm_error ? 'error' : 'new',\n      client_name: prospect.company_name,\n      niche: prospect.niche,\n      city: prospect.city,\n      email: prospect.email,\n      client_brief_summary: parsed.client_brief_summary || '',\n      recommended_website_prompt: parsed.recommended_website_prompt || '',\n      estimated_project_scope: JSON.stringify(parsed.estimated_project_scope || {}),\n      estimated_project_complexity: parsed.estimated_project_complexity || '',\n      next_questions_to_ask: JSON.stringify(parsed.next_questions_to_ask || []),\n      assigned_to: parsed.suggested_owner || 'Arsène',\n      estimated_hours: '',\n      priority: 'medium',\n      notes: parsed.suggested_owner_reason || ''\n    }\n  });\n}\nreturn out;"
+      },
+      "id": "0d000006-0000-0000-0000-000000000006",
+      "name": "Parser Brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "project_queue",
+          "mode": "name"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "0d000007-0000-0000-0000-000000000007",
+      "name": "Append → project_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1320, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "logs",
+          "mode": "name"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.prospect_id }}",
+            "phase": "brief",
+            "status": "brief_created",
+            "level": "info",
+            "message": "Brief projet généré",
+            "meta": "={{ JSON.stringify({ project_id: $json.id, complexity: $json.estimated_project_complexity, suggested_owner: $json.assigned_to }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0d000008-0000-0000-0000-000000000008",
+      "name": "Log: brief_created",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1540, 380]
+    }
+  ],
+  "connections": {
+    "Trigger Sub-workflow": {
+      "main": [[{"node": "Lookup prospect (review_queue)", "type": "main", "index": 0}]]
+    },
+    "Trigger Manuel": {
+      "main": [[{"node": "Lookup prospect (review_queue)", "type": "main", "index": 0}]]
+    },
+    "Lookup prospect (review_queue)": {
+      "main": [[{"node": "Build context", "type": "main", "index": 0}]]
+    },
+    "Build context": {
+      "main": [[{"node": "A5 — LLM Build Brief", "type": "main", "index": 0}]]
+    },
+    "A5 — LLM Build Brief": {
+      "main": [[{"node": "Parser Brief", "type": "main", "index": 0}]]
+    },
+    "Parser Brief": {
+      "main": [[{"node": "Append → project_queue", "type": "main", "index": 0}]]
+    },
+    "Append → project_queue": {
+      "main": [[{"node": "Log: brief_created", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "brief"}, {"name": "wf5"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000005",
+  "meta": {"instanceId": "symbalyx-wf5"}
+}
