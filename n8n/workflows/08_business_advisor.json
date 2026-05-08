@@ -1,0 +1,289 @@
+{
+  "name": "Symbalyx — WF8 Business Advisor",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "10000001-0000-0000-0000-000000000001",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 480]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "weeks", "weeksInterval": 1, "triggerAtDay": [1], "triggerAtHour": 7}]
+        }
+      },
+      "id": "10000002-0000-0000-0000-000000000002",
+      "name": "Schedule (lundi 7h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 280]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "review_queue", "mode": "name"},
+        "options": {}
+      },
+      "id": "10000003-0000-0000-0000-000000000003",
+      "name": "Lire review_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 200]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "project_queue", "mode": "name"},
+        "options": {}
+      },
+      "id": "10000004-0000-0000-0000-000000000004",
+      "name": "Lire project_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "team_state", "mode": "name"},
+        "options": {}
+      },
+      "id": "10000005-0000-0000-0000-000000000005",
+      "name": "Lire team_state",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 520]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "business_control", "mode": "name"},
+        "options": {}
+      },
+      "id": "10000006-0000-0000-0000-000000000006",
+      "name": "Lire business_control",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 680]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "logs", "mode": "name"},
+        "options": {}
+      },
+      "id": "10000007-0000-0000-0000-000000000007",
+      "name": "Lire logs (récents)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 840]
+    },
+    {
+      "parameters": {
+        "jsCode": "// === Construit l'état pipeline (KPIs + top items + blocages) ===\nconst now = Date.now();\nconst run_id = 'adv_' + now;\n\nconst prospects = $('Lire review_queue').all().map(i => i.json);\nconst projects  = $('Lire project_queue').all().map(i => i.json);\nconst team      = $('Lire team_state').all().map(i => i.json);\nconst bcl       = $('Lire business_control').all().map(i => i.json);\nconst logs      = $('Lire logs (récents)').all().map(i => i.json);\n\nfunction lower(v) { return String(v || '').toLowerCase(); }\nfunction daysSince(iso) {\n  if (!iso) return 999;\n  const t = Date.parse(iso); if (Number.isNaN(t)) return 999;\n  return Math.max(0, Math.floor((now - t) / 86400000));\n}\n\n// --- KPIs ---\nconst kpis = {\n  prospects_total: prospects.length,\n  prospects_pending: prospects.filter(p => lower(p.status) === 'queued_for_review').length,\n  prospects_in_review: prospects.filter(p => lower(p.status) === 'queued_for_review' && !p.human_decision).length,\n  prospects_drafted: prospects.filter(p => lower(p.status) === 'drafted_in_gmail').length,\n  prospects_replied_interested: prospects.filter(p => lower(p.reply_category) === 'interested').length,\n  prospects_replied_not_interested: prospects.filter(p => lower(p.reply_category) === 'not_interested').length,\n  projects_active: projects.filter(p => ['new', 'in_progress'].includes(lower(p.status))).length,\n  projects_blocked: projects.filter(p => lower(p.status) === 'blocked').length,\n  projects_due_soon: projects.filter(p => p.deadline && daysSince(p.deadline) >= -7 && daysSince(p.deadline) < 0).length,\n  high_priority_count: 0,\n  critical_count: 0\n};\n\n// --- Top items depuis business_control (dernier run WF7) ---\nconst lastWF7 = bcl\n  .filter(b => b.source_workflow === 'WF7')\n  .sort((a, b) => String(b.ts).localeCompare(String(a.ts)));\nconst lastRunIds = [...new Set(lastWF7.map(b => b.run_id))].slice(0, 1);\nconst topItems = lastWF7\n  .filter(b => lastRunIds.includes(b.run_id))\n  .slice(0, 10)\n  .map(b => ({\n    item_type: b.item_type,\n    item_id: b.item_id,\n    title: b.title,\n    priority_level: b.priority_level,\n    score_raw: Number(b.priority_score) || 0,\n    summary: b.recommendation\n  }));\nkpis.high_priority_count = topItems.filter(t => t.priority_level === 'high').length;\nkpis.critical_count      = topItems.filter(t => t.priority_level === 'critical').length;\n\n// --- Team state ---\nconst teamState = team.map(t => ({\n  name: t.name,\n  role: t.role,\n  current_load_pct: Number(t.current_load_pct) || 0,\n  weekly_capacity_hours: Number(t.weekly_capacity_hours) || 35,\n  current_committed_hours: Number(t.current_committed_hours) || 0,\n  unavailable_days: String(t.unavailable_days || '').split(',').map(s => s.trim()).filter(Boolean)\n}));\n\n// --- Blocages récents (logs level=error sur 7 derniers jours) ---\nconst recentBlockages = logs\n  .filter(l => lower(l.level) === 'error' && daysSince(l.ts) <= 7)\n  .slice(-15)\n  .map(l => ({\n    prospect_id: l.prospect_id,\n    phase: l.phase,\n    message: String(l.message || '').slice(0, 200)\n  }));\n\n// --- Période ISO week label ---\nconst d = new Date();\nconst onejan = new Date(d.getFullYear(), 0, 1);\nconst week = Math.ceil((((d - onejan) / 86400000) + onejan.getDay() + 1) / 7);\nconst snapshot_period = `${d.getFullYear()}-W${String(week).padStart(2, '0')}`;\n\nreturn [{\n  json: {\n    run_id,\n    snapshot_period,\n    kpis,\n    team_state: teamState,\n    top_items: topItems,\n    recent_blockages: recentBlockages\n  }\n}];"
+      },
+      "id": "10000008-0000-0000-0000-000000000008",
+      "name": "Build BUSINESS_STATE",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 480]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{"name": "Content-Type", "value": "application/json"}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL_PREMIUM || 'gpt-4o'}}\",\n  \"temperature\": 0.2,\n  \"max_tokens\": 1800,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Tu es conseiller business de Symbalyx (équipe de 2: Arsène=sites/design/commercial, Kentin=recherche/n8n/API/QA). Tu produis des recos concrètes et simples. INTERDIT: décisions salaires/embauches/licenciements/juridique/financières définitives. AUTORISÉ: recommander, scorer, prioriser, signaler, suggérer ratios. must_be_validated_by_humans=true toujours. JSON strict sans markdown.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"État pipeline:\\n\" + {{ JSON.stringify($json) }} + \"\\n\\nProduis 5 priorités, 5 risques, 3-5 notes stratégiques, état de charge, leads à pousser/dropper, projets à accélérer/ralentir. Garde-fous: ne mets jamais un item interested/needs_quote dans leads_to_drop. Si une personne >85% load, signale-le dans risks ET dans rebalance_suggestion. Inclure UNIQUEMENT des item_id présents dans top_items.\\n\\nRetourne STRICTEMENT:\\n{\\n  \\\"weekly_priorities\\\": [\\\"...max 5...\\\"],\\n  \\\"weekly_risks\\\": [\\\"...max 5...\\\"],\\n  \\\"strategic_notes\\\": [\\\"...3-5...\\\"],\\n  \\\"team_balance\\\": {\\n    \\\"arsene\\\": { \\\"load_pct\\\": <int>, \\\"status\\\": \\\"ok|stretched|overloaded\\\", \\\"comment\\\": \\\"...\\\" },\\n    \\\"kentin\\\": { \\\"load_pct\\\": <int>, \\\"status\\\": \\\"ok|stretched|overloaded\\\", \\\"comment\\\": \\\"...\\\" },\\n    \\\"rebalance_suggestion\\\": \\\"... ou null\\\"\\n  },\\n  \\\"leads_to_push\\\": [\\\"...\\\"],\\n  \\\"leads_to_drop\\\": [\\\"...\\\"],\\n  \\\"projects_to_accelerate\\\": [\\\"...\\\"],\\n  \\\"projects_to_slow_down\\\": [\\\"...\\\"],\\n  \\\"open_questions_for_team\\\": [\\\"...\\\"],\\n  \\\"must_be_validated_by_humans\\\": true\\n}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000,
+          "response": {"response": {"neverError": true}}
+        }
+      },
+      "id": "10000009-0000-0000-0000-000000000009",
+      "name": "A8 — LLM Business Advisor",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 480],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 4000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse advisor + persiste : 1 ligne business_control (synthèse) + 1 snapshot KPI\nconst llm = $json;\nlet advisor = {};\ntry {\n  const c = llm && llm.choices && llm.choices[0] && llm.choices[0].message && llm.choices[0].message.content;\n  if (c) advisor = JSON.parse(c);\n} catch (e) {\n  advisor = { _llm_error: String(e && e.message || e) };\n}\n\nconst ctx = $('Build BUSINESS_STATE').first().json;\nconst now = new Date().toISOString();\n\nconst bclRow = {\n  id: 'bcl_' + Date.now() + '_advisor',\n  ts: now,\n  run_id: ctx.run_id,\n  source_workflow: 'WF8',\n  item_type: 'ops',\n  item_id: ctx.snapshot_period,\n  title: `Synthèse Business Advisor — ${ctx.snapshot_period}`,\n  recommendation: (advisor.weekly_priorities || []).slice(0, 3).join(' | ') || (advisor._llm_error || 'pas de reco'),\n  recommended_action: 'review',\n  priority_score: '',\n  priority_level: (ctx.kpis.critical_count > 0 ? 'critical' : (ctx.kpis.high_priority_count > 0 ? 'high' : 'medium')),\n  expected_impact: 'high',\n  effort_level: 'low',\n  assigned_to: 'Arsène+Kentin',\n  requires_human_validation: 'true',\n  decision_status: 'pending',\n  decided_by: '',\n  decided_at: '',\n  notes: JSON.stringify({\n    weekly_risks: advisor.weekly_risks || [],\n    strategic_notes: advisor.strategic_notes || [],\n    team_balance: advisor.team_balance || {},\n    leads_to_push: advisor.leads_to_push || [],\n    leads_to_drop: advisor.leads_to_drop || [],\n    projects_to_accelerate: advisor.projects_to_accelerate || [],\n    projects_to_slow_down: advisor.projects_to_slow_down || [],\n    open_questions: advisor.open_questions_for_team || []\n  })\n};\n\nconst kpiRow = {\n  ts: now,\n  run_id: ctx.run_id,\n  period: ctx.snapshot_period,\n  prospects_total: ctx.kpis.prospects_total,\n  prospects_pending: ctx.kpis.prospects_pending,\n  prospects_in_review: ctx.kpis.prospects_in_review,\n  prospects_drafted: ctx.kpis.prospects_drafted,\n  prospects_replied_interested: ctx.kpis.prospects_replied_interested,\n  prospects_replied_not_interested: ctx.kpis.prospects_replied_not_interested,\n  projects_active: ctx.kpis.projects_active,\n  projects_blocked: ctx.kpis.projects_blocked,\n  projects_due_soon: ctx.kpis.projects_due_soon,\n  team_load_arsene_pct: (ctx.team_state.find(t => String(t.name).toLowerCase().startsWith('ars')) || {}).current_load_pct || '',\n  team_load_kentin_pct: (ctx.team_state.find(t => String(t.name).toLowerCase().startsWith('ken')) || {}).current_load_pct || '',\n  high_priority_count: ctx.kpis.high_priority_count,\n  critical_count: ctx.kpis.critical_count,\n  notes: JSON.stringify((advisor.weekly_priorities || []).slice(0, 5))\n};\n\nreturn [\n  { json: { _target: 'business_control', ...bclRow } },\n  { json: { _target: 'kpi_snapshots', ...kpiRow } }\n];"
+      },
+      "id": "1000000a-0000-0000-0000-00000000000a",
+      "name": "Format & Split",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 480]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": false, "typeValidation": "loose"},
+                "conditions": [
+                  {
+                    "id": "rule-bcl",
+                    "leftValue": "={{ $json._target }}",
+                    "rightValue": "business_control",
+                    "operator": {"type": "string", "operation": "equals"}
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "to_bcl"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": false, "typeValidation": "loose"},
+                "conditions": [
+                  {
+                    "id": "rule-kpi",
+                    "leftValue": "={{ $json._target }}",
+                    "rightValue": "kpi_snapshots",
+                    "operator": {"type": "string", "operation": "equals"}
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "to_kpi"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1000000b-0000-0000-0000-00000000000b",
+      "name": "Switch destination",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1320, 480]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "business_control", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "1000000c-0000-0000-0000-00000000000c",
+      "name": "Append → business_control",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1540, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "kpi_snapshots", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "1000000d-0000-0000-0000-00000000000d",
+      "name": "Append → kpi_snapshots",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1540, 580]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "logs", "mode": "name"},
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "",
+            "phase": "advisor",
+            "status": "synthesis_created",
+            "level": "info",
+            "message": "Synthèse WF8 enregistrée",
+            "meta": "={{ JSON.stringify({ run_id: $json.run_id, target: $json._target }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "1000000e-0000-0000-0000-00000000000e",
+      "name": "Log: advisor",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1760, 480]
+    }
+  ],
+  "connections": {
+    "Trigger Manuel": {
+      "main": [[
+        {"node": "Lire review_queue", "type": "main", "index": 0},
+        {"node": "Lire project_queue", "type": "main", "index": 0},
+        {"node": "Lire team_state", "type": "main", "index": 0},
+        {"node": "Lire business_control", "type": "main", "index": 0},
+        {"node": "Lire logs (récents)", "type": "main", "index": 0}
+      ]]
+    },
+    "Schedule (lundi 7h)": {
+      "main": [[
+        {"node": "Lire review_queue", "type": "main", "index": 0},
+        {"node": "Lire project_queue", "type": "main", "index": 0},
+        {"node": "Lire team_state", "type": "main", "index": 0},
+        {"node": "Lire business_control", "type": "main", "index": 0},
+        {"node": "Lire logs (récents)", "type": "main", "index": 0}
+      ]]
+    },
+    "Lire review_queue":     { "main": [[{"node": "Build BUSINESS_STATE", "type": "main", "index": 0}]] },
+    "Lire project_queue":    { "main": [[{"node": "Build BUSINESS_STATE", "type": "main", "index": 0}]] },
+    "Lire team_state":       { "main": [[{"node": "Build BUSINESS_STATE", "type": "main", "index": 0}]] },
+    "Lire business_control": { "main": [[{"node": "Build BUSINESS_STATE", "type": "main", "index": 0}]] },
+    "Lire logs (récents)":   { "main": [[{"node": "Build BUSINESS_STATE", "type": "main", "index": 0}]] },
+    "Build BUSINESS_STATE":  { "main": [[{"node": "A8 — LLM Business Advisor", "type": "main", "index": 0}]] },
+    "A8 — LLM Business Advisor": { "main": [[{"node": "Format & Split", "type": "main", "index": 0}]] },
+    "Format & Split":        { "main": [[{"node": "Switch destination", "type": "main", "index": 0}]] },
+    "Switch destination": {
+      "main": [
+        [{"node": "Append → business_control", "type": "main", "index": 0}],
+        [{"node": "Append → kpi_snapshots", "type": "main", "index": 0}]
+      ]
+    },
+    "Append → business_control": { "main": [[{"node": "Log: advisor", "type": "main", "index": 0}]] },
+    "Append → kpi_snapshots":    { "main": [[{"node": "Log: advisor", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "advisor"}, {"name": "wf8"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000008",
+  "meta": {"instanceId": "symbalyx-wf8"}
+}
