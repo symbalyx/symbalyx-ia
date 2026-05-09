@@ -1,0 +1,170 @@
+{
+  "name": "Symbalyx — WF17 Notifications Dispatcher",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "hours", "hoursInterval": 1}]}},
+      "id": "17100001-0000-0000-0000-000000000001",
+      "name": "Schedule (toutes les heures)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 280]
+    },
+    {
+      "parameters": {},
+      "id": "17100002-0000-0000-0000-000000000002",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 460]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "business_control", "mode": "name"},
+        "options": {}
+      },
+      "id": "17100003-0000-0000-0000-000000000003",
+      "name": "Lire business_control",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 200]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "review_queue", "mode": "name"},
+        "options": {}
+      },
+      "id": "17100004-0000-0000-0000-000000000004",
+      "name": "Lire review_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "project_queue", "mode": "name"},
+        "options": {}
+      },
+      "id": "17100005-0000-0000-0000-000000000005",
+      "name": "Lire project_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 560]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "invoices", "mode": "name"},
+        "options": {}
+      },
+      "id": "17100006-0000-0000-0000-000000000006",
+      "name": "Lire invoices",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 740]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "notifications_inbox", "mode": "name"},
+        "options": {}
+      },
+      "id": "17100007-0000-0000-0000-000000000007",
+      "name": "Lire notifications_inbox (dedup)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 920]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Détecte les events qui méritent une notification, dédoublonne sur 24h, limite anti-spam.\nconst now = Date.now();\nconst MAX_NEW_PER_RUN = 8; // anti-flood\nconst DEDUP_WINDOW_H = 24;\n\nconst bcl = $('Lire business_control').all().map(i=>i.json);\nconst review = $('Lire review_queue').all().map(i=>i.json);\nconst projects = $('Lire project_queue').all().map(i=>i.json);\nconst invoices = $('Lire invoices').all().map(i=>i.json);\nconst inbox = $('Lire notifications_inbox (dedup)').all().map(i=>i.json);\n\nconst recentKeys = new Set(\n  inbox.filter(n => {\n    const t = Date.parse(n.ts || ''); return Number.isFinite(t) && (now - t) < DEDUP_WINDOW_H*3600*1000;\n  }).map(n => `${n.kind}|${n.item_id}`)\n);\n\nfunction lower(v){return String(v||'').toLowerCase();}\nfunction daysSince(iso){if(!iso) return null; const t=Date.parse(iso); return Number.isFinite(t)?Math.floor((now-t)/86400000):null;}\nfunction daysUntil(iso){if(!iso) return null; const t=Date.parse(iso); return Number.isFinite(t)?Math.floor((t-now)/86400000):null;}\n\nconst events = [];\n\n// 1) Critical pending dans business_control\nfor (const b of bcl) {\n  if (lower(b.decision_status) !== 'pending') continue;\n  if (lower(b.priority_level) !== 'critical') continue;\n  const key = `bcl_critical|${b.id}`;\n  if (recentKeys.has(key)) continue;\n  events.push({\n    kind: 'bcl_critical',\n    severity: 'critical',\n    title: `Critical à valider : ${b.title || b.item_id}`,\n    body: (b.recommendation || '').slice(0, 140),\n    deeplink: `#decisions/${b.id}`,\n    source_workflow: b.source_workflow || 'WF7',\n    item_id: b.id\n  });\n}\n\n// 2) Nouvelle réponse intéressante (interested ou needs_quote, dernière 6h)\nfor (const r of review) {\n  const cat = lower(r.reply_category);\n  if (!['interested','needs_quote'].includes(cat)) continue;\n  const t = Date.parse(r.reply_received_at || ''); if (!Number.isFinite(t)) continue;\n  if ((now - t) > 6*3600*1000) continue;\n  const key = `reply_hot|${r.id}|${cat}`;\n  if (recentKeys.has(key)) continue;\n  events.push({\n    kind: 'reply_hot',\n    severity: 'high',\n    title: `Réponse ${cat} : ${r.company_name || r.id}`,\n    body: String(r.reply_text || '').slice(0, 140),\n    deeplink: `#prospects/${r.id}`,\n    source_workflow: 'WF4',\n    item_id: r.id\n  });\n}\n\n// 3) Projet bloqué ou deadline imminente\nfor (const p of projects) {\n  const status = lower(p.status);\n  const dueIn = daysUntil(p.deadline);\n  let kind = null, severity = 'high';\n  if (status === 'blocked') { kind = 'project_blocked'; }\n  else if (dueIn !== null && dueIn <= 3 && ['new','in_progress'].includes(status)) { kind = 'project_deadline'; severity = 'critical'; }\n  if (!kind) continue;\n  const key = `${kind}|${p.id}`;\n  if (recentKeys.has(key)) continue;\n  events.push({\n    kind,\n    severity,\n    title: kind === 'project_blocked' ? `Projet bloqué : ${p.client_name || p.id}` : `Deadline ${dueIn}j : ${p.client_name || p.id}`,\n    body: (p.client_brief_summary || '').slice(0, 140),\n    deeplink: `#projects/${p.id}`,\n    source_workflow: 'WF11',\n    item_id: p.id\n  });\n}\n\n// 4) Facture en retard >=14 jours\nfor (const inv of invoices) {\n  const status = lower(inv.status);\n  if (!['sent','overdue','partial'].includes(status)) continue;\n  const od = daysSince(inv.due_date);\n  if (od === null || od < 14) continue;\n  const key = `invoice_overdue|${inv.id || inv.invoice_ref}`;\n  if (recentKeys.has(key)) continue;\n  events.push({\n    kind: 'invoice_overdue',\n    severity: od >= 30 ? 'critical' : 'high',\n    title: `Facture ${inv.invoice_ref || inv.id} en retard ${od}j`,\n    body: `Client ${inv.client_name || ''}, ${inv.amount_eur ? inv.amount_eur+' €' : ''}`,\n    deeplink: `#decisions`,\n    source_workflow: 'WF14',\n    item_id: inv.id || inv.invoice_ref\n  });\n}\n\n// 5) Synthèse du matin (lundi, 1 fois/jour)\nconst d = new Date();\nif (d.getHours() >= 7 && d.getHours() <= 9 && d.getDay() === 1) {\n  const todayKey = `morning_digest|${d.toISOString().slice(0,10)}`;\n  if (!recentKeys.has(todayKey)) {\n    const lastDigest = bcl.filter(b => b.source_workflow === 'WF8').sort((a,b)=>String(b.ts||'').localeCompare(String(a.ts||'')))[0];\n    events.push({\n      kind: 'morning_digest',\n      severity: 'info',\n      title: 'Synthèse du matin disponible',\n      body: lastDigest ? (lastDigest.recommendation || '').slice(0,140) : 'Ouvre Symbalyx pour le digest hebdo.',\n      deeplink: '#today',\n      source_workflow: 'WF9',\n      item_id: todayKey\n    });\n  }\n}\n\n// Anti-flood : limite par run\nconst limited = events.slice(0, MAX_NEW_PER_RUN);\nconst nowIso = new Date().toISOString();\nconst expires = new Date(now + 7*86400*1000).toISOString();\nreturn limited.map((e, idx) => ({ json: {\n  id: 'notif_' + Date.now() + '_' + String(idx).padStart(2,'0'),\n  ts: nowIso,\n  kind: e.kind,\n  severity: e.severity,\n  title: e.title,\n  body: e.body,\n  deeplink: e.deeplink,\n  source_workflow: e.source_workflow,\n  item_id: e.item_id,\n  read: 'false',\n  delivered_channels: 'inapp',\n  expires_at: expires\n}}));"
+      },
+      "id": "17100008-0000-0000-0000-000000000008",
+      "name": "Détecter events",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 480]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "notifications_inbox", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "17100009-0000-0000-0000-000000000009",
+      "name": "Append → notifications_inbox",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [880, 480]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "logs", "mode": "name"},
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.item_id }}",
+            "phase": "notify",
+            "status": "={{ $json.kind }}",
+            "level": "info",
+            "message": "Notification créée",
+            "meta": "={{ JSON.stringify({ severity: $json.severity, title: $json.title }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id":"ts","displayName":"ts","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"prospect_id","displayName":"prospect_id","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"phase","displayName":"phase","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"status","displayName":"status","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"level","displayName":"level","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"message","displayName":"message","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"meta","displayName":"meta","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "1710000a-0000-0000-0000-00000000000a",
+      "name": "Log: notify",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1100, 480]
+    }
+  ],
+  "connections": {
+    "Schedule (toutes les heures)": { "main": [[
+      {"node": "Lire business_control", "type": "main", "index": 0},
+      {"node": "Lire review_queue", "type": "main", "index": 0},
+      {"node": "Lire project_queue", "type": "main", "index": 0},
+      {"node": "Lire invoices", "type": "main", "index": 0},
+      {"node": "Lire notifications_inbox (dedup)", "type": "main", "index": 0}
+    ]]},
+    "Trigger Manuel": { "main": [[
+      {"node": "Lire business_control", "type": "main", "index": 0},
+      {"node": "Lire review_queue", "type": "main", "index": 0},
+      {"node": "Lire project_queue", "type": "main", "index": 0},
+      {"node": "Lire invoices", "type": "main", "index": 0},
+      {"node": "Lire notifications_inbox (dedup)", "type": "main", "index": 0}
+    ]]},
+    "Lire business_control": { "main": [[{"node": "Détecter events", "type": "main", "index": 0}]] },
+    "Lire review_queue": { "main": [[{"node": "Détecter events", "type": "main", "index": 0}]] },
+    "Lire project_queue": { "main": [[{"node": "Détecter events", "type": "main", "index": 0}]] },
+    "Lire invoices": { "main": [[{"node": "Détecter events", "type": "main", "index": 0}]] },
+    "Lire notifications_inbox (dedup)": { "main": [[{"node": "Détecter events", "type": "main", "index": 0}]] },
+    "Détecter events": { "main": [[{"node": "Append → notifications_inbox", "type": "main", "index": 0}]] },
+    "Append → notifications_inbox": { "main": [[{"node": "Log: notify", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "notifications"}, {"name": "wf17"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000017",
+  "meta": {"instanceId": "symbalyx-wf17"}
+}
