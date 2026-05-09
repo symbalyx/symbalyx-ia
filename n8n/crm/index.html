@@ -225,6 +225,12 @@
     <p class="lead">Mot de passe local. Premier accès = tu choisis.</p>
     <input id="pwd" type="password" placeholder="••••••••" autofocus>
     <div style="height:8px"></div>
+    <select id="whoami" style="width:100%">
+      <option value="">Je suis…</option>
+      <option value="Arsène">Arsène</option>
+      <option value="Kentin">Kentin</option>
+    </select>
+    <div style="height:8px"></div>
     <button class="btn primary" style="width:100%" onclick="symbLogin()">Entrer</button>
     <p class="muted" style="margin-top:10px">Le hash est stocké dans ce navigateur uniquement, jamais envoyé.</p>
   </div>
@@ -244,6 +250,7 @@
       <button data-view="settings">Réglages</button>
     </nav>
     <div class="right">
+      <span class="chip" id="whoamiChip" title="Profil actif">—</span>
       <button class="iconbtn" id="btnNotif" title="Notifications" onclick="symbOpenNotif()">
         🔔
         <span id="notifDot" class="dot-badge hidden"></span>
@@ -357,6 +364,7 @@
       <h1 class="h1">Décisions</h1>
       <p class="lead">Recommandations IA en attente de validation humaine.</p>
       <div class="row" style="margin-bottom:10px">
+        <button class="btn" id="btnMine" onclick="symbToggleMine()">À moi</button>
         <select id="filterPerson"><option value="all">Toute l'équipe</option><option>Arsène</option><option>Kentin</option><option>Arsène+Kentin</option></select>
         <select id="filterPriority"><option value="all">Toutes priorités</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
         <button class="btn ghost right" onclick="symbExportCSV()">Export CSV</button>
@@ -484,16 +492,19 @@ const STATE = {
       bcl:'business_control', kpi:'kpi_snapshots', team:'team_state',
       review:'review_queue', projects:'project_queue', logs:'logs',
       memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial',
-      invoices:'invoices', notifs:'notifications_inbox'
+      invoices:'invoices', notifs:'notifications_inbox', comments:'team_comments'
     }},
     supabase: { url: '', anonKey: '' },
     prefs: { critical:true, hotReply:true, projectRisk:true, invoiceOverdue:true, morningDigest:true }
   })),
   data: null,
   view: 'today',
-  filters: { person:'all', priority:'all', prospects:'all', projects:'all', memory:'patterns', logs:'all' },
+  filters: { person:'all', priority:'all', prospects:'all', projects:'all', memory:'patterns', logs:'all', mine:false },
   notifs: [],
-  notifsRead: JSON.parse(localStorage.getItem('symbalyx_notifs_read') || '[]')
+  notifsRead: JSON.parse(localStorage.getItem('symbalyx_notifs_read') || '[]'),
+  whoami: localStorage.getItem('symbalyx_whoami') || '',
+  decisionsLocal: JSON.parse(localStorage.getItem('symbalyx_decisions') || '[]'),
+  commentsLocal: JSON.parse(localStorage.getItem('symbalyx_comments') || '[]')
 };
 
 /* ---------- helpers ---------- */
@@ -521,11 +532,19 @@ async function sha256(s){ const b = new TextEncoder().encode(s); const h = await
   return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 async function symbLogin(){
   const pwd = $('pwd').value; if(!pwd) return;
+  const who = $('whoami').value || STATE.whoami;
+  if (!who) { toast('Sélectionne qui tu es', 'err'); return; }
   const h = await sha256(pwd); const stored = localStorage.getItem(PWD_KEY);
   if (!stored) localStorage.setItem(PWD_KEY, h);
   if (localStorage.getItem(PWD_KEY) !== h) { toast('Mot de passe incorrect','err'); return; }
+  STATE.whoami = who; localStorage.setItem('symbalyx_whoami', who);
   $('login').classList.add('hidden'); $('app').classList.remove('hidden');
   symbLoadCfgUI(); symbInitNotifPrefs(); symbRegisterSW(); symbRefresh();
+}
+function symbToggleMine(){
+  STATE.filters.mine = !STATE.filters.mine;
+  $('btnMine').classList.toggle('primary', STATE.filters.mine);
+  renderDecisions(STATE.data||{});
 }
 function symbLogout(){ sessionStorage.clear(); location.reload(); }
 function symbToggleTheme(){
@@ -753,13 +772,17 @@ function iconForType(t, sev){
   return `<div class="ic ${cls}">${ic}</div>`;
 }
 function itemRow(b, withActions){
+  const lastDec = (STATE.decisionsLocal||[]).filter(x=>x.id===b.id).slice(-1)[0];
+  const decBadge = lastDec ? `<span class="pill">${esc(lastDec.by||'?')}: ${esc(lastDec.status)}</span>` : '';
+  const cmtCount = (STATE.commentsLocal||[]).filter(c=>c.item_id===b.id).length;
+  const cmtPill = cmtCount ? `<span class="pill">💬 ${cmtCount}</span>` : '';
   const sub = `${esc(b.recommended_action||'')} · ${esc(b.assigned_to||'')} · ${fmtRelative(b.ts)}`;
   return `<div class="item" onclick="symbOpenDetail('bcl','${b.id}')">
     ${iconForType(b.item_type, b.priority_level)}
     <div class="body">
       <div class="ttl truncate">${esc(b.title||b.item_id||'')}</div>
       <div class="meta truncate">${esc(b.recommendation||'')}</div>
-      <div class="meta">${sub}</div>
+      <div class="meta">${sub} ${decBadge} ${cmtPill}</div>
     </div>
     <div class="right">
       ${priorityBadge(b.priority_level)}
@@ -855,10 +878,13 @@ function renderProjects(d){
 function renderDecisions(d){
   const fp = $('filterPerson')?.value || 'all';
   const fpr = $('filterPriority')?.value || 'all';
-  const rows = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending')
+  let rows = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending')
     .filter(r => fp==='all' || r.assigned_to === fp)
-    .filter(r => fpr==='all' || lower(r.priority_level) === fpr)
-    .sort((a,b)=>(+b.priority_score||0)-(+a.priority_score||0));
+    .filter(r => fpr==='all' || lower(r.priority_level) === fpr);
+  if (STATE.filters.mine && STATE.whoami) {
+    rows = rows.filter(r => String(r.assigned_to||'').includes(STATE.whoami));
+  }
+  rows.sort((a,b)=>(+b.priority_score||0)-(+a.priority_score||0));
   $('listDecisions').innerHTML = rows.map(b => itemRow(b, true)).join('') || emptyRow('Aucune décision en attente.');
   const navCount = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending').length;
   $('navDecCount').textContent = navCount > 0 ? `Décider · ${navCount}` : 'Décider';
@@ -974,7 +1000,21 @@ function symbOpenDetail(type, id){
         <button class="btn success" onclick="symbDecide('${b.id}','approved');symbCloseDetail()">Approuver</button>
         <button class="btn danger" onclick="symbDecide('${b.id}','rejected');symbCloseDetail()">Rejeter</button>
         <button class="btn ghost right" onclick="symbCloseDetail()">Fermer</button>
+      </div>
+      <div class="sep"></div>
+      <div class="card-h"><span class="t">Commentaires équipe</span></div>
+      <div id="commentsList" style="display:flex;flex-direction:column;gap:6px;max-height:180px;overflow:auto"></div>
+      <div style="height:8px"></div>
+      <div class="row">
+        <input id="newComment" placeholder="Ajouter un mot pour ${esc(STATE.whoami==='Arsène'?'Kentin':'Arsène')}…" style="flex:1">
+        <button class="btn primary" onclick="symbAddComment('${b.id}')">Envoyer</button>
       </div>`;
+      setTimeout(()=>{
+        const cl = document.getElementById('commentsList');
+        if (!cl) return;
+        const cmts = (STATE.commentsLocal||[]).filter(c=>c.item_id===b.id);
+        cl.innerHTML = cmts.length ? cmts.map(c=>`<div class="card" style="padding:8px 10px"><strong>${esc(c.author)}</strong> <span class="muted">· ${fmtRelative(c.ts)}</span><div>${esc(c.text)}</div></div>`).join('') : '<div class="muted">Aucun commentaire.</div>';
+      }, 0);
   } else if (type === 'prospect') {
     const p = (d.review||[]).find(x => x.id === id) || {};
     html = `
@@ -1064,11 +1104,16 @@ function refreshBadges(){
 
 /* ---------- decisions actions ---------- */
 function symbDecide(id, status){
-  // Lecture seule : on enregistre localement et on pousse dans une queue exportable.
-  const log = JSON.parse(localStorage.getItem('symbalyx_decisions') || '[]');
-  log.push({id,status,ts:new Date().toISOString()});
-  localStorage.setItem('symbalyx_decisions', JSON.stringify(log));
-  toast(`${status === 'approved' ? 'Approuvé' : 'Rejeté'} · à propager dans business_control`, status==='approved'?'ok':'err');
+  STATE.decisionsLocal.push({id,status,by:STATE.whoami||'?',ts:new Date().toISOString()});
+  localStorage.setItem('symbalyx_decisions', JSON.stringify(STATE.decisionsLocal));
+  toast(`${status === 'approved' ? 'Approuvé' : 'Rejeté'} par ${STATE.whoami||'?'}`, status==='approved'?'ok':'err');
+  symbRender();
+}
+function symbAddComment(itemId){
+  const t = $('newComment'); if (!t || !t.value.trim()) return;
+  STATE.commentsLocal.push({id:'cmt_'+Date.now(), item_id:itemId, author:STATE.whoami||'?', text:t.value.trim(), ts:new Date().toISOString()});
+  localStorage.setItem('symbalyx_comments', JSON.stringify(STATE.commentsLocal));
+  t.value = ''; symbOpenDetail('bcl', itemId);
 }
 function symbExportCSV(){
   const d = STATE.data || {}; const rows = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending');
@@ -1147,6 +1192,7 @@ async function symbRefresh(){
   try {
     STATE.data = await fetchData();
     $('srcInfo').textContent = `${STATE.cfg.source} · ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
+    if ($('whoamiChip')) $('whoamiChip').innerHTML = `<strong>${esc(STATE.whoami||'—')}</strong>`;
     // Web notifs sur nouveaux unread
     (STATE.data.notifs||[]).filter(n => lower(n.read)!=='true' && !STATE.notifsRead.includes(n.id)).forEach(symbWebNotif);
     refreshBadges();

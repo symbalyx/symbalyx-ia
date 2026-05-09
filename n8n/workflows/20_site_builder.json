@@ -1,0 +1,131 @@
+{
+  "name": "Symbalyx — WF20 Site Builder (skills: taste + UI patterns)",
+  "nodes": [
+    {
+      "parameters": {"workflowInputs": {"values": [{"name":"project_id","type":"string"}]}},
+      "id": "20100001-0000-0000-0000-000000000001",
+      "name": "Trigger Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {},
+      "id": "20100002-0000-0000-0000-000000000002",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 480]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "project_queue", "mode": "name"},
+        "filtersUI": {"values": [{"lookupColumn": "id", "lookupValue": "={{ $json.project_id || 'proj_TEST' }}"}]},
+        "options": {}
+      },
+      "id": "20100003-0000-0000-0000-000000000003",
+      "name": "Lookup projet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Content-Type", "value": "application/json"}]},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL_PREMIUM || 'gpt-4o'}}\",\n  \"temperature\": 0.4,\n  \"max_tokens\": 2200,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Tu es designer-développeur senior chez Symbalyx. Tu produis un blueprint de site web pour TPE/PME locale. SKILLS OBLIGATOIRES (à appliquer strictement):\\n\\n[TASTE] Hiérarchie d'abord. 1 typo titres + 1 typo corps max. Échelle 4xl/3xl/2xl/xl/base/sm. 1 neutre + 1 accent unique. Espace blanc large (≥96px section desktop, ≥48px mobile). Mobile-first 375px. 1 CTA primaire par page. PAS de stock photos génériques, PAS de gradient sombre sur image, PAS de 'Welcome to', PAS d'emojis dans titres pro, PAS de carrousel marketing en hero, PAS de scroll-arrow.\\n\\n[UI PATTERNS] Hero = value prop + CTA + preuve. 'Pour qui' = 3 cards persona+douleur. 'Comment' = 3-5 étapes verbe infinitif. Avis = 1-3 témoignages courts avec ville. FAQ = 4-8 questions vraies. CTA final plein écran. Footer 3 colonnes max. Boutons primaires accent + texte blanc, hover opacity 0.9. Cards radius 14-16, padding 24. Inputs ≥44px. Header sticky blur 64px.\\n\\n[NICHE PRESETS] plombier/artisan: bleu profond ou vert sapin, Inter. coiffeur: nude/terracotta doux, Inter+DM Serif Display H1. coach: noir+accent, Söhne-like. resto gastro: crème/brun chaud, Cormorant/Fraunces. resto quick: accent vif, Inter bold. photographe: noir/blanc, sans-serif minimal. immobilier: marine+sable, Inter.\\n\\n[TONE FR TPE/PME] Vouvoiement par défaut. Phrases 12-18 mots. Pas de jargon (boostez/explosez/révolutionnez/AI-powered INTERDITS). Concret, local, pas de superlatifs non chiffrés.\\n\\n[ANTI-PROMESSES] Pas de prix, pas de délai ferme, pas de garantie SEO/Google.\\n\\nMéthode: produire blueprint puis self-critique en 3 points (review_notes). JSON strict.\" },\n    { \"role\": \"user\", \"content\": \"Brief projet:\\n\" + {{ JSON.stringify($json) }} + \"\\n\\nRetourne STRICTEMENT:\\n{\\n  \\\"site_blueprint\\\": {\\n    \\\"design_system\\\": {\\\"font_heading\\\":\\\"...\\\",\\\"font_body\\\":\\\"...\\\",\\\"accent_color_hex\\\":\\\"#...\\\",\\\"neutral_palette\\\":[\\\"#...\\\",\\\"#...\\\",\\\"#...\\\"],\\\"vibe\\\":\\\"...\\\"},\\n    \\\"layout_sections\\\":[\\n      {\\\"name\\\":\\\"hero\\\",\\\"h1\\\":\\\"...\\\",\\\"sub\\\":\\\"...\\\",\\\"cta_primary\\\":\\\"...\\\",\\\"cta_secondary_text\\\":\\\"...\\\",\\\"proof\\\":\\\"...\\\"},\\n      {\\\"name\\\":\\\"pour_qui\\\",\\\"items\\\":[{\\\"persona\\\":\\\"...\\\",\\\"pain\\\":\\\"...\\\",\\\"promise\\\":\\\"...\\\"}]},\\n      {\\\"name\\\":\\\"comment\\\",\\\"steps\\\":[\\\"...\\\"]},\\n      {\\\"name\\\":\\\"avis\\\",\\\"testimonials\\\":[{\\\"text\\\":\\\"...\\\",\\\"name\\\":\\\"...\\\",\\\"city\\\":\\\"...\\\"}]},\\n      {\\\"name\\\":\\\"faq\\\",\\\"items\\\":[{\\\"q\\\":\\\"...\\\",\\\"a\\\":\\\"...\\\"}]},\\n      {\\\"name\\\":\\\"cta_final\\\",\\\"h2\\\":\\\"...\\\",\\\"cta\\\":\\\"...\\\"},\\n      {\\\"name\\\":\\\"footer\\\",\\\"columns\\\":[[\\\"...\\\"],[\\\"...\\\"],[\\\"...\\\"]]}\\n    ],\\n    \\\"tone\\\":\\\"...\\\",\\n    \\\"interdictions\\\":[\\\"...\\\"]\\n  },\\n  \\\"review_notes\\\":[\\\"3 points self-critique\\\"],\\n  \\\"requires_human_validation\\\":true\\n}\" }\n  ]\n}",
+        "options": {"timeout": 60000, "response": {"response": {"neverError": true}}}
+      },
+      "id": "20100004-0000-0000-0000-000000000004",
+      "name": "A20 — LLM Site Builder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 380],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 4000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const llm = $json; let p = {};\ntry { const c = llm.choices && llm.choices[0] && llm.choices[0].message && llm.choices[0].message.content; if (c) p = JSON.parse(c); } catch(e){ p = { _err: String(e) }; }\nconst project = $('Lookup projet').first().json;\nconst now = new Date().toISOString();\nreturn [{ json: {\n  id: 'site_' + Date.now(),\n  ts: now,\n  project_id: project.id,\n  client_name: project.client_name || '',\n  niche: project.niche || '',\n  city: project.city || '',\n  blueprint_json: JSON.stringify(p.site_blueprint || {}),\n  review_notes: JSON.stringify(p.review_notes || []),\n  status: p._err ? 'error' : 'draft_pending_review',\n  validated_by: '',\n  validated_at: ''\n}}];"
+      },
+      "id": "20100005-0000-0000-0000-000000000005",
+      "name": "Format blueprint",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "site_blueprints", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "20100006-0000-0000-0000-000000000006",
+      "name": "Append → site_blueprints",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1080, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "logs", "mode": "name"},
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.project_id }}",
+            "phase": "site_builder",
+            "status": "={{ $json.status }}",
+            "level": "info",
+            "message": "Blueprint site généré (skills: taste + UI patterns)",
+            "meta": "={{ JSON.stringify({ blueprint_id: $json.id, niche: $json.niche }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id":"ts","displayName":"ts","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"prospect_id","displayName":"prospect_id","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"phase","displayName":"phase","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"status","displayName":"status","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"level","displayName":"level","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"message","displayName":"message","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"meta","displayName":"meta","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "20100007-0000-0000-0000-000000000007",
+      "name": "Log: site_builder",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1300, 380]
+    }
+  ],
+  "connections": {
+    "Trigger Sub-workflow": { "main": [[{"node": "Lookup projet", "type": "main", "index": 0}]] },
+    "Trigger Manuel": { "main": [[{"node": "Lookup projet", "type": "main", "index": 0}]] },
+    "Lookup projet": { "main": [[{"node": "A20 — LLM Site Builder", "type": "main", "index": 0}]] },
+    "A20 — LLM Site Builder": { "main": [[{"node": "Format blueprint", "type": "main", "index": 0}]] },
+    "Format blueprint": { "main": [[{"node": "Append → site_blueprints", "type": "main", "index": 0}]] },
+    "Append → site_blueprints": { "main": [[{"node": "Log: site_builder", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "site-builder"}, {"name": "wf20"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000020",
+  "meta": {"instanceId": "symbalyx-wf20"}
+}
