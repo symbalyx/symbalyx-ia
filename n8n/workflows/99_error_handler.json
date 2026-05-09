@@ -1,0 +1,69 @@
+{
+  "name": "Symbalyx — WF99 Error Handler (global)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "99000001-0000-0000-0000-000000000001",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const e = $json || {};\nconst err = e.execution || {};\nconst node = (err.lastNodeExecuted) || '';\nconst wf = (e.workflow && e.workflow.name) || '';\nconst msg = (err.error && err.error.message) || 'unknown';\nconst stack = (err.error && err.error.stack) || '';\nreturn [{ json: {\n  ts: new Date().toISOString(),\n  workflow_name: wf,\n  workflow_id: (e.workflow && e.workflow.id) || '',\n  execution_id: err.id || '',\n  failed_node: node,\n  error_message: String(msg).slice(0, 500),\n  error_stack: String(stack).slice(0, 1500),\n  url: err.url || ''\n}}];"
+      },
+      "id": "99000002-0000-0000-0000-000000000002",
+      "name": "Format Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "logs", "mode": "name"},
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ $json.ts }}",
+            "prospect_id": "",
+            "phase": "error_handler",
+            "status": "error",
+            "level": "error",
+            "message": "={{ $json.workflow_name + ' :: ' + $json.failed_node + ' :: ' + $json.error_message }}",
+            "meta": "={{ JSON.stringify({ wf_id: $json.workflow_id, exec_id: $json.execution_id, stack: $json.error_stack }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "99000003-0000-0000-0000-000000000003",
+      "name": "Append → logs",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [640, 300]
+    }
+  ],
+  "connections": {
+    "Error Trigger": { "main": [[{"node": "Format Error", "type": "main", "index": 0}]] },
+    "Format Error": { "main": [[{"node": "Append → logs", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "infra"}, {"name": "wf99"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000099",
+  "meta": {"instanceId": "symbalyx-wf99"}
+}

@@ -1,0 +1,48 @@
+{
+  "name": "Symbalyx — WF00 Kill Switch (sub-workflow)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {"values": [{"name": "caller", "type": "string"}]}
+      },
+      "id": "00100001-0000-0000-0000-000000000001",
+      "name": "Trigger Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "config", "mode": "name"},
+        "options": {}
+      },
+      "id": "00100002-0000-0000-0000-000000000002",
+      "name": "Lire config",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const rows = items.map(i => i.json);\nconst kv = {};\nfor (const r of rows) { if (r.key) kv[String(r.key).trim()] = String(r.value || '').trim(); }\nconst kill = String(kv.KILL_SWITCH || 'false').toLowerCase() === 'true';\nconst maxBatch = Number(kv.MAX_BATCH || 30);\nconst maxRunsPerHour = Number(kv.MAX_RUNS_PER_HOUR || 6);\nif (kill) { throw new Error('KILL_SWITCH_ACTIVE — exécution bloquée par config'); }\nreturn [{ json: { kill: false, max_batch: maxBatch, max_runs_per_hour: maxRunsPerHour, ...kv } }];"
+      },
+      "id": "00100003-0000-0000-0000-000000000003",
+      "name": "Check & Return",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300]
+    }
+  ],
+  "connections": {
+    "Trigger Sub-workflow": { "main": [[{"node": "Lire config", "type": "main", "index": 0}]] },
+    "Lire config": { "main": [[{"node": "Check & Return", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "infra"}, {"name": "wf00"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000000",
+  "meta": {"instanceId": "symbalyx-wf00"}
+}

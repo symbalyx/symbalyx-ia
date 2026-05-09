@@ -1,0 +1,93 @@
+{
+  "name": "Symbalyx — WF13 Knowledge Base Retrieval",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {"values": [{"name": "query", "type": "string"}, {"name": "top_k", "type": "number"}]}
+      },
+      "id": "13100001-0000-0000-0000-000000000001",
+      "name": "Trigger Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {},
+      "id": "13100002-0000-0000-0000-000000000002",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 480]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "kb_articles", "mode": "name"},
+        "options": {}
+      },
+      "id": "13100003-0000-0000-0000-000000000003",
+      "name": "Lire kb_articles",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Retrieval lexical simple (BM25-like). Pas d'embeddings pour l'instant — anti-coût.\nconst trigInputs = $('Trigger Sub-workflow').first() ? $('Trigger Sub-workflow').first().json : {};\nconst manualInputs = $input && $input.first ? ($input.first().json || {}) : {};\nconst query = String(trigInputs.query || manualInputs.query || '').toLowerCase().trim();\nconst topK = Number(trigInputs.top_k || manualInputs.top_k || 5);\nconst articles = items.map(i => i.json);\nfunction tokenize(s){ return String(s||'').toLowerCase().split(/[^a-z0-9àâçéèêëîïôûùüÿñ]+/).filter(Boolean); }\nconst qTokens = tokenize(query);\nconst stop = new Set(['le','la','les','un','une','de','du','des','et','ou','à','en','pour','par','sur','est','sont','que','qui','dans','avec','au','aux']);\nconst qFiltered = qTokens.filter(t => !stop.has(t));\nfunction score(a){\n  const text = (a.title || '') + ' ' + (a.body || '') + ' ' + (a.tags || '');\n  const tt = tokenize(text);\n  const tset = new Set(tt);\n  let s = 0;\n  for (const t of qFiltered) {\n    if (tset.has(t)) s += 1;\n    // partial match\n    for (const tk of tt) { if (tk.includes(t) && tk !== t) { s += 0.3; break; } }\n  }\n  // boost si tag matched exact\n  const tags = String(a.tags || '').toLowerCase();\n  for (const t of qFiltered) if (tags.includes(t)) s += 0.5;\n  return s;\n}\nconst ranked = articles\n  .map(a => ({ a, s: score(a) }))\n  .filter(x => x.s > 0)\n  .sort((x,y) => y.s - x.s)\n  .slice(0, topK)\n  .map(x => ({ id: x.a.id, title: x.a.title, excerpt: String(x.a.body || '').slice(0, 400), tags: x.a.tags, score: x.s }));\nreturn [{ json: { query, top_k: topK, results: ranked } }];"
+      },
+      "id": "13100004-0000-0000-0000-000000000004",
+      "name": "Retrieve (lexical)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "logs", "mode": "name"},
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "",
+            "phase": "kb",
+            "status": "retrieve",
+            "level": "info",
+            "message": "={{ 'KB query: ' + $json.query }}",
+            "meta": "={{ JSON.stringify({ top_k: $json.top_k, hits: ($json.results||[]).length }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "13100005-0000-0000-0000-000000000005",
+      "name": "Log: kb",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [860, 380]
+    }
+  ],
+  "connections": {
+    "Trigger Sub-workflow": { "main": [[{"node": "Lire kb_articles", "type": "main", "index": 0}]] },
+    "Trigger Manuel": { "main": [[{"node": "Lire kb_articles", "type": "main", "index": 0}]] },
+    "Lire kb_articles": { "main": [[{"node": "Retrieve (lexical)", "type": "main", "index": 0}]] },
+    "Retrieve (lexical)": { "main": [[{"node": "Log: kb", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "kb"}, {"name": "wf13"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000013",
+  "meta": {"instanceId": "symbalyx-wf13"}
+}
