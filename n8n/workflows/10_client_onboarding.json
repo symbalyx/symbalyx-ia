@@ -1,0 +1,153 @@
+{
+  "name": "Symbalyx — WF10 Client Onboarding",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {"values": [{"name": "project_id", "type": "string"}]}
+      },
+      "id": "10100001-0000-0000-0000-000000000001",
+      "name": "Trigger Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {},
+      "id": "10100002-0000-0000-0000-000000000002",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 480]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "project_queue", "mode": "name"},
+        "filtersUI": {"values": [{"lookupColumn": "id", "lookupValue": "={{ $json.project_id || 'proj_TEST' }}"}]},
+        "options": {}
+      },
+      "id": "10100003-0000-0000-0000-000000000003",
+      "name": "Lookup projet",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Content-Type", "value": "application/json"}]},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL || 'gpt-4o-mini'}}\",\n  \"temperature\": 0.2,\n  \"max_tokens\": 1200,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Tu génères une checklist d'onboarding client pour Symbalyx (sites web TPE/PME). Listes courtes, claires. Pas de promesses prix/délais. JSON strict.\" },\n    { \"role\": \"user\", \"content\": \"Projet:\\n\" + {{ JSON.stringify($json) }} + \"\\n\\nRetourne STRICTEMENT: {\\n  \\\"welcome_email_subject\\\": \\\"...\\\",\\n  \\\"welcome_email_body\\\": \\\"max 200 mots, vouvoiement, signé Arsène – Symbalyx\\\",\\n  \\\"intake_questions\\\": [\\\"q1\\\",\\\"q2\\\",\\\"q3\\\",\\\"q4\\\",\\\"q5\\\",\\\"q6\\\",\\\"q7\\\",\\\"q8\\\"],\\n  \\\"assets_to_collect\\\": [\\\"logo\\\",\\\"photos\\\",\\\"...\\\"],\\n  \\\"kickoff_agenda\\\": [\\\"...\\\"],\\n  \\\"deliverables_milestones\\\": [{\\\"name\\\":\\\"...\\\",\\\"description\\\":\\\"...\\\"}],\\n  \\\"risks_to_flag\\\": [\\\"...\\\"]\\n}\" }\n  ]\n}",
+        "options": {"timeout": 45000, "response": {"response": {"neverError": true}}}
+      },
+      "id": "10100004-0000-0000-0000-000000000004",
+      "name": "A10 — LLM Onboarding Plan",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 380],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const llm = $json; let p = {};\ntry { const c = llm.choices && llm.choices[0] && llm.choices[0].message && llm.choices[0].message.content; if (c) p = JSON.parse(c); } catch(e){ p = { _llm_error: String(e) }; }\nconst project = $('Lookup projet').first().json;\nconst now = new Date().toISOString();\nreturn [{ json: {\n  id: 'onb_' + Date.now(),\n  ts: now,\n  project_id: project.id,\n  client_name: project.client_name,\n  status: p._llm_error ? 'error' : 'pending_kickoff',\n  welcome_email_subject: p.welcome_email_subject || '',\n  welcome_email_body: p.welcome_email_body || '',\n  intake_questions: JSON.stringify(p.intake_questions || []),\n  assets_to_collect: JSON.stringify(p.assets_to_collect || []),\n  kickoff_agenda: JSON.stringify(p.kickoff_agenda || []),\n  deliverables_milestones: JSON.stringify(p.deliverables_milestones || []),\n  risks_to_flag: JSON.stringify(p.risks_to_flag || []),\n  human_validation_required: 'true'\n}}];"
+      },
+      "id": "10100005-0000-0000-0000-000000000005",
+      "name": "Format Onboarding",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "client_onboarding", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "10100006-0000-0000-0000-000000000006",
+      "name": "Append → client_onboarding",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1080, 380]
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "={{ $json.welcome_email_subject }}",
+        "emailType": "text",
+        "message": "={{ $json.welcome_email_body }}",
+        "options": {"sendTo": "={{ $('Lookup projet').first().json.email }}"}
+      },
+      "id": "10100007-0000-0000-0000-000000000007",
+      "name": "Gmail Create Draft (welcome)",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1300, 380],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput",
+      "notes": "Brouillon uniquement, jamais Send."
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "logs", "mode": "name"},
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.project_id }}",
+            "phase": "onboarding",
+            "status": "onboarding_drafted",
+            "level": "info",
+            "message": "Onboarding plan + welcome draft créés",
+            "meta": "={{ JSON.stringify({ onboarding_id: $json.id, client: $json.client_name }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "10100008-0000-0000-0000-000000000008",
+      "name": "Log: onboarding",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1520, 380]
+    }
+  ],
+  "connections": {
+    "Trigger Sub-workflow": { "main": [[{"node": "Lookup projet", "type": "main", "index": 0}]] },
+    "Trigger Manuel": { "main": [[{"node": "Lookup projet", "type": "main", "index": 0}]] },
+    "Lookup projet": { "main": [[{"node": "A10 — LLM Onboarding Plan", "type": "main", "index": 0}]] },
+    "A10 — LLM Onboarding Plan": { "main": [[{"node": "Format Onboarding", "type": "main", "index": 0}]] },
+    "Format Onboarding": { "main": [[{"node": "Append → client_onboarding", "type": "main", "index": 0}]] },
+    "Append → client_onboarding": { "main": [[{"node": "Gmail Create Draft (welcome)", "type": "main", "index": 0}]] },
+    "Gmail Create Draft (welcome)": { "main": [[{"node": "Log: onboarding", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "agency"}, {"name": "wf10"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000010",
+  "meta": {"instanceId": "symbalyx-wf10"}
+}

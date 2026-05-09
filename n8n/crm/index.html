@@ -1,0 +1,1174 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0c10">
+<meta name="robots" content="noindex,nofollow">
+<link rel="manifest" href="./manifest.json">
+<title>Symbalyx</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  /* ===========================================================
+     Symbalyx CRM — mobile-first premium
+     Design system : sobre, dense en info, hiérarchie claire
+     =========================================================== */
+  :root{
+    --bg:#0a0c10;
+    --bg2:#0f1218;
+    --panel:#13171f;
+    --panel2:#181d27;
+    --line:rgba(255,255,255,.06);
+    --line2:rgba(255,255,255,.10);
+    --txt:#eef1f6;
+    --muted:#8b95a5;
+    --acc:#5eead4;
+    --acc-soft:rgba(94,234,212,.12);
+    --acc2:#a78bfa;
+    --warn:#f59e0b;
+    --crit:#ef4444;
+    --ok:#22c55e;
+    --info:#60a5fa;
+    --shadow:0 1px 0 rgba(255,255,255,.03), 0 18px 40px rgba(0,0,0,.45);
+    --radius:14px;
+    --radius-s:10px;
+    --tap:44px;
+  }
+  [data-theme="light"]{
+    --bg:#f6f7fb; --bg2:#fff; --panel:#fff; --panel2:#f1f3f7;
+    --line:rgba(0,0,0,.07); --line2:rgba(0,0,0,.12);
+    --txt:#0e1218; --muted:#5b6473;
+    --acc:#0d9488; --acc-soft:rgba(13,148,136,.10);
+    --acc2:#7c3aed; --warn:#b45309; --crit:#b91c1c; --ok:#15803d; --info:#1d4ed8;
+    --shadow:0 1px 0 rgba(0,0,0,.02), 0 8px 20px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--txt);
+    font:14.5px/1.5 -apple-system,BlinkMacSystemFont,"SF Pro Text",Segoe UI,Roboto,Helvetica,Arial,system-ui;
+    overscroll-behavior:none;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* --- App shell --- */
+  .app{min-height:100vh;display:flex;flex-direction:column;padding-bottom:72px}
+  header.top{
+    position:sticky;top:0;z-index:40;
+    background:linear-gradient(180deg,var(--bg) 0%, color-mix(in srgb, var(--bg) 88%, transparent) 100%);
+    backdrop-filter:saturate(160%) blur(8px);
+    border-bottom:1px solid var(--line);
+    padding:14px 16px 12px;display:flex;align-items:center;gap:10px;
+  }
+  header.top .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px;font-size:17px}
+  header.top .brand .dot{width:9px;height:9px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
+  header.top .right{margin-left:auto;display:flex;gap:6px;align-items:center}
+  .iconbtn{width:var(--tap);height:var(--tap);border-radius:12px;border:1px solid var(--line);background:var(--panel);color:var(--txt);display:inline-flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;position:relative}
+  .iconbtn:hover{border-color:var(--line2)}
+  .iconbtn .dot-badge{position:absolute;top:6px;right:6px;width:8px;height:8px;border-radius:50%;background:var(--crit)}
+  main{flex:1;padding:14px 16px 24px;max-width:1200px;width:100%;margin:0 auto}
+
+  /* --- Bottom nav (mobile-first) --- */
+  nav.bottom{
+    position:fixed;left:0;right:0;bottom:0;z-index:50;
+    display:grid;grid-template-columns:repeat(5,1fr);gap:0;
+    background:color-mix(in srgb, var(--bg) 92%, transparent);
+    backdrop-filter:saturate(160%) blur(10px);
+    border-top:1px solid var(--line);
+    padding:6px 6px calc(8px + env(safe-area-inset-bottom));
+  }
+  nav.bottom button{background:transparent;border:0;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px;padding:6px 4px;font:inherit;font-size:11px;cursor:pointer}
+  nav.bottom button .ic{font-size:20px;line-height:1}
+  nav.bottom button.active{color:var(--txt)}
+  nav.bottom button.active .ic{color:var(--acc)}
+  @media (min-width:1024px){
+    .app{padding-bottom:0}
+    nav.bottom{display:none}
+    .desktop-nav{display:flex}
+  }
+  .desktop-nav{display:none;gap:4px;margin-left:14px}
+  .desktop-nav button{background:transparent;border:0;color:var(--muted);padding:8px 12px;border-radius:10px;font:inherit;cursor:pointer}
+  .desktop-nav button.active{color:var(--txt);background:var(--panel)}
+  .desktop-nav button:hover{color:var(--txt)}
+
+  /* --- Components --- */
+  .h1{font-size:22px;margin:6px 0 4px;letter-spacing:-.2px;font-weight:700}
+  .h2{font-size:16px;margin:0 0 6px;font-weight:600}
+  .lead{color:var(--muted);font-size:13px;margin:0 0 16px}
+  .stack{display:flex;flex-direction:column;gap:12px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .grid{display:grid;gap:12px}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-4{grid-template-columns:repeat(2,1fr)}
+  @media(min-width:768px){ .grid-4{grid-template-columns:repeat(4,1fr)} }
+
+  .card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 14px;box-shadow:var(--shadow);
+  }
+  .card.padless{padding:0;overflow:hidden}
+  .card-h{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .card-h .t{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;font-weight:600}
+  .card-h .more{margin-left:auto;font-size:12px;color:var(--muted);text-decoration:none;cursor:pointer}
+  .card-h .more:hover{color:var(--txt)}
+
+  .kpi{font-size:24px;font-weight:700;letter-spacing:-.5px}
+  .kpi small{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:2px}
+  .kpi .delta{font-size:11px;color:var(--ok);margin-left:6px;font-weight:500}
+  .kpi .delta.down{color:var(--crit)}
+
+  .badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500;line-height:1.6;border:1px solid var(--line)}
+  .badge.dot::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:6px;background:currentColor}
+  .b-critical{background:rgba(239,68,68,.12);color:#fca5a5;border-color:rgba(239,68,68,.3)}
+  .b-high{background:rgba(245,158,11,.12);color:#fcd34d;border-color:rgba(245,158,11,.3)}
+  .b-medium{background:rgba(96,165,250,.12);color:#93c5fd;border-color:rgba(96,165,250,.3)}
+  .b-low{background:var(--panel2);color:var(--muted)}
+  .b-ok{background:rgba(34,197,94,.12);color:#86efac;border-color:rgba(34,197,94,.3)}
+  .b-pending{background:var(--panel2);color:var(--muted)}
+  [data-theme="light"] .b-critical{color:#7f1d1d}
+  [data-theme="light"] .b-high{color:#78350f}
+  [data-theme="light"] .b-medium{color:#1e3a8a}
+  [data-theme="light"] .b-ok{color:#14532d}
+
+  /* List rows (mobile-first) */
+  .list{display:flex;flex-direction:column}
+  .item{
+    padding:14px;border-bottom:1px solid var(--line);
+    display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;
+    cursor:pointer;
+  }
+  .item:last-child{border-bottom:0}
+  .item:hover{background:var(--panel2)}
+  .item .ic{
+    width:36px;height:36px;border-radius:10px;background:var(--panel2);color:var(--muted);
+    display:flex;align-items:center;justify-content:center;font-size:16px;
+  }
+  .item .ic.crit{color:#fca5a5;background:rgba(239,68,68,.10)}
+  .item .ic.warn{color:#fcd34d;background:rgba(245,158,11,.10)}
+  .item .ic.ok{color:#86efac;background:rgba(34,197,94,.10)}
+  .item .body .ttl{font-weight:600;font-size:14.5px;line-height:1.35}
+  .item .body .meta{color:var(--muted);font-size:12px;margin-top:2px;line-height:1.35}
+  .item .right{display:flex;flex-direction:column;align-items:flex-end;gap:4px}
+  .item .actions{display:flex;gap:6px;margin-top:2px}
+  .item .actions button{font-size:11px;padding:4px 10px;min-height:32px;border-radius:8px}
+
+  /* Buttons */
+  button.btn{background:var(--panel);color:var(--txt);border:1px solid var(--line);
+    border-radius:10px;padding:9px 14px;font:inherit;font-weight:500;cursor:pointer;min-height:38px}
+  button.btn:hover{border-color:var(--line2)}
+  button.btn.primary{background:var(--acc);color:#001210;border-color:transparent;font-weight:600}
+  button.btn.primary:hover{filter:brightness(1.06)}
+  button.btn.ghost{background:transparent}
+  button.btn.success{color:var(--ok);border-color:rgba(34,197,94,.4)}
+  button.btn.danger{color:var(--crit);border-color:rgba(239,68,68,.4)}
+  button.btn:disabled{opacity:.5;cursor:not-allowed}
+
+  /* Inputs */
+  input,select,textarea{background:var(--panel);color:var(--txt);border:1px solid var(--line);
+    border-radius:10px;padding:10px 12px;font:inherit;width:100%;min-height:42px}
+  input:focus,select:focus,textarea:focus{outline:0;border-color:var(--acc)}
+  .search{display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:0 12px}
+  .search input{border:0;padding:10px 0;background:transparent;min-height:42px}
+  .search::before{content:"🔍";font-size:13px;opacity:.6}
+
+  .seg{display:inline-flex;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:3px;gap:2px}
+  .seg button{flex:1;background:transparent;color:var(--muted);border:0;padding:8px 12px;border-radius:8px;font:inherit;font-size:12.5px;cursor:pointer}
+  .seg button.on{background:var(--panel2);color:var(--txt)}
+
+  /* Sheet (modal-like bottom drawer on mobile) */
+  .sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(2px);z-index:90;display:none}
+  .sheet-bg.open{display:block}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:100;background:var(--bg2);
+    border-top:1px solid var(--line);border-radius:18px 18px 0 0;
+    transform:translateY(100%);transition:transform .25s ease;
+    max-height:88vh;overflow:auto;padding:14px 16px calc(20px + env(safe-area-inset-bottom));
+  }
+  .sheet.open{transform:translateY(0)}
+  .sheet .grab{width:42px;height:4px;border-radius:4px;background:var(--line2);margin:0 auto 10px}
+  @media(min-width:1024px){
+    .sheet{max-width:520px;left:auto;right:24px;bottom:24px;border-radius:16px;border:1px solid var(--line)}
+  }
+
+  /* Login */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .login{max-width:380px;width:100%;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:var(--shadow)}
+  .login h1{margin:0 0 4px;font-size:20px}
+  .login .lead{margin-bottom:14px}
+
+  /* Toasts */
+  .toast-wrap{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:92vw}
+  .toast{background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:12px 14px;font-size:13.5px;box-shadow:var(--shadow);min-width:240px}
+  .toast.ok{border-color:rgba(34,197,94,.4)}
+  .toast.err{border-color:rgba(239,68,68,.4)}
+
+  /* Misc */
+  .muted{color:var(--muted);font-size:12.5px}
+  .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sep{height:1px;background:var(--line);margin:8px 0}
+  .empty{padding:24px;text-align:center;color:var(--muted);font-size:13.5px}
+  .pill{font-size:11px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:2px 8px;border-radius:999px}
+  .right{margin-left:auto}
+  .hidden{display:none !important}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border:1px solid var(--line);padding:4px 10px;border-radius:999px;font-size:12px;color:var(--muted)}
+  .chip strong{color:var(--txt)}
+  .progress{height:8px;background:var(--panel2);border-radius:99px;overflow:hidden;border:1px solid var(--line)}
+  .progress > i{display:block;height:100%;background:var(--acc)}
+  .progress.warn > i{background:var(--warn)}
+  .progress.crit > i{background:var(--crit)}
+</style>
+</head>
+<body>
+
+<!-- ============== LOGIN ============== -->
+<div id="login" class="login-wrap">
+  <div class="login">
+    <h1>Symbalyx</h1>
+    <p class="lead">Mot de passe local. Premier accès = tu choisis.</p>
+    <input id="pwd" type="password" placeholder="••••••••" autofocus>
+    <div style="height:8px"></div>
+    <button class="btn primary" style="width:100%" onclick="symbLogin()">Entrer</button>
+    <p class="muted" style="margin-top:10px">Le hash est stocké dans ce navigateur uniquement, jamais envoyé.</p>
+  </div>
+</div>
+
+<!-- ============== APP ============== -->
+<div id="app" class="app hidden">
+  <header class="top">
+    <div class="brand"><span class="dot"></span> Symbalyx</div>
+    <nav class="desktop-nav" id="navDesktop">
+      <button data-view="today" class="active">Aujourd'hui</button>
+      <button data-view="prospects">Prospects</button>
+      <button data-view="projects">Projets</button>
+      <button data-view="decisions">Décisions</button>
+      <button data-view="memory">Mémoire</button>
+      <button data-view="logs">Logs</button>
+      <button data-view="settings">Réglages</button>
+    </nav>
+    <div class="right">
+      <button class="iconbtn" id="btnNotif" title="Notifications" onclick="symbOpenNotif()">
+        🔔
+        <span id="notifDot" class="dot-badge hidden"></span>
+      </button>
+      <button class="iconbtn" title="Theme" onclick="symbToggleTheme()">🌓</button>
+      <button class="iconbtn" title="Refresh" onclick="symbRefresh()">↻</button>
+    </div>
+  </header>
+
+  <main id="main">
+    <!-- =================== AUJOURD'HUI =================== -->
+    <section data-view="today">
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <h1 class="h1" id="todayTitle">Aujourd'hui</h1>
+          <p class="lead" id="todaySub">—</p>
+        </div>
+        <span class="chip"><strong id="srcInfo">mock</strong></span>
+      </div>
+
+      <!-- KPIs compacts -->
+      <div class="grid grid-4" style="margin-bottom:12px">
+        <div class="card">
+          <div class="card-h"><span class="t">Critical</span></div>
+          <div class="kpi" id="kpi_critical">0</div>
+          <small>à valider en priorité</small>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="t">À valider</span></div>
+          <div class="kpi" id="kpi_pending">0</div>
+          <small>file de décision</small>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="t">Projets actifs</span></div>
+          <div class="kpi" id="kpi_projects">0</div>
+          <small>new + in_progress</small>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="t">Réponses chaudes</span></div>
+          <div class="kpi" id="kpi_hot">0</div>
+          <small>interested + needs_quote</small>
+        </div>
+      </div>
+
+      <!-- Top actions -->
+      <div class="card padless" style="margin-bottom:12px">
+        <div style="padding:14px 14px 6px;display:flex;align-items:center;gap:8px">
+          <span class="card-h t" style="margin:0">Top actions du jour</span>
+          <span class="right pill" id="topCount">0</span>
+        </div>
+        <div class="list" id="listToday"></div>
+      </div>
+
+      <!-- Urgences groupées -->
+      <div class="grid grid-2" style="margin-bottom:12px">
+        <div class="card padless">
+          <div style="padding:14px 14px 6px"><span class="card-h t">Projets à risque</span></div>
+          <div class="list" id="listProjectsRisk"></div>
+        </div>
+        <div class="card padless">
+          <div style="padding:14px 14px 6px"><span class="card-h t">Relances factures</span></div>
+          <div class="list" id="listInvoicesDue"></div>
+        </div>
+      </div>
+
+      <!-- Charge équipe -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Charge équipe</span></div>
+        <div id="teamLoads" class="stack"></div>
+      </div>
+
+      <!-- Digest -->
+      <div class="card">
+        <div class="card-h"><span class="t">Synthèse hebdo</span></div>
+        <pre id="digest" style="white-space:pre-wrap;font:13px/1.55 ui-monospace,Menlo;color:var(--txt);margin:0">—</pre>
+      </div>
+    </section>
+
+    <!-- =================== PROSPECTS =================== -->
+    <section data-view="prospects" class="hidden">
+      <h1 class="h1">Prospects</h1>
+      <div class="row" style="margin-bottom:10px">
+        <div class="search" style="flex:1"><input id="qProspects" placeholder="Recherche..."></div>
+      </div>
+      <div class="seg" style="margin-bottom:12px">
+        <button data-pf="all" class="on">Tous</button>
+        <button data-pf="hot">🔥 Chauds</button>
+        <button data-pf="pending">À valider</button>
+        <button data-pf="drafted">Drafts</button>
+      </div>
+      <div class="card padless"><div class="list" id="listProspects"></div></div>
+    </section>
+
+    <!-- =================== PROJETS =================== -->
+    <section data-view="projects" class="hidden">
+      <h1 class="h1">Projets</h1>
+      <div class="row" style="margin-bottom:10px">
+        <div class="search" style="flex:1"><input id="qProjects" placeholder="Recherche..."></div>
+      </div>
+      <div class="seg" style="margin-bottom:12px">
+        <button data-jf="all" class="on">Tous</button>
+        <button data-jf="active">Actifs</button>
+        <button data-jf="blocked">Bloqués</button>
+        <button data-jf="due">Deadline ≤7j</button>
+      </div>
+      <div class="card padless"><div class="list" id="listProjects"></div></div>
+    </section>
+
+    <!-- =================== DÉCISIONS =================== -->
+    <section data-view="decisions" class="hidden">
+      <h1 class="h1">Décisions</h1>
+      <p class="lead">Recommandations IA en attente de validation humaine.</p>
+      <div class="row" style="margin-bottom:10px">
+        <select id="filterPerson"><option value="all">Toute l'équipe</option><option>Arsène</option><option>Kentin</option><option>Arsène+Kentin</option></select>
+        <select id="filterPriority"><option value="all">Toutes priorités</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
+        <button class="btn ghost right" onclick="symbExportCSV()">Export CSV</button>
+      </div>
+      <div class="card padless"><div class="list" id="listDecisions"></div></div>
+    </section>
+
+    <!-- =================== MÉMOIRE =================== -->
+    <section data-view="memory" class="hidden">
+      <h1 class="h1">Mémoire</h1>
+      <p class="lead">Patterns gagnants, décisions historiques, faits commerciaux.</p>
+      <div class="seg" style="margin-bottom:12px">
+        <button data-mf="patterns" class="on">Patterns</button>
+        <button data-mf="decisions">Décisions</button>
+        <button data-mf="facts">Faits</button>
+        <button data-mf="ai-vs-human">IA vs Humain</button>
+      </div>
+      <div class="card padless"><div class="list" id="listMemory"></div></div>
+    </section>
+
+    <!-- =================== LOGS =================== -->
+    <section data-view="logs" class="hidden">
+      <h1 class="h1">Logs</h1>
+      <div class="seg" style="margin-bottom:12px">
+        <button data-lf="all" class="on">Tous</button>
+        <button data-lf="info">Info</button>
+        <button data-lf="warn">Warn</button>
+        <button data-lf="error">Error</button>
+      </div>
+      <div class="card padless"><div class="list" id="listLogs"></div></div>
+    </section>
+
+    <!-- =================== RÉGLAGES =================== -->
+    <section data-view="settings" class="hidden">
+      <h1 class="h1">Réglages</h1>
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Source de données</span></div>
+        <div class="row">
+          <label class="muted" style="min-width:60px">Mode</label>
+          <select id="cfgSource" style="max-width:220px"><option value="mock">mock</option><option value="sheets">sheets</option><option value="supabase">supabase</option></select>
+        </div>
+        <div class="sep"></div>
+        <div class="grid grid-2">
+          <div>
+            <div class="card-h"><span class="t">Google Sheets</span></div>
+            <input id="cfgSheetsApiKey" placeholder="API key (lecture seule)">
+            <div style="height:6px"></div>
+            <input id="cfgSheetId" placeholder="Sheet ID">
+          </div>
+          <div>
+            <div class="card-h"><span class="t">Supabase</span></div>
+            <input id="cfgSupabaseUrl" placeholder="https://xxx.supabase.co">
+            <div style="height:6px"></div>
+            <input id="cfgSupabaseKey" placeholder="anon key (RLS read-only)">
+          </div>
+        </div>
+        <div class="sep"></div>
+        <button class="btn primary" onclick="symbSaveCfg()">Enregistrer</button>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Notifications</span></div>
+        <p class="muted">Tu choisis exactement ce que tu reçois. Anti-spam intégré (max 8/heure, dédup 24h).</p>
+        <div class="stack" id="notifPrefs"></div>
+        <div class="sep"></div>
+        <button class="btn" id="btnEnablePush" onclick="symbEnablePush()">Activer notifications navigateur</button>
+        <span id="pushStatus" class="muted" style="margin-left:8px"></span>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><span class="t">Garde-fous (rappel)</span></div>
+        <ul class="muted" style="margin:0;padding-left:18px;line-height:1.8">
+          <li>Aucun envoi automatique vers prospect — Gmail = brouillon uniquement.</li>
+          <li>Validation humaine obligatoire sur toute décision sensible.</li>
+          <li>Pas de promesses prix / délai / SEO dans les emails.</li>
+          <li>Logs centralisés, kill-switch via la sheet <code>config</code>.</li>
+        </ul>
+      </div>
+
+      <div style="height:14px"></div>
+      <button class="btn danger" onclick="symbLogout()">Logout</button>
+    </section>
+  </main>
+
+  <!-- Bottom nav -->
+  <nav class="bottom" id="navMobile">
+    <button data-view="today" class="active"><span class="ic">⌂</span>Aujourd'hui</button>
+    <button data-view="prospects"><span class="ic">◷</span>Prospects</button>
+    <button data-view="decisions"><span class="ic">◉</span><span id="navDecCount">Décider</span></button>
+    <button data-view="projects"><span class="ic">⊞</span>Projets</button>
+    <button data-view="memory"><span class="ic">✦</span>Mémoire</button>
+  </nav>
+
+  <!-- Notif drawer -->
+  <div id="notifBg" class="sheet-bg" onclick="symbCloseNotif()"></div>
+  <div id="notifSheet" class="sheet">
+    <div class="grab"></div>
+    <div class="row" style="margin-bottom:10px">
+      <div class="h2">Notifications</div>
+      <button class="btn ghost right" onclick="symbMarkAllRead()">Tout marquer lu</button>
+    </div>
+    <div class="list" id="listNotifs"></div>
+  </div>
+
+  <!-- Detail drawer -->
+  <div id="detailBg" class="sheet-bg" onclick="symbCloseDetail()"></div>
+  <div id="detailSheet" class="sheet">
+    <div class="grab"></div>
+    <div id="detailContent"></div>
+  </div>
+
+  <div class="toast-wrap" id="toasts"></div>
+</div>
+
+<script>
+/* ============================================================
+   Symbalyx CRM — vanilla JS, lecture seule.
+   ============================================================ */
+
+const PWD_KEY = 'symbalyx_pwd_hash_v3';
+const STATE = {
+  cfg: JSON.parse(localStorage.getItem('symbalyx_cfg_v2') || JSON.stringify({
+    source: 'mock',
+    sheets: { apiKey: '', sheetId: '{{GOOGLE_SHEET_ID}}', tabs: {
+      bcl:'business_control', kpi:'kpi_snapshots', team:'team_state',
+      review:'review_queue', projects:'project_queue', logs:'logs',
+      memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial',
+      invoices:'invoices', notifs:'notifications_inbox'
+    }},
+    supabase: { url: '', anonKey: '' },
+    prefs: { critical:true, hotReply:true, projectRisk:true, invoiceOverdue:true, morningDigest:true }
+  })),
+  data: null,
+  view: 'today',
+  filters: { person:'all', priority:'all', prospects:'all', projects:'all', memory:'patterns', logs:'all' },
+  notifs: [],
+  notifsRead: JSON.parse(localStorage.getItem('symbalyx_notifs_read') || '[]')
+};
+
+/* ---------- helpers ---------- */
+const esc = s => String(s||'').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const lower = s => String(s||'').toLowerCase();
+const fmtDate = s => { try { return new Date(s).toLocaleString('fr-FR', { dateStyle:'short', timeStyle:'short' }); } catch { return s||''; } };
+const fmtRelative = s => {
+  const t = Date.parse(s||''); if (!Number.isFinite(t)) return '';
+  const diff = Date.now() - t;
+  const m = Math.floor(diff/60000); if (m < 1) return 'à l\'instant';
+  if (m < 60) return `il y a ${m} min`;
+  const h = Math.floor(m/60); if (h < 24) return `il y a ${h}h`;
+  const d = Math.floor(h/24); if (d < 7) return `il y a ${d}j`;
+  return new Date(t).toLocaleDateString('fr-FR');
+};
+function $(id){ return document.getElementById(id); }
+function toast(msg, type='ok'){
+  const w = $('toasts'); const t = document.createElement('div');
+  t.className = 'toast ' + type; t.textContent = msg;
+  w.appendChild(t); setTimeout(()=>t.remove(), 3500);
+}
+
+/* ---------- auth ---------- */
+async function sha256(s){ const b = new TextEncoder().encode(s); const h = await crypto.subtle.digest('SHA-256', b);
+  return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
+async function symbLogin(){
+  const pwd = $('pwd').value; if(!pwd) return;
+  const h = await sha256(pwd); const stored = localStorage.getItem(PWD_KEY);
+  if (!stored) localStorage.setItem(PWD_KEY, h);
+  if (localStorage.getItem(PWD_KEY) !== h) { toast('Mot de passe incorrect','err'); return; }
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  symbLoadCfgUI(); symbInitNotifPrefs(); symbRegisterSW(); symbRefresh();
+}
+function symbLogout(){ sessionStorage.clear(); location.reload(); }
+function symbToggleTheme(){
+  const c = document.documentElement.getAttribute('data-theme');
+  const n = c === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', n);
+  localStorage.setItem('symbalyx_theme', n);
+}
+(function(){ const t = localStorage.getItem('symbalyx_theme'); if (t) document.documentElement.setAttribute('data-theme', t); })();
+
+/* ---------- service worker ---------- */
+function symbRegisterSW(){
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  }
+}
+
+/* ---------- mock data ---------- */
+const MOCK = {
+  bcl: [
+    {id:'bcl_1',ts:new Date(Date.now()-3*3600e3).toISOString(),source_workflow:'WF7',item_type:'prospect',item_id:'p_0042',title:'Plomberie Dupont — Bordeaux',recommendation:'Relancer sous 48h, projet vitrine simple, fit niche.',recommended_action:'follow_up_24h',priority_score:8.6,priority_level:'critical',expected_impact:'high',effort_level:'low',assigned_to:'Arsène',decision_status:'pending',notes:'reply=interested'},
+    {id:'bcl_2',ts:new Date(Date.now()-5*3600e3).toISOString(),source_workflow:'WF11',item_type:'project',item_id:'proj_0007',title:'Salon Élégance — vitrine + RDV',recommendation:'Bloquer un focus de 4h cette semaine pour livrer la maquette V1.',recommended_action:'schedule',priority_score:7.1,priority_level:'high',expected_impact:'medium',effort_level:'medium',assigned_to:'Arsène',decision_status:'pending',notes:''},
+    {id:'bcl_3',ts:new Date(Date.now()-26*3600e3).toISOString(),source_workflow:'WF7',item_type:'prospect',item_id:'p_0019',title:'Coach Lyon (60j sans réponse)',recommendation:'Abandonner — délai dépassé, pas de signal.',recommended_action:'abandon',priority_score:2.3,priority_level:'low',expected_impact:'low',effort_level:'low',assigned_to:'Kentin',decision_status:'pending',notes:''},
+    {id:'bcl_4',ts:new Date(Date.now()-2*3600e3).toISOString(),source_workflow:'WF14',item_type:'finance_light',item_id:'INV_2026_011',title:'Relance r2 — Café du Centre',recommendation:'Envoyer relance niveau 2.',recommended_action:'reminder_2',priority_score:6.4,priority_level:'high',expected_impact:'high',effort_level:'low',assigned_to:'Arsène',decision_status:'pending',notes:'overdue 16j'},
+    {id:'bcl_5',ts:new Date(Date.now()-1*3600e3).toISOString(),source_workflow:'WF7',item_type:'prospect',item_id:'p_0051',title:'Salon Marie — Paris (needs_quote)',recommendation:'Préparer un devis simple cette semaine.',recommended_action:'quote',priority_score:7.8,priority_level:'high',expected_impact:'high',effort_level:'low',assigned_to:'Arsène',decision_status:'pending',notes:''}
+  ],
+  kpi: Array.from({length:8}).map((_,i)=>({
+    period:`2026-W${15+i}`,prospects_total:40+i*3,prospects_pending:5+(i%4),
+    prospects_drafted:8+i,prospects_replied_interested:1+(i%3),
+    projects_active:3+(i%4),projects_blocked:(i%3===0?1:0),
+    high_priority_count:4+(i%5),critical_count:1+(i%2),
+    team_load_arsene_pct:60+i*2,team_load_kentin_pct:70+i*2
+  })),
+  team: [
+    {name:'Arsène',role:'sites/design/commercial',current_load_pct:72,weekly_capacity_hours:35},
+    {name:'Kentin',role:'recherche/n8n/QA',current_load_pct:88,weekly_capacity_hours:35}
+  ],
+  digest:"**Top priorités**\n- 3 réponses 'interested' à traiter sous 48h\n- Maquette V1 Salon Élégance avant vendredi\n- 5 nouveaux brouillons à préparer\n\n**Risques**\n- Kentin à 88%\n- proj_0011 bloqué 14j",
+  review: [
+    {id:'p_0042',company_name:'Plomberie Dupont',niche:'plombier',city:'Bordeaux',email:'contact@plomberie-dupont.fr',status:'queued_for_review',opportunity_score:9,reply_category:'interested',reply_received_at:new Date(Date.now()-4*3600e3).toISOString(),assigned_to:'Arsène',priority_level:'critical'},
+    {id:'p_0019',company_name:'Coach Lyon',niche:'coach',city:'Lyon',email:'a@coach-lyon.fr',status:'queued_for_review',opportunity_score:3,reply_category:'',assigned_to:'Kentin',priority_level:'low'},
+    {id:'p_0051',company_name:'Salon Marie',niche:'coiffeur',city:'Paris',email:'marie@salon.fr',status:'drafted_in_gmail',opportunity_score:8,reply_category:'needs_quote',reply_received_at:new Date(Date.now()-1*3600e3).toISOString(),assigned_to:'Arsène',priority_level:'high'},
+    {id:'p_0033',company_name:'Boucherie Halles',niche:'boucher',city:'Nice',email:'h@boucherie.fr',status:'analyzed',opportunity_score:6,reply_category:'',assigned_to:'Kentin',priority_level:'medium'}
+  ],
+  projects: [
+    {id:'proj_0007',client_name:'Salon Élégance',niche:'coiffeur',status:'in_progress',estimated_project_complexity:'medium',assigned_to:'Arsène',deadline:new Date(Date.now()+12*86400e3).toISOString().slice(0,10),priority_score:7.1,client_brief_summary:'Vitrine 5 pages + RDV en ligne'},
+    {id:'proj_0011',client_name:'Atelier Marc',niche:'artisan',status:'blocked',estimated_project_complexity:'simple',assigned_to:'Arsène+Kentin',deadline:new Date(Date.now()+30*86400e3).toISOString().slice(0,10),priority_score:5.5,client_brief_summary:'Site vitrine, attente photos client'},
+    {id:'proj_0013',client_name:'Café du Centre',niche:'restaurant',status:'in_progress',estimated_project_complexity:'simple',assigned_to:'Arsène',deadline:new Date(Date.now()+3*86400e3).toISOString().slice(0,10),priority_score:8.4,client_brief_summary:'Carte + horaires + photos'}
+  ],
+  invoices: [
+    {id:'INV_2026_011',invoice_ref:'INV_2026_011',client_name:'Café du Centre',amount_eur:1200,due_date:new Date(Date.now()-16*86400e3).toISOString().slice(0,10),status:'sent'},
+    {id:'INV_2026_009',invoice_ref:'INV_2026_009',client_name:'Salon Élégance',amount_eur:850,due_date:new Date(Date.now()-3*86400e3).toISOString().slice(0,10),status:'sent'}
+  ],
+  logs: [
+    {ts:new Date(Date.now()-3600e3).toISOString(),level:'info',phase:'prioritize',status:'critical',prospect_id:'p_0042',message:'Reco WF7 enregistrée'},
+    {ts:new Date(Date.now()-7200e3).toISOString(),level:'warn',phase:'reply',status:'unknown_sender',prospect_id:'',message:'Réponse hors review_queue'},
+    {ts:new Date(Date.now()-86400e3).toISOString(),level:'error',phase:'draft',status:'error',prospect_id:'p_0033',message:'Gmail rate limit'}
+  ],
+  memDec: [
+    {ts:new Date(Date.now()-2*86400e3).toISOString(),item_type:'prospect',item_id:'p_0001',decision:'approved',outcome:'reply_received',reason:'niche plombier + reply rapide',ai_initial_priority:'high'},
+    {ts:new Date(Date.now()-5*86400e3).toISOString(),item_type:'prospect',item_id:'p_0008',decision:'rejected',outcome:'no_reply',reason:'lead trop ancien',ai_initial_priority:'medium'},
+    {ts:new Date(Date.now()-7*86400e3).toISOString(),item_type:'project',item_id:'proj_0001',decision:'approved',outcome:'delivered',reason:'priorité validée',ai_initial_priority:'high'}
+  ],
+  memPat: [
+    {niche:'plombier',trigger_signal:'reply<48h',winning_action:'follow_up_24h',sample_size:14,success_rate:0.71,confidence:'medium',note:'Réponse rapide = forte conversion'},
+    {niche:'coiffeur',trigger_signal:'no_website',winning_action:'mini_audit',sample_size:22,success_rate:0.55,confidence:'medium',note:'Mini-audit convertit mieux qu\'offre directe'}
+  ],
+  memCom: [
+    {ts:new Date(Date.now()-86400e3).toISOString(),subject_id:'p_0042',subject_type:'prospect',type:'fact',fact:'Site obsolète, copyright 2017',source:'home_html',confidence:0.85}
+  ],
+  notifs: [
+    {id:'notif_1',ts:new Date(Date.now()-30*60e3).toISOString(),kind:'reply_hot',severity:'high',title:'Réponse interested : Plomberie Dupont',body:'« Bonjour, votre proposition m\'intéresse, dispo jeudi 14h ? »',deeplink:'#prospects/p_0042',item_id:'p_0042',read:'false'},
+    {id:'notif_2',ts:new Date(Date.now()-2*3600e3).toISOString(),kind:'bcl_critical',severity:'critical',title:'Critical à valider : Plomberie Dupont',body:'Relancer sous 48h, projet vitrine simple, fit niche.',deeplink:'#decisions/bcl_1',item_id:'bcl_1',read:'false'},
+    {id:'notif_3',ts:new Date(Date.now()-26*3600e3).toISOString(),kind:'project_blocked',severity:'high',title:'Projet bloqué : Atelier Marc',body:'Bloqué depuis 14 jours, attente photos client.',deeplink:'#projects/proj_0011',item_id:'proj_0011',read:'true'}
+  ]
+};
+
+/* ---------- fetch ---------- */
+async function fetchData(){
+  const c = STATE.cfg;
+  if (c.source === 'mock') return MOCK;
+  if (c.source === 'sheets') return await fetchSheets();
+  if (c.source === 'supabase') return await fetchSupabase();
+  return MOCK;
+}
+async function fetchSheets(){
+  const c = STATE.cfg.sheets;
+  if (!c.apiKey || !c.sheetId) throw new Error('Sheets non configuré');
+  async function read(tab){
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${c.sheetId}/values/${encodeURIComponent(tab)}?key=${c.apiKey}`;
+    const r = await fetch(url); if (!r.ok) throw new Error('Sheets HTTP '+r.status);
+    const j = await r.json(); const [head, ...rows] = j.values || [];
+    return rows.map(row => Object.fromEntries(head.map((h,i)=>[h, row[i]])));
+  }
+  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs] = await Promise.all([
+    read(c.tabs.bcl).catch(()=>[]), read(c.tabs.kpi).catch(()=>[]), read(c.tabs.team).catch(()=>[]),
+    read(c.tabs.review).catch(()=>[]), read(c.tabs.projects).catch(()=>[]), read(c.tabs.logs).catch(()=>[]),
+    read(c.tabs.memDec).catch(()=>[]), read(c.tabs.memPat).catch(()=>[]), read(c.tabs.memCom).catch(()=>[]),
+    read(c.tabs.invoices).catch(()=>[]), read(c.tabs.notifs).catch(()=>[])
+  ]);
+  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, digest: '' };
+}
+async function fetchSupabase(){
+  const c = STATE.cfg.supabase;
+  if (!c.url || !c.anonKey) throw new Error('Supabase non configuré');
+  const headers = { apikey: c.anonKey, Authorization:`Bearer ${c.anonKey}` };
+  async function get(t,q=''){ const r = await fetch(`${c.url}/rest/v1/${t}${q}`,{headers}); if (!r.ok) throw new Error('SB HTTP '+r.status); return r.json(); }
+  return {
+    bcl: await get('business_control','?select=*&order=ts.desc&limit=300'),
+    kpi: await get('kpi_snapshots','?select=*&order=ts.desc&limit=12'),
+    team: await get('team_state','?select=*'),
+    review: await get('review_queue','?select=*&limit=500'),
+    projects: await get('project_queue','?select=*&limit=500'),
+    logs: await get('logs','?select=*&order=ts.desc&limit=300'),
+    memDec: await get('memory_decisions','?select=*&order=ts.desc&limit=200'),
+    memPat: await get('memory_patterns','?select=*&order=ts.desc&limit=100'),
+    memCom: await get('memory_commercial','?select=*&order=ts.desc&limit=200'),
+    invoices: await get('invoices','?select=*'),
+    notifs: await get('notifications_inbox','?select=*&order=ts.desc&limit=100'),
+    digest: ''
+  };
+}
+
+/* ---------- routing ---------- */
+function setView(v){
+  STATE.view = v;
+  document.querySelectorAll('main > section').forEach(s => s.classList.toggle('hidden', s.dataset.view !== v));
+  document.querySelectorAll('#navDesktop button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  document.querySelectorAll('#navMobile button').forEach(b => b.classList.toggle('active', b.dataset.view === v));
+  symbRender();
+  window.scrollTo({top:0,behavior:'instant'});
+}
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-view]'); if (t) setView(t.dataset.view);
+  const pf = e.target.closest('[data-pf]');
+  if (pf) {
+    document.querySelectorAll('[data-pf]').forEach(b=>b.classList.toggle('on', b===pf));
+    STATE.filters.prospects = pf.dataset.pf; renderProspects(STATE.data||{});
+  }
+  const jf = e.target.closest('[data-jf]');
+  if (jf) {
+    document.querySelectorAll('[data-jf]').forEach(b=>b.classList.toggle('on', b===jf));
+    STATE.filters.projects = jf.dataset.jf; renderProjects(STATE.data||{});
+  }
+  const mf = e.target.closest('[data-mf]');
+  if (mf) {
+    document.querySelectorAll('[data-mf]').forEach(b=>b.classList.toggle('on', b===mf));
+    STATE.filters.memory = mf.dataset.mf; renderMemory(STATE.data||{});
+  }
+  const lf = e.target.closest('[data-lf]');
+  if (lf) {
+    document.querySelectorAll('[data-lf]').forEach(b=>b.classList.toggle('on', b===lf));
+    STATE.filters.logs = lf.dataset.lf; renderLogs(STATE.data||{});
+  }
+});
+document.addEventListener('input', e => {
+  if (e.target.id === 'qProspects') renderProspects(STATE.data||{});
+  if (e.target.id === 'qProjects') renderProjects(STATE.data||{});
+});
+document.addEventListener('change', e => {
+  if (e.target.id === 'filterPerson' || e.target.id === 'filterPriority') renderDecisions(STATE.data||{});
+});
+
+/* ---------- TODAY render ---------- */
+function dayLabel(){
+  const d = new Date(); return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long' });
+}
+function renderToday(d){
+  const pending = (d.bcl||[]).filter(b=>lower(b.decision_status)==='pending');
+  const critical = pending.filter(b=>lower(b.priority_level)==='critical').length;
+  const last = (d.kpi||[]).slice(-1)[0] || {};
+  const hot = (d.review||[]).filter(r => ['interested','needs_quote'].includes(lower(r.reply_category))).length;
+  $('todayTitle').textContent = `Bonjour, ${dayLabel()}`;
+  $('todaySub').textContent = `${pending.length} à valider · ${critical} critical · ${hot} réponses chaudes`;
+  $('kpi_critical').innerHTML = critical;
+  $('kpi_pending').innerHTML = pending.length;
+  $('kpi_projects').innerHTML = last.projects_active ?? (d.projects||[]).filter(p=>['new','in_progress'].includes(lower(p.status))).length;
+  $('kpi_hot').innerHTML = hot;
+
+  // Top actions = top 5 pending par score
+  const top = pending.slice().sort((a,b)=>(+b.priority_score||0)-(+a.priority_score||0)).slice(0,5);
+  $('topCount').textContent = top.length;
+  $('listToday').innerHTML = top.map(b => itemRow(b, true)).join('') || emptyRow('Tout est sous contrôle. Bon café.');
+
+  // Projets à risque
+  const risks = (d.projects||[]).filter(p => {
+    const due = p.deadline ? Math.floor((Date.parse(p.deadline)-Date.now())/86400e3) : null;
+    return lower(p.status)==='blocked' || (due!==null && due<=7 && ['new','in_progress'].includes(lower(p.status)));
+  }).slice(0,5);
+  $('listProjectsRisk').innerHTML = risks.map(p => projectRow(p)).join('') || emptyRow('Aucun risque détecté.');
+
+  // Factures en retard
+  const overdue = (d.invoices||[]).filter(inv => {
+    const od = inv.due_date ? Math.floor((Date.now()-Date.parse(inv.due_date))/86400e3) : 0;
+    return ['sent','overdue','partial'].includes(lower(inv.status)) && od >= 7;
+  }).slice(0,5);
+  $('listInvoicesDue').innerHTML = overdue.map(inv => invoiceRow(inv)).join('') || emptyRow('Aucune facture en retard.');
+
+  // Charge équipe
+  $('teamLoads').innerHTML = (d.team||[]).map(t => {
+    const pct = +t.current_load_pct || 0;
+    const cls = pct >= 85 ? 'crit' : pct >= 70 ? 'warn' : '';
+    return `
+      <div>
+        <div class="row" style="margin-bottom:6px"><strong>${esc(t.name)}</strong>
+          <span class="muted">${esc(t.role||'')}</span>
+          <span class="right">${pct}%</span>
+        </div>
+        <div class="progress ${cls}"><i style="width:${Math.min(100,pct)}%"></i></div>
+      </div>`;
+  }).join('') || emptyRow('Renseigne team_state.');
+
+  $('digest').textContent = d.digest || '—';
+}
+function emptyRow(t){ return `<div class="empty">${esc(t)}</div>`; }
+function priorityBadge(level){
+  const m = {critical:'b-critical', high:'b-high', medium:'b-medium', low:'b-low'};
+  return `<span class="badge ${m[lower(level)]||'b-low'}">${esc(level||'-')}</span>`;
+}
+
+/* ---------- item rows ---------- */
+function iconForType(t, sev){
+  const cls = sev==='critical' ? 'crit' : sev==='high' ? 'warn' : '';
+  const ic = ({'prospect':'◷','project':'⊞','finance_light':'€','ops':'∞'})[lower(t)] || '•';
+  return `<div class="ic ${cls}">${ic}</div>`;
+}
+function itemRow(b, withActions){
+  const sub = `${esc(b.recommended_action||'')} · ${esc(b.assigned_to||'')} · ${fmtRelative(b.ts)}`;
+  return `<div class="item" onclick="symbOpenDetail('bcl','${b.id}')">
+    ${iconForType(b.item_type, b.priority_level)}
+    <div class="body">
+      <div class="ttl truncate">${esc(b.title||b.item_id||'')}</div>
+      <div class="meta truncate">${esc(b.recommendation||'')}</div>
+      <div class="meta">${sub}</div>
+    </div>
+    <div class="right">
+      ${priorityBadge(b.priority_level)}
+      ${withActions ? `<div class="actions">
+        <button class="btn success" onclick="event.stopPropagation();symbDecide('${b.id}','approved')">✓</button>
+        <button class="btn danger" onclick="event.stopPropagation();symbDecide('${b.id}','rejected')">×</button>
+      </div>` : ''}
+    </div>
+  </div>`;
+}
+function prospectRow(p){
+  const hot = ['interested','needs_quote'].includes(lower(p.reply_category));
+  const sev = hot ? 'critical' : (lower(p.priority_level)==='high' ? 'high' : '');
+  return `<div class="item" onclick="symbOpenDetail('prospect','${p.id}')">
+    <div class="ic ${sev==='critical'?'crit':sev==='high'?'warn':''}">◷</div>
+    <div class="body">
+      <div class="ttl truncate">${esc(p.company_name)} <span class="muted">· ${esc(p.city||'')}</span></div>
+      <div class="meta">
+        <span class="pill">${esc(p.niche||'-')}</span>
+        ${p.reply_category ? `<span class="badge ${hot?'b-critical':'b-medium'}">${esc(p.reply_category)}</span>` : ''}
+        <span class="muted truncate">${esc(p.email||'')}</span>
+      </div>
+    </div>
+    <div class="right">
+      <span class="badge b-pending">${esc(p.status||'')}</span>
+      <span class="muted">score ${esc(p.opportunity_score||'-')}</span>
+    </div>
+  </div>`;
+}
+function projectRow(p){
+  const due = p.deadline ? Math.floor((Date.parse(p.deadline)-Date.now())/86400e3) : null;
+  const blocked = lower(p.status)==='blocked';
+  const lev = blocked || (due!==null && due<=3) ? 'critical' : (due!==null && due<=7) ? 'high' : 'medium';
+  return `<div class="item" onclick="symbOpenDetail('project','${p.id}')">
+    <div class="ic ${lev==='critical'?'crit':lev==='high'?'warn':''}">⊞</div>
+    <div class="body">
+      <div class="ttl truncate">${esc(p.client_name)}</div>
+      <div class="meta">
+        <span class="pill">${esc(p.estimated_project_complexity||'-')}</span>
+        <span class="badge ${blocked?'b-critical':'b-medium'}">${esc(p.status||'')}</span>
+        <span class="muted">${due!==null ? (blocked?'bloqué':'deadline ' + (due<=0?'dépassée':due+'j')) : ''}</span>
+      </div>
+    </div>
+    <div class="right">
+      <span class="muted">${esc(p.assigned_to||'-')}</span>
+      <span class="muted">score ${esc(p.priority_score||'-')}</span>
+    </div>
+  </div>`;
+}
+function invoiceRow(inv){
+  const od = inv.due_date ? Math.floor((Date.now()-Date.parse(inv.due_date))/86400e3) : 0;
+  const sev = od >= 30 ? 'critical' : od >= 14 ? 'high' : 'medium';
+  return `<div class="item" onclick="symbOpenDetail('invoice','${inv.id||inv.invoice_ref}')">
+    <div class="ic ${sev==='critical'?'crit':sev==='high'?'warn':''}">€</div>
+    <div class="body">
+      <div class="ttl truncate">${esc(inv.client_name||'')} — ${esc(inv.invoice_ref||inv.id||'')}</div>
+      <div class="meta">${inv.amount_eur?esc(inv.amount_eur)+' €':''} · échéance ${esc(inv.due_date||'-')}</div>
+    </div>
+    <div class="right">
+      <span class="badge ${sev==='critical'?'b-critical':sev==='high'?'b-high':'b-medium'}">${od}j</span>
+    </div>
+  </div>`;
+}
+
+/* ---------- PROSPECTS ---------- */
+function renderProspects(d){
+  const q = lower($('qProspects')?.value||'');
+  const f = STATE.filters.prospects;
+  let rows = d.review || [];
+  if (q) rows = rows.filter(r => JSON.stringify(r).toLowerCase().includes(q));
+  if (f === 'hot') rows = rows.filter(r => ['interested','needs_quote'].includes(lower(r.reply_category)));
+  else if (f === 'pending') rows = rows.filter(r => lower(r.status)==='queued_for_review' && !r.human_decision);
+  else if (f === 'drafted') rows = rows.filter(r => lower(r.status)==='drafted_in_gmail');
+  $('listProspects').innerHTML = rows.map(prospectRow).join('') || emptyRow('Aucun prospect.');
+}
+
+/* ---------- PROJECTS ---------- */
+function renderProjects(d){
+  const q = lower($('qProjects')?.value||'');
+  const f = STATE.filters.projects;
+  let rows = d.projects || [];
+  if (q) rows = rows.filter(r => JSON.stringify(r).toLowerCase().includes(q));
+  if (f === 'active') rows = rows.filter(r => ['new','in_progress'].includes(lower(r.status)));
+  else if (f === 'blocked') rows = rows.filter(r => lower(r.status) === 'blocked');
+  else if (f === 'due') rows = rows.filter(r => {
+    const due = r.deadline ? Math.floor((Date.parse(r.deadline)-Date.now())/86400e3) : null;
+    return due !== null && due <= 7 && ['new','in_progress'].includes(lower(r.status));
+  });
+  $('listProjects').innerHTML = rows.map(projectRow).join('') || emptyRow('Aucun projet.');
+}
+
+/* ---------- DECISIONS ---------- */
+function renderDecisions(d){
+  const fp = $('filterPerson')?.value || 'all';
+  const fpr = $('filterPriority')?.value || 'all';
+  const rows = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending')
+    .filter(r => fp==='all' || r.assigned_to === fp)
+    .filter(r => fpr==='all' || lower(r.priority_level) === fpr)
+    .sort((a,b)=>(+b.priority_score||0)-(+a.priority_score||0));
+  $('listDecisions').innerHTML = rows.map(b => itemRow(b, true)).join('') || emptyRow('Aucune décision en attente.');
+  const navCount = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending').length;
+  $('navDecCount').textContent = navCount > 0 ? `Décider · ${navCount}` : 'Décider';
+}
+
+/* ---------- MEMORY ---------- */
+function renderMemory(d){
+  const list = $('listMemory'); const f = STATE.filters.memory;
+  if (f === 'patterns') {
+    list.innerHTML = (d.memPat||[]).map(p => `
+      <div class="item">
+        <div class="ic">✦</div>
+        <div class="body">
+          <div class="ttl">${esc(p.winning_action||'-')} <span class="muted">· ${esc(p.niche||'all')}</span></div>
+          <div class="meta">${esc(p.trigger_signal||'')}</div>
+          <div class="meta">${esc(p.note||'')}</div>
+        </div>
+        <div class="right">
+          <span class="pill">n=${esc(p.sample_size||0)}</span>
+          <span class="badge ${p.confidence==='high'?'b-ok':p.confidence==='medium'?'b-medium':'b-low'}">${esc(p.confidence||'low')}</span>
+          <span class="muted">${Math.round((+p.success_rate||0)*100)}%</span>
+        </div>
+      </div>`).join('') || emptyRow('Aucun pattern stable.');
+  } else if (f === 'decisions') {
+    list.innerHTML = (d.memDec||[]).slice(0,80).map(x => `
+      <div class="item">
+        <div class="ic ${x.decision==='approved'?'ok':''}">${x.decision==='approved'?'✓':'×'}</div>
+        <div class="body">
+          <div class="ttl">${esc(x.item_id||'')} <span class="muted">· ${esc(x.item_type||'')}</span></div>
+          <div class="meta">${esc(x.reason||'')}</div>
+          <div class="meta">${fmtRelative(x.ts)}</div>
+        </div>
+        <div class="right">
+          <span class="badge ${x.decision==='approved'?'b-ok':'b-critical'}">${esc(x.decision||'')}</span>
+          ${x.outcome?`<span class="pill">${esc(x.outcome)}</span>`:''}
+        </div>
+      </div>`).join('') || emptyRow('Aucune décision historisée.');
+  } else if (f === 'facts') {
+    list.innerHTML = (d.memCom||[]).slice(0,80).map(x => `
+      <div class="item">
+        <div class="ic">∴</div>
+        <div class="body">
+          <div class="ttl">${esc(x.fact||'')}</div>
+          <div class="meta">sujet ${esc(x.subject_id||'')} · source ${esc(x.source||'')}</div>
+        </div>
+        <div class="right"><span class="pill">conf ${esc(x.confidence||'')}</span></div>
+      </div>`).join('') || emptyRow('Aucun fait stocké.');
+  } else if (f === 'ai-vs-human') {
+    // Croise BCL pour voir taux d'approve/reject par priorité IA
+    const dec = d.memDec || [];
+    const byPrio = {};
+    for (const x of dec) {
+      const p = lower(x.ai_initial_priority || 'unknown');
+      if (!byPrio[p]) byPrio[p] = { approved:0, rejected:0 };
+      byPrio[p][x.decision] = (byPrio[p][x.decision]||0) + 1;
+    }
+    const rows = Object.entries(byPrio).map(([p, v]) => {
+      const total = (v.approved||0)+(v.rejected||0);
+      const rate = total ? Math.round((v.approved/total)*100) : 0;
+      return `<div class="item">
+        <div class="ic">⚖</div>
+        <div class="body">
+          <div class="ttl">Priorité IA : ${esc(p)}</div>
+          <div class="meta">${v.approved||0} approuvés · ${v.rejected||0} rejetés sur ${total}</div>
+        </div>
+        <div class="right">
+          <span class="badge ${rate>=60?'b-ok':rate>=40?'b-medium':'b-critical'}">${rate}% accord</span>
+        </div>
+      </div>`;
+    }).join('');
+    list.innerHTML = rows || emptyRow('Pas assez de données encore.');
+  }
+}
+
+/* ---------- LOGS ---------- */
+function renderLogs(d){
+  const f = STATE.filters.logs;
+  const rows = (d.logs||[]).filter(l => f==='all' || lower(l.level)===f).slice(0,200);
+  $('listLogs').innerHTML = rows.map(l => `
+    <div class="item">
+      <div class="ic ${l.level==='error'?'crit':l.level==='warn'?'warn':''}">${l.level==='error'?'⚠':l.level==='warn'?'!':'i'}</div>
+      <div class="body">
+        <div class="ttl truncate">${esc(l.message||'')}</div>
+        <div class="meta">${esc(l.phase||'')} · ${esc(l.status||'')} · ${esc(l.prospect_id||'')}</div>
+        <div class="meta">${fmtDate(l.ts)}</div>
+      </div>
+      <div class="right">
+        <span class="badge ${l.level==='error'?'b-critical':l.level==='warn'?'b-high':'b-low'}">${esc(l.level||'')}</span>
+      </div>
+    </div>`).join('') || emptyRow('Aucun log.');
+}
+
+/* ---------- DETAIL drawer ---------- */
+function symbOpenDetail(type, id){
+  const d = STATE.data || {}; let html = '';
+  if (type === 'bcl') {
+    const b = (d.bcl||[]).find(x => x.id === id) || {};
+    html = `
+      <div style="margin-bottom:8px">${priorityBadge(b.priority_level)} <span class="pill">${esc(b.item_type||'')}</span> <span class="muted">${fmtRelative(b.ts)}</span></div>
+      <h2 class="h2">${esc(b.title||b.item_id||'')}</h2>
+      <p>${esc(b.recommendation||'')}</p>
+      <div class="grid grid-2">
+        <div><div class="muted">Action</div><strong>${esc(b.recommended_action||'-')}</strong></div>
+        <div><div class="muted">Owner</div><strong>${esc(b.assigned_to||'-')}</strong></div>
+        <div><div class="muted">Impact</div><strong>${esc(b.expected_impact||'-')}</strong></div>
+        <div><div class="muted">Effort</div><strong>${esc(b.effort_level||'-')}</strong></div>
+        <div><div class="muted">Score</div><strong>${esc(b.priority_score||'-')}</strong></div>
+        <div><div class="muted">Source</div><strong>${esc(b.source_workflow||'-')}</strong></div>
+      </div>
+      <div class="sep"></div>
+      <p class="muted">${esc(b.notes||'')}</p>
+      <div class="row" style="margin-top:10px">
+        <button class="btn success" onclick="symbDecide('${b.id}','approved');symbCloseDetail()">Approuver</button>
+        <button class="btn danger" onclick="symbDecide('${b.id}','rejected');symbCloseDetail()">Rejeter</button>
+        <button class="btn ghost right" onclick="symbCloseDetail()">Fermer</button>
+      </div>`;
+  } else if (type === 'prospect') {
+    const p = (d.review||[]).find(x => x.id === id) || {};
+    html = `
+      <h2 class="h2">${esc(p.company_name||'')}</h2>
+      <div class="muted">${esc(p.city||'-')} · ${esc(p.niche||'-')}</div>
+      <div class="grid grid-2" style="margin-top:10px">
+        <div><div class="muted">Email</div><strong>${esc(p.email||'-')}</strong></div>
+        <div><div class="muted">Statut</div><strong>${esc(p.status||'-')}</strong></div>
+        <div><div class="muted">Score</div><strong>${esc(p.opportunity_score||'-')}</strong></div>
+        <div><div class="muted">Reply</div><strong>${esc(p.reply_category||'-')}</strong></div>
+      </div>
+      <div class="sep"></div>
+      <p class="muted">Site : <a href="${esc(p.website_url||'#')}" target="_blank" rel="noopener">${esc(p.website_url||'-')}</a></p>
+      <p>${esc(p.business_summary||p.suggested_angle||'')}</p>
+      <button class="btn ghost" onclick="symbCloseDetail()">Fermer</button>`;
+  } else if (type === 'project') {
+    const p = (d.projects||[]).find(x => x.id === id) || {};
+    html = `
+      <h2 class="h2">${esc(p.client_name||'')}</h2>
+      <div class="muted">${esc(p.niche||'-')} · ${esc(p.city||'-')}</div>
+      <div class="grid grid-2" style="margin-top:10px">
+        <div><div class="muted">Statut</div><strong>${esc(p.status||'-')}</strong></div>
+        <div><div class="muted">Complexité</div><strong>${esc(p.estimated_project_complexity||'-')}</strong></div>
+        <div><div class="muted">Owner</div><strong>${esc(p.assigned_to||'-')}</strong></div>
+        <div><div class="muted">Deadline</div><strong>${esc(p.deadline||'-')}</strong></div>
+      </div>
+      <div class="sep"></div>
+      <p>${esc(p.client_brief_summary||'')}</p>
+      <button class="btn ghost" onclick="symbCloseDetail()">Fermer</button>`;
+  } else if (type === 'invoice') {
+    const inv = (d.invoices||[]).find(x => (x.id||x.invoice_ref) === id) || {};
+    html = `
+      <h2 class="h2">${esc(inv.invoice_ref||inv.id||'')}</h2>
+      <div class="muted">${esc(inv.client_name||'')}</div>
+      <div class="grid grid-2" style="margin-top:10px">
+        <div><div class="muted">Montant</div><strong>${esc(inv.amount_eur||'-')} €</strong></div>
+        <div><div class="muted">Échéance</div><strong>${esc(inv.due_date||'-')}</strong></div>
+        <div><div class="muted">Statut</div><strong>${esc(inv.status||'-')}</strong></div>
+      </div>
+      <div class="sep"></div>
+      <p class="muted">Toute relance passe par un brouillon Gmail à valider, jamais d'envoi auto.</p>
+      <button class="btn ghost" onclick="symbCloseDetail()">Fermer</button>`;
+  }
+  $('detailContent').innerHTML = html;
+  $('detailBg').classList.add('open'); $('detailSheet').classList.add('open');
+}
+function symbCloseDetail(){ $('detailBg').classList.remove('open'); $('detailSheet').classList.remove('open'); }
+
+/* ---------- NOTIF drawer ---------- */
+function symbOpenNotif(){
+  const list = STATE.data?.notifs || [];
+  $('listNotifs').innerHTML = list.length ? list.map(n => `
+    <div class="item" onclick="symbHandleNotif('${n.id}','${esc(n.deeplink||'')}')">
+      <div class="ic ${n.severity==='critical'?'crit':n.severity==='high'?'warn':''}">${({reply_hot:'✉',bcl_critical:'!',project_blocked:'⛔',project_deadline:'⏱',invoice_overdue:'€',morning_digest:'☼'})[n.kind]||'•'}</div>
+      <div class="body">
+        <div class="ttl truncate">${esc(n.title||'')}</div>
+        <div class="meta truncate">${esc(n.body||'')}</div>
+        <div class="meta">${fmtRelative(n.ts)}</div>
+      </div>
+      <div class="right">${STATE.notifsRead.includes(n.id)?'':'<span class="dot-badge" style="position:static;display:inline-block"></span>'}</div>
+    </div>`).join('') : emptyRow('Pas de notification récente.');
+  $('notifBg').classList.add('open'); $('notifSheet').classList.add('open');
+}
+function symbCloseNotif(){ $('notifBg').classList.remove('open'); $('notifSheet').classList.remove('open'); }
+function symbHandleNotif(id, deeplink){
+  if (!STATE.notifsRead.includes(id)) {
+    STATE.notifsRead.push(id);
+    localStorage.setItem('symbalyx_notifs_read', JSON.stringify(STATE.notifsRead));
+  }
+  symbCloseNotif();
+  if (deeplink && deeplink.startsWith('#')) {
+    const [view] = deeplink.replace('#','').split('/');
+    if (view) setView(view);
+  }
+  refreshBadges();
+}
+function symbMarkAllRead(){
+  STATE.notifsRead = (STATE.data?.notifs||[]).map(n=>n.id);
+  localStorage.setItem('symbalyx_notifs_read', JSON.stringify(STATE.notifsRead));
+  refreshBadges(); symbOpenNotif();
+}
+function refreshBadges(){
+  const list = STATE.data?.notifs || [];
+  const unread = list.filter(n => !STATE.notifsRead.includes(n.id) && (lower(n.read)!=='true'));
+  $('notifDot').classList.toggle('hidden', unread.length === 0);
+}
+
+/* ---------- decisions actions ---------- */
+function symbDecide(id, status){
+  // Lecture seule : on enregistre localement et on pousse dans une queue exportable.
+  const log = JSON.parse(localStorage.getItem('symbalyx_decisions') || '[]');
+  log.push({id,status,ts:new Date().toISOString()});
+  localStorage.setItem('symbalyx_decisions', JSON.stringify(log));
+  toast(`${status === 'approved' ? 'Approuvé' : 'Rejeté'} · à propager dans business_control`, status==='approved'?'ok':'err');
+}
+function symbExportCSV(){
+  const d = STATE.data || {}; const rows = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending');
+  const cols = ['priority_level','priority_score','item_type','item_id','title','recommendation','recommended_action','assigned_to','decision_status','ts'];
+  const csv = [cols.join(','), ...rows.map(r => cols.map(c => `"${String(r[c]??'').replace(/"/g,'""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=`symbalyx_priorities_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+
+/* ---------- notifs prefs / push ---------- */
+function symbInitNotifPrefs(){
+  const prefs = STATE.cfg.prefs;
+  const labels = {
+    critical:'Items critical à valider',
+    hotReply:'Réponses prospect chaudes',
+    projectRisk:'Projet bloqué ou deadline proche',
+    invoiceOverdue:'Facture en retard',
+    morningDigest:'Synthèse du matin (lundi)'
+  };
+  $('notifPrefs').innerHTML = Object.entries(labels).map(([k,v]) => `
+    <label class="row" style="justify-content:space-between">
+      <span>${esc(v)}</span>
+      <input type="checkbox" data-pref="${k}" ${prefs[k]?'checked':''} onchange="symbTogglePref('${k}',this.checked)" style="width:auto;min-height:0">
+    </label>`).join('');
+  symbPushStatus();
+}
+function symbTogglePref(k, v){
+  STATE.cfg.prefs[k] = v;
+  localStorage.setItem('symbalyx_cfg_v2', JSON.stringify(STATE.cfg));
+  toast('Préférences enregistrées');
+}
+function symbPushStatus(){
+  const el = $('pushStatus');
+  if (!('Notification' in window)) { el.textContent = 'Non supporté par ce navigateur.'; return; }
+  el.textContent = 'État : ' + Notification.permission;
+}
+async function symbEnablePush(){
+  if (!('Notification' in window)) return toast('Pas supporté','err');
+  const r = await Notification.requestPermission();
+  symbPushStatus();
+  if (r === 'granted') toast('Notifications activées');
+}
+let lastSig = '';
+function symbWebNotif(n){
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  const sig = n.id; if (sig === lastSig) return; lastSig = sig;
+  if (!isPrefAllowed(n.kind)) return;
+  new Notification(n.title || 'Symbalyx', { body: n.body || '', tag: n.id });
+}
+function isPrefAllowed(kind){
+  const m = { bcl_critical:'critical', reply_hot:'hotReply', project_blocked:'projectRisk', project_deadline:'projectRisk', invoice_overdue:'invoiceOverdue', morning_digest:'morningDigest' };
+  const p = m[kind]; return !p || STATE.cfg.prefs[p] !== false;
+}
+
+/* ---------- cfg UI ---------- */
+function symbLoadCfgUI(){
+  const c = STATE.cfg;
+  $('cfgSource').value = c.source;
+  $('cfgSheetsApiKey').value = c.sheets.apiKey || '';
+  $('cfgSheetId').value = c.sheets.sheetId || '';
+  $('cfgSupabaseUrl').value = c.supabase.url || '';
+  $('cfgSupabaseKey').value = c.supabase.anonKey || '';
+}
+function symbSaveCfg(){
+  STATE.cfg.source = $('cfgSource').value;
+  STATE.cfg.sheets.apiKey = $('cfgSheetsApiKey').value.trim();
+  STATE.cfg.sheets.sheetId = $('cfgSheetId').value.trim();
+  STATE.cfg.supabase.url = $('cfgSupabaseUrl').value.trim();
+  STATE.cfg.supabase.anonKey = $('cfgSupabaseKey').value.trim();
+  localStorage.setItem('symbalyx_cfg_v2', JSON.stringify(STATE.cfg));
+  toast('Configuration enregistrée'); symbRefresh();
+}
+
+/* ---------- master refresh ---------- */
+async function symbRefresh(){
+  try {
+    STATE.data = await fetchData();
+    $('srcInfo').textContent = `${STATE.cfg.source} · ${new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`;
+    // Web notifs sur nouveaux unread
+    (STATE.data.notifs||[]).filter(n => lower(n.read)!=='true' && !STATE.notifsRead.includes(n.id)).forEach(symbWebNotif);
+    refreshBadges();
+    symbRender();
+  } catch(e) {
+    $('srcInfo').textContent = 'Erreur: ' + e.message;
+    toast('Erreur de chargement: ' + e.message, 'err');
+  }
+}
+function symbRender(){
+  const d = STATE.data || {};
+  if (STATE.view === 'today')     renderToday(d);
+  if (STATE.view === 'prospects') renderProspects(d);
+  if (STATE.view === 'projects')  renderProjects(d);
+  if (STATE.view === 'decisions') renderDecisions(d);
+  if (STATE.view === 'memory')    renderMemory(d);
+  if (STATE.view === 'logs')      renderLogs(d);
+  // Toujours mettre à jour le compteur du nav mobile
+  const navCount = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending').length;
+  $('navDecCount').textContent = navCount > 0 ? `Décider · ${navCount}` : 'Décider';
+}
+setInterval(symbRefresh, 5*60*1000);
+</script>
+</body>
+</html>
