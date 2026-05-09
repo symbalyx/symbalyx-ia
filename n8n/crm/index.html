@@ -1,0 +1,622 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Symbalyx CRM</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0c10; --side:#0f1218; --panel:#13171f; --panel2:#181d27; --line:#252b36;
+    --txt:#e8ecf3; --muted:#8b95a5; --acc:#5eead4; --acc2:#a78bfa;
+    --warn:#f59e0b; --crit:#ef4444; --ok:#22c55e; --info:#60a5fa;
+    --shadow:0 1px 0 rgba(255,255,255,.03), 0 8px 24px rgba(0,0,0,.4);
+  }
+  [data-theme="light"]{
+    --bg:#f6f7fb; --side:#ffffff; --panel:#ffffff; --panel2:#f1f3f7; --line:#e2e6ec;
+    --txt:#0e1218; --muted:#5b6473; --acc:#0ea5a4; --acc2:#7c3aed;
+    --warn:#b45309; --crit:#b91c1c; --ok:#15803d; --info:#1d4ed8;
+    --shadow:0 1px 0 rgba(0,0,0,.02), 0 6px 18px rgba(0,0,0,.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--txt);font:14px/1.5 -apple-system,Segoe UI,Roboto,Helvetica,Arial,system-ui;}
+  .layout{display:grid;grid-template-columns:240px 1fr;min-height:100vh;}
+  aside{background:var(--side);border-right:1px solid var(--line);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto}
+  aside h1{margin:0 0 18px;font-size:16px;letter-spacing:.5px;display:flex;align-items:center;gap:8px}
+  aside h1::before{content:"";width:10px;height:10px;border-radius:50%;background:var(--acc);box-shadow:0 0 12px var(--acc)}
+  nav{display:flex;flex-direction:column;gap:2px}
+  nav a{display:flex;align-items:center;gap:10px;color:var(--muted);text-decoration:none;padding:9px 10px;border-radius:8px;cursor:pointer;font-size:13.5px}
+  nav a:hover{background:var(--panel2);color:var(--txt)}
+  nav a.active{background:linear-gradient(90deg,var(--panel2),transparent);color:var(--txt);border-left:2px solid var(--acc)}
+  nav small{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.6px;padding:14px 10px 6px;display:block}
+  main{padding:18px 22px;overflow:auto}
+  .topbar{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+  .topbar h2{margin:0;font-size:18px}
+  .topbar .right{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  button,select,input{background:var(--panel);color:var(--txt);border:1px solid var(--line);border-radius:9px;padding:7px 11px;font:inherit}
+  button:hover{border-color:var(--acc);cursor:pointer}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow)}
+  .grid{display:grid;gap:14px}
+  .grid-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .grid-2{grid-template-columns:1fr 1fr}
+  .grid-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .kpi{font-size:26px;font-weight:700}
+  .kpi small{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:3px}
+  .h-section{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin:0 0 8px}
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px}
+  th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:500;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
+  tr:hover td{background:var(--panel2)}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500}
+  .badge.critical{background:var(--crit);color:#fff}
+  .badge.high{background:var(--warn);color:#000}
+  .badge.medium{background:var(--info);color:#000}
+  .badge.low{background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+  .badge.pending{background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+  .badge.approved{background:var(--ok);color:#000}
+  .badge.rejected{background:var(--crit);color:#fff}
+  .badge.tag{background:var(--panel2);color:var(--muted);border:1px solid var(--line)}
+  .actions button{margin-right:4px;padding:3px 9px;font-size:12px}
+  .approve{color:var(--ok);border-color:var(--ok)}
+  .reject{color:var(--crit);border-color:var(--crit)}
+  .login{max-width:380px;margin:18vh auto;padding:26px;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}
+  .login input{width:100%;margin-top:8px}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .muted{color:var(--muted);font-size:12px}
+  pre.digest{white-space:pre-wrap;background:var(--panel2);padding:12px;border-radius:10px;font:12px/1.55 ui-monospace,Menlo,Monaco,Consolas;max-height:340px;overflow:auto}
+  .sep{height:1px;background:var(--line);margin:10px 0}
+  .hidden{display:none}
+  .pill{font-size:11px;color:var(--muted);background:var(--panel2);border:1px solid var(--line);padding:2px 8px;border-radius:999px;margin-left:6px}
+  .search{flex:1;min-width:200px}
+  .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:340px;display:inline-block;vertical-align:bottom}
+  @media (max-width:980px){
+    .layout{grid-template-columns:1fr}
+    aside{position:static;height:auto}
+    .grid-4{grid-template-columns:repeat(2,1fr)}
+    .grid-3{grid-template-columns:1fr}
+    .grid-2{grid-template-columns:1fr}
+  }
+</style>
+</head>
+<body>
+
+<div id="login" class="login">
+  <h2 style="margin:0 0 6px">Symbalyx CRM</h2>
+  <div class="muted">Mot de passe local. Le hash reste dans ton navigateur.</div>
+  <input id="pwd" type="password" placeholder="mot de passe" autofocus>
+  <div class="row" style="margin-top:12px">
+    <button onclick="symbLogin()">Entrer</button>
+    <span class="muted">Premier accès = tu choisis le mot de passe.</span>
+  </div>
+</div>
+
+<div id="app" class="hidden layout">
+  <aside>
+    <h1>Symbalyx</h1>
+    <nav id="nav">
+      <a data-view="dashboard" class="active">Dashboard</a>
+      <a data-view="prospects">Prospects</a>
+      <a data-view="projects">Projets</a>
+      <a data-view="decisions">Décisions à valider</a>
+      <a data-view="memory">Mémoire & patterns</a>
+      <a data-view="team">Équipe</a>
+      <a data-view="logs">Logs</a>
+      <small>Réglages</small>
+      <a data-view="settings">Source de données</a>
+    </nav>
+    <div class="sep"></div>
+    <div class="muted" id="srcInfo">Source: mock</div>
+    <div class="row" style="margin-top:8px">
+      <button onclick="symbToggleTheme()">🌓</button>
+      <button onclick="symbRefresh()">↻ Refresh</button>
+      <button onclick="symbLogout()">Logout</button>
+    </div>
+  </aside>
+
+  <main>
+    <!-- DASHBOARD -->
+    <section data-view="dashboard">
+      <div class="topbar">
+        <h2>Dashboard</h2>
+        <div class="right">
+          <select id="filterPerson"><option value="all">Toute l'équipe</option><option>Arsène</option><option>Kentin</option><option>Arsène+Kentin</option></select>
+          <select id="filterPriority"><option value="all">Toutes priorités</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
+          <button onclick="symbExportCSV()">Export CSV</button>
+        </div>
+      </div>
+      <div class="grid grid-4">
+        <div class="card"><div class="h-section">Pending critical</div><div class="kpi" id="kpi_critical">—</div><small>à valider en priorité</small></div>
+        <div class="card"><div class="h-section">Pending total</div><div class="kpi" id="kpi_pending">—</div><small>file business_control</small></div>
+        <div class="card"><div class="h-section">Projets actifs</div><div class="kpi" id="kpi_projects">—</div><small>new + in_progress</small></div>
+        <div class="card"><div class="h-section">Réponses interested</div><div class="kpi" id="kpi_interested">—</div><small>cumul</small></div>
+      </div>
+      <div class="grid grid-2" style="margin-top:14px">
+        <div class="card"><div class="h-section">KPIs hebdo</div><canvas id="chartKpi" height="120"></canvas></div>
+        <div class="card"><div class="h-section">Charge équipe</div><canvas id="chartTeam" height="120"></canvas></div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="h-section">Top 10 priorités du jour</div>
+        <table id="tblTop"><thead><tr>
+          <th>#</th><th>Priorité</th><th>Type</th><th>Titre</th><th>Action</th>
+          <th>Owner</th><th>Score</th><th>Status</th><th></th>
+        </tr></thead><tbody></tbody></table>
+      </div>
+      <div class="grid grid-2" style="margin-top:14px">
+        <div class="card"><div class="h-section">Dernier digest hebdo</div><pre class="digest" id="digest">—</pre></div>
+        <div class="card"><div class="h-section">Notifications</div>
+          <div class="row"><button onclick="symbAskNotif()">Activer notifications</button></div>
+          <div id="notifLog" class="muted" style="margin-top:8px">—</div>
+          <div class="sep"></div>
+          <div class="muted">Garde-fous actifs: Gmail = brouillon uniquement · validation humaine obligatoire · pas de promesses prix/délai/SEO.</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROSPECTS -->
+    <section data-view="prospects" class="hidden">
+      <div class="topbar"><h2>Prospects</h2><div class="right"><input class="search" id="qProspects" placeholder="Recherche (nom, ville, niche, email)…"></div></div>
+      <div class="card">
+        <table><thead><tr>
+          <th>id</th><th>Société</th><th>Niche</th><th>Ville</th><th>Email</th><th>Statut</th><th>Score</th><th>Reply</th><th>Owner</th>
+        </tr></thead><tbody id="tblProspects"></tbody></table>
+      </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section data-view="projects" class="hidden">
+      <div class="topbar"><h2>Projets</h2><div class="right"><input class="search" id="qProjects" placeholder="Recherche…"></div></div>
+      <div class="card">
+        <table><thead><tr>
+          <th>id</th><th>Client</th><th>Niche</th><th>Statut</th><th>Complexité</th><th>Owner</th><th>Deadline</th><th>Score</th>
+        </tr></thead><tbody id="tblProjects"></tbody></table>
+      </div>
+    </section>
+
+    <!-- DECISIONS -->
+    <section data-view="decisions" class="hidden">
+      <div class="topbar"><h2>Décisions à valider</h2><div class="right"><span class="pill" id="decisionsCount">0</span></div></div>
+      <div class="card">
+        <table><thead><tr>
+          <th>Priorité</th><th>Type</th><th>Titre</th><th>Action</th><th>Owner</th><th>Score</th><th>Source</th><th></th>
+        </tr></thead><tbody id="tblDecisions"></tbody></table>
+      </div>
+    </section>
+
+    <!-- MEMORY -->
+    <section data-view="memory" class="hidden">
+      <div class="topbar"><h2>Mémoire & patterns</h2></div>
+      <div class="grid grid-2">
+        <div class="card">
+          <div class="h-section">Patterns gagnants</div>
+          <table><thead><tr><th>Niche</th><th>Signal</th><th>Action gagnante</th><th>n</th><th>Succès</th><th>Conf.</th></tr></thead>
+          <tbody id="tblPatterns"></tbody></table>
+        </div>
+        <div class="card">
+          <div class="h-section">Décisions historiques (extrait)</div>
+          <table><thead><tr><th>Date</th><th>Type</th><th>Item</th><th>Décision</th><th>Outcome</th></tr></thead>
+          <tbody id="tblMemDecisions"></tbody></table>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="h-section">Faits commerciaux récents</div>
+        <table><thead><tr><th>Date</th><th>Sujet</th><th>Type</th><th>Fait</th><th>Source</th><th>Conf.</th></tr></thead>
+        <tbody id="tblMemFacts"></tbody></table>
+      </div>
+    </section>
+
+    <!-- TEAM -->
+    <section data-view="team" class="hidden">
+      <div class="topbar"><h2>Équipe</h2></div>
+      <div class="grid grid-3">
+        <div class="card" id="cardArsene"><div class="h-section">Arsène</div><div class="kpi" id="loadArsene">—</div><small>charge actuelle</small><div id="ctxArsene" class="muted" style="margin-top:6px"></div></div>
+        <div class="card" id="cardKentin"><div class="h-section">Kentin</div><div class="kpi" id="loadKentin">—</div><small>charge actuelle</small><div id="ctxKentin" class="muted" style="margin-top:6px"></div></div>
+        <div class="card"><div class="h-section">Capacité combinée</div><canvas id="chartTeamFull" height="120"></canvas></div>
+      </div>
+    </section>
+
+    <!-- LOGS -->
+    <section data-view="logs" class="hidden">
+      <div class="topbar"><h2>Logs</h2><div class="right"><select id="filterLogLevel"><option value="all">Tous niveaux</option><option>info</option><option>warn</option><option>error</option></select></div></div>
+      <div class="card">
+        <table><thead><tr><th>Date</th><th>Niveau</th><th>Phase</th><th>Status</th><th>Prospect</th><th>Message</th></tr></thead>
+        <tbody id="tblLogs"></tbody></table>
+      </div>
+    </section>
+
+    <!-- SETTINGS -->
+    <section data-view="settings" class="hidden">
+      <div class="topbar"><h2>Source de données</h2></div>
+      <div class="card">
+        <p class="muted">Trois modes : <b>mock</b> (données factices intégrées), <b>sheets</b> (Google Sheets API), <b>supabase</b> (PostgREST).</p>
+        <div class="row">
+          <label>Mode</label>
+          <select id="cfgSource"><option value="mock">mock</option><option value="sheets">sheets</option><option value="supabase">supabase</option></select>
+        </div>
+        <div class="sep"></div>
+        <div class="grid grid-2">
+          <div>
+            <div class="h-section">Google Sheets</div>
+            <input id="cfgSheetsApiKey" placeholder="API key (lecture seule)"/>
+            <input id="cfgSheetId" placeholder="Sheet ID" style="margin-top:6px"/>
+          </div>
+          <div>
+            <div class="h-section">Supabase</div>
+            <input id="cfgSupabaseUrl" placeholder="https://xxx.supabase.co"/>
+            <input id="cfgSupabaseKey" placeholder="anon key (RLS read-only)" style="margin-top:6px"/>
+          </div>
+        </div>
+        <div class="sep"></div>
+        <div class="row"><button onclick="symbSaveCfg()">Enregistrer</button><span class="muted">Tout est stocké uniquement dans ton navigateur.</span></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* ====================================================================
+   Symbalyx CRM — vanilla JS, lecture seule par défaut.
+   ==================================================================== */
+const STATE = {
+  cfg: JSON.parse(localStorage.getItem('symbalyx_cfg') || JSON.stringify({
+    source: 'mock',
+    sheets: { apiKey: '', sheetId: '{{GOOGLE_SHEET_ID}}', tabs: {
+      bcl:'business_control', kpi:'kpi_snapshots', team:'team_state',
+      review:'review_queue', projects:'project_queue', logs:'logs',
+      memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial'
+    }},
+    supabase: { url: '', anonKey: '' }
+  })),
+  data: null,
+  view: 'dashboard'
+};
+const PWD_KEY = 'symbalyx_pwd_hash_v2';
+
+/* ---------- Auth ---------- */
+async function sha256(s){const b=new TextEncoder().encode(s);const h=await crypto.subtle.digest('SHA-256',b);return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join('');}
+async function symbLogin(){
+  const pwd = document.getElementById('pwd').value; if(!pwd) return;
+  const stored = localStorage.getItem(PWD_KEY); const h = await sha256(pwd);
+  if(!stored){ localStorage.setItem(PWD_KEY,h); }
+  if(localStorage.getItem(PWD_KEY)!==h){ alert('Mot de passe incorrect'); return; }
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  symbLoadCfgUI(); symbRefresh();
+}
+function symbLogout(){ sessionStorage.clear(); location.reload(); }
+function symbToggleTheme(){const c=document.documentElement.getAttribute('data-theme');const n=c==='light'?'dark':'light';document.documentElement.setAttribute('data-theme',n);localStorage.setItem('symbalyx_theme',n);}
+(function(){const t=localStorage.getItem('symbalyx_theme');if(t)document.documentElement.setAttribute('data-theme',t);})();
+
+/* ---------- Mock data ---------- */
+const MOCK = {
+  bcl: [
+    {id:'bcl_1',ts:new Date().toISOString(),source_workflow:'WF7',item_type:'prospect',item_id:'p_0042',title:'Plomberie Dupont — Bordeaux',recommendation:'Relancer sous 48h',recommended_action:'follow_up_24h',priority_score:8.6,priority_level:'critical',expected_impact:'high',effort_level:'low',assigned_to:'Arsène',decision_status:'pending',notes:'reply=interested'},
+    {id:'bcl_2',ts:new Date().toISOString(),source_workflow:'WF11',item_type:'project',item_id:'proj_0007',title:'Salon Élégance — vitrine + RDV',recommendation:'Bloquer focus 4h cette semaine',recommended_action:'schedule',priority_score:7.1,priority_level:'high',expected_impact:'medium',effort_level:'medium',assigned_to:'Arsène',decision_status:'pending',notes:''},
+    {id:'bcl_3',ts:new Date().toISOString(),source_workflow:'WF7',item_type:'prospect',item_id:'p_0019',title:'Coach Lyon (60j sans réponse)',recommendation:'Abandonner',recommended_action:'abandon',priority_score:2.3,priority_level:'low',expected_impact:'low',effort_level:'low',assigned_to:'Kentin',decision_status:'pending',notes:''},
+    {id:'bcl_4',ts:new Date().toISOString(),source_workflow:'WF14',item_type:'finance_light',item_id:'INV_2026_011',title:'Relance r2 — Café du Centre',recommendation:'Envoyer relance niveau 2',recommended_action:'reminder_2',priority_score:6.4,priority_level:'high',expected_impact:'high',effort_level:'low',assigned_to:'Arsène',decision_status:'pending',notes:'overdue 16j'}
+  ],
+  kpi: Array.from({length:8}).map((_,i)=>({period:`2026-W${12+i}`,prospects_total:40+i*3,prospects_pending:5+(i%4),prospects_drafted:8+i,prospects_replied_interested:1+(i%3),projects_active:3+(i%4),projects_blocked:(i%3===0?1:0),high_priority_count:4+(i%5),critical_count:1+(i%2),team_load_arsene_pct:60+i*2,team_load_kentin_pct:70+i*2})),
+  team: [{name:'Arsène',role:'sites/design/commercial',current_load_pct:72,weekly_capacity_hours:35},{name:'Kentin',role:'recherche/n8n/QA',current_load_pct:88,weekly_capacity_hours:35}],
+  digest:"**Top priorités**\n- 3 réponses 'interested' à traiter sous 48h\n- Maquette V1 Salon Élégance avant vendredi\n\n**Risques**\n- Kentin à 88%\n- proj_0011 bloqué 14j\n\n**À pousser** : p_0042, p_0051\n**À abandonner** : 4 leads >60j",
+  review: [
+    {id:'p_0042',company_name:'Plomberie Dupont',niche:'plombier',city:'Bordeaux',email:'contact@plomberie-dupont.fr',status:'queued_for_review',opportunity_score:9,reply_category:'interested',assigned_to:'Arsène'},
+    {id:'p_0019',company_name:'Coach Lyon',niche:'coach',city:'Lyon',email:'a@coach-lyon.fr',status:'queued_for_review',opportunity_score:3,reply_category:'',assigned_to:'Kentin'},
+    {id:'p_0051',company_name:'Salon Marie',niche:'coiffeur',city:'Paris',email:'marie@salon.fr',status:'drafted_in_gmail',opportunity_score:8,reply_category:'needs_quote',assigned_to:'Arsène'}
+  ],
+  projects: [
+    {id:'proj_0007',client_name:'Salon Élégance',niche:'coiffeur',status:'in_progress',estimated_project_complexity:'medium',assigned_to:'Arsène',deadline:'2026-05-22',priority_score:7.1},
+    {id:'proj_0011',client_name:'Atelier Marc',niche:'artisan',status:'blocked',estimated_project_complexity:'simple',assigned_to:'Arsène+Kentin',deadline:'2026-05-30',priority_score:5.5}
+  ],
+  logs: [
+    {ts:new Date(Date.now()-3600e3).toISOString(),level:'info',phase:'prioritize',status:'critical',prospect_id:'p_0042',message:'Reco WF7 enregistrée'},
+    {ts:new Date(Date.now()-7200e3).toISOString(),level:'warn',phase:'reply',status:'unknown_sender',prospect_id:'',message:'Réponse hors review_queue'},
+    {ts:new Date(Date.now()-86400e3).toISOString(),level:'error',phase:'draft',status:'error',prospect_id:'p_0033',message:'Gmail rate limit'}
+  ],
+  memDec: [
+    {ts:new Date(Date.now()-2*86400e3).toISOString(),item_type:'prospect',item_id:'p_0001',decision:'approved',outcome:'reply_received',reason:'niche plombier + reply rapide'},
+    {ts:new Date(Date.now()-5*86400e3).toISOString(),item_type:'prospect',item_id:'p_0008',decision:'rejected',outcome:'no_reply',reason:'lead trop ancien'}
+  ],
+  memPat: [
+    {niche:'plombier',trigger_signal:'reply<48h',winning_action:'follow_up_24h',sample_size:14,success_rate:0.71,confidence:'medium',note:'Réponse rapide = forte conversion'},
+    {niche:'coiffeur',trigger_signal:'no_website',winning_action:'mini_audit',sample_size:22,success_rate:0.55,confidence:'medium',note:'Mini-audit convertit mieux qu\'offre directe'}
+  ],
+  memCom: [
+    {ts:new Date(Date.now()-86400e3).toISOString(),subject_id:'p_0042',subject_type:'prospect',type:'fact',fact:'Site obsolète, copyright 2017',source:'home_html',confidence:0.85}
+  ]
+};
+
+/* ---------- Source dispatcher ---------- */
+async function fetchData(){
+  const c = STATE.cfg;
+  if(c.source === 'mock') return MOCK;
+  if(c.source === 'sheets') return await fetchSheets();
+  if(c.source === 'supabase') return await fetchSupabase();
+  return MOCK;
+}
+async function fetchSheets(){
+  const c = STATE.cfg.sheets;
+  if(!c.apiKey || !c.sheetId) throw new Error('Sheets non configuré');
+  async function read(tab){
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${c.sheetId}/values/${encodeURIComponent(tab)}?key=${c.apiKey}`;
+    const r = await fetch(url); if(!r.ok) throw new Error('Sheets HTTP '+r.status);
+    const j = await r.json(); const [head, ...rows] = j.values || [];
+    return rows.map(row => Object.fromEntries(head.map((h,i)=>[h, row[i]])));
+  }
+  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom] = await Promise.all([
+    read(c.tabs.bcl).catch(()=>[]), read(c.tabs.kpi).catch(()=>[]), read(c.tabs.team).catch(()=>[]),
+    read(c.tabs.review).catch(()=>[]), read(c.tabs.projects).catch(()=>[]), read(c.tabs.logs).catch(()=>[]),
+    read(c.tabs.memDec).catch(()=>[]), read(c.tabs.memPat).catch(()=>[]), read(c.tabs.memCom).catch(()=>[])
+  ]);
+  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, digest: '' };
+}
+async function fetchSupabase(){
+  const c = STATE.cfg.supabase;
+  if(!c.url || !c.anonKey) throw new Error('Supabase non configuré');
+  const headers = { apikey: c.anonKey, Authorization:`Bearer ${c.anonKey}` };
+  async function get(t,q=''){const r=await fetch(`${c.url}/rest/v1/${t}${q}`,{headers});if(!r.ok)throw new Error('SB HTTP '+r.status);return r.json();}
+  return {
+    bcl: await get('business_control','?select=*&order=ts.desc&limit=300'),
+    kpi: await get('kpi_snapshots','?select=*&order=ts.desc&limit=12'),
+    team: await get('team_state','?select=*'),
+    review: await get('review_queue','?select=*&limit=500'),
+    projects: await get('project_queue','?select=*&limit=500'),
+    logs: await get('logs','?select=*&order=ts.desc&limit=300'),
+    memDec: await get('memory_decisions','?select=*&order=ts.desc&limit=200'),
+    memPat: await get('memory_patterns','?select=*&order=ts.desc&limit=100'),
+    memCom: await get('memory_commercial','?select=*&order=ts.desc&limit=200'),
+    digest: ''
+  };
+}
+
+/* ---------- Helpers ---------- */
+const esc = s => String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]);
+const fmtDate = s => { try { return new Date(s).toLocaleString(); } catch(e) { return s||''; } };
+function getFilters(){return{person:document.getElementById('filterPerson').value,priority:document.getElementById('filterPriority').value};}
+
+/* ---------- Render Dashboard ---------- */
+let chartKpi, chartTeam, chartTeamFull;
+function renderKPIs(d){
+  const pending = (d.bcl||[]).filter(b=>b.decision_status==='pending');
+  const critical = pending.filter(b=>b.priority_level==='critical').length;
+  document.getElementById('kpi_pending').textContent = pending.length;
+  document.getElementById('kpi_critical').textContent = critical;
+  const last = (d.kpi||[]).slice(-1)[0] || {};
+  document.getElementById('kpi_projects').textContent = last.projects_active ?? '—';
+  document.getElementById('kpi_interested').textContent = last.prospects_replied_interested ?? '—';
+  document.getElementById('decisionsCount').textContent = pending.length + ' à valider';
+  if(critical>0) symbNotify(`${critical} item(s) critical en attente`);
+}
+function renderCharts(d){
+  const k = d.kpi || []; const labels = k.map(x=>x.period);
+  if(chartKpi) chartKpi.destroy();
+  chartKpi = new Chart(document.getElementById('chartKpi'),{type:'line',data:{labels,datasets:[
+    {label:'Pending',data:k.map(x=>+x.prospects_pending||0),tension:.3},
+    {label:'Drafted',data:k.map(x=>+x.prospects_drafted||0),tension:.3},
+    {label:'Interested',data:k.map(x=>+x.prospects_replied_interested||0),tension:.3},
+    {label:'Projets actifs',data:k.map(x=>+x.projects_active||0),tension:.3}
+  ]},options:{responsive:true,plugins:{legend:{position:'bottom'}},scales:{y:{beginAtZero:true}}}});
+  const team = d.team || [];
+  if(chartTeam) chartTeam.destroy();
+  chartTeam = new Chart(document.getElementById('chartTeam'),{type:'bar',data:{labels:team.map(t=>t.name),datasets:[{label:'Charge %',data:team.map(t=>+t.current_load_pct||0),backgroundColor:team.map(t=>(+t.current_load_pct>=85?'#ef4444':(+t.current_load_pct>=70?'#f59e0b':'#22c55e')))}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}});
+}
+function renderTopDashboard(d){
+  const tbody = document.querySelector('#tblTop tbody');
+  const f = getFilters();
+  const rows = (d.bcl||[]).filter(r=>r.decision_status==='pending')
+    .filter(r=>(f.person==='all'||r.assigned_to===f.person))
+    .filter(r=>(f.priority==='all'||r.priority_level===f.priority))
+    .sort((a,b)=>(+b.priority_score||0)-(+a.priority_score||0)).slice(0,10);
+  tbody.innerHTML = rows.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td><span class="badge ${r.priority_level||'low'}">${r.priority_level||'-'}</span></td>
+      <td><span class="badge tag">${r.item_type||'-'}</span></td>
+      <td><strong>${esc(r.title||r.item_id||'')}</strong><br><span class="muted">${esc(r.recommendation||'')}</span></td>
+      <td>${esc(r.recommended_action||'-')}</td>
+      <td>${esc(r.assigned_to||'-')}</td>
+      <td>${r.priority_score||'-'}</td>
+      <td><span class="badge ${r.decision_status||'pending'}">${r.decision_status||'pending'}</span></td>
+      <td class="actions">
+        <button class="approve" onclick="symbDecide('${r.id}','approved')">approve</button>
+        <button class="reject"  onclick="symbDecide('${r.id}','rejected')">reject</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="9" class="muted">Aucune reco en attente.</td></tr>';
+}
+function renderDigest(d){ document.getElementById('digest').textContent = d.digest || '—'; }
+
+/* ---------- Render Prospects ---------- */
+function renderProspects(d){
+  const q = (document.getElementById('qProspects').value||'').toLowerCase();
+  const rows = (d.review||[]).filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
+  document.getElementById('tblProspects').innerHTML = rows.map(r=>`
+    <tr>
+      <td><span class="muted">${esc(r.id)}</span></td>
+      <td><strong>${esc(r.company_name)}</strong></td>
+      <td><span class="badge tag">${esc(r.niche||'')}</span></td>
+      <td>${esc(r.city||'')}</td>
+      <td><span class="truncate">${esc(r.email||'')}</span></td>
+      <td><span class="badge ${r.status==='drafted_in_gmail'?'approved':(r.status==='rejected'?'rejected':'pending')}">${esc(r.status||'')}</span></td>
+      <td>${esc(r.opportunity_score||'')}</td>
+      <td>${r.reply_category?`<span class="badge tag">${esc(r.reply_category)}</span>`:'<span class="muted">—</span>'}</td>
+      <td>${esc(r.assigned_to||'')}</td>
+    </tr>`).join('') || '<tr><td colspan="9" class="muted">Aucun prospect.</td></tr>';
+}
+
+/* ---------- Render Projects ---------- */
+function renderProjects(d){
+  const q = (document.getElementById('qProjects').value||'').toLowerCase();
+  const rows = (d.projects||[]).filter(r => !q || JSON.stringify(r).toLowerCase().includes(q));
+  document.getElementById('tblProjects').innerHTML = rows.map(r=>`
+    <tr>
+      <td><span class="muted">${esc(r.id)}</span></td>
+      <td><strong>${esc(r.client_name)}</strong></td>
+      <td><span class="badge tag">${esc(r.niche||'')}</span></td>
+      <td><span class="badge ${r.status==='blocked'?'rejected':(r.status==='in_progress'?'medium':'pending')}">${esc(r.status||'')}</span></td>
+      <td>${esc(r.estimated_project_complexity||'')}</td>
+      <td>${esc(r.assigned_to||'')}</td>
+      <td>${esc(r.deadline||'')}</td>
+      <td>${esc(r.priority_score||'')}</td>
+    </tr>`).join('') || '<tr><td colspan="8" class="muted">Aucun projet.</td></tr>';
+}
+
+/* ---------- Render Decisions ---------- */
+function renderDecisions(d){
+  const rows = (d.bcl||[]).filter(r=>r.decision_status==='pending')
+    .sort((a,b)=>(+b.priority_score||0)-(+a.priority_score||0));
+  document.getElementById('tblDecisions').innerHTML = rows.map(r=>`
+    <tr>
+      <td><span class="badge ${r.priority_level||'low'}">${r.priority_level||'-'}</span></td>
+      <td><span class="badge tag">${esc(r.item_type||'')}</span></td>
+      <td><strong>${esc(r.title||'')}</strong><br><span class="muted">${esc(r.recommendation||'')}</span></td>
+      <td>${esc(r.recommended_action||'')}</td>
+      <td>${esc(r.assigned_to||'')}</td>
+      <td>${esc(r.priority_score||'')}</td>
+      <td><span class="muted">${esc(r.source_workflow||'')}</span></td>
+      <td class="actions">
+        <button class="approve" onclick="symbDecide('${r.id}','approved')">approve</button>
+        <button class="reject"  onclick="symbDecide('${r.id}','rejected')">reject</button>
+      </td>
+    </tr>`).join('') || '<tr><td colspan="8" class="muted">Aucune décision en attente.</td></tr>';
+}
+
+/* ---------- Render Memory ---------- */
+function renderMemory(d){
+  const pats = d.memPat || [];
+  document.getElementById('tblPatterns').innerHTML = pats.map(p=>`
+    <tr>
+      <td><span class="badge tag">${esc(p.niche||'')}</span></td>
+      <td>${esc(p.trigger_signal||'')}</td>
+      <td><strong>${esc(p.winning_action||'')}</strong></td>
+      <td>${esc(p.sample_size||'')}</td>
+      <td>${esc(p.success_rate||'')}</td>
+      <td><span class="badge ${p.confidence==='high'?'approved':(p.confidence==='medium'?'medium':'low')}">${esc(p.confidence||'')}</span></td>
+    </tr>`).join('') || '<tr><td colspan="6" class="muted">Aucun pattern (besoin de plus de données).</td></tr>';
+  document.getElementById('tblMemDecisions').innerHTML = (d.memDec||[]).slice(0,30).map(x=>`
+    <tr>
+      <td>${fmtDate(x.ts)}</td>
+      <td><span class="badge tag">${esc(x.item_type||'')}</span></td>
+      <td><span class="muted">${esc(x.item_id||'')}</span></td>
+      <td><span class="badge ${x.decision==='approved'?'approved':'rejected'}">${esc(x.decision||'')}</span></td>
+      <td>${esc(x.outcome||'')}</td>
+    </tr>`).join('') || '<tr><td colspan="5" class="muted">Aucune décision historisée.</td></tr>';
+  document.getElementById('tblMemFacts').innerHTML = (d.memCom||[]).slice(0,30).map(x=>`
+    <tr>
+      <td>${fmtDate(x.ts)}</td>
+      <td><span class="muted">${esc(x.subject_id||'')}</span></td>
+      <td><span class="badge tag">${esc(x.type||'')}</span></td>
+      <td>${esc(x.fact||'')}</td>
+      <td>${esc(x.source||'')}</td>
+      <td>${esc(x.confidence||'')}</td>
+    </tr>`).join('') || '<tr><td colspan="6" class="muted">Aucun fait stocké.</td></tr>';
+}
+
+/* ---------- Render Team ---------- */
+function renderTeam(d){
+  const ars = (d.team||[]).find(t=>String(t.name).toLowerCase().startsWith('ars')) || {};
+  const ken = (d.team||[]).find(t=>String(t.name).toLowerCase().startsWith('ken')) || {};
+  document.getElementById('loadArsene').textContent = (ars.current_load_pct ?? '—') + '%';
+  document.getElementById('loadKentin').textContent = (ken.current_load_pct ?? '—') + '%';
+  document.getElementById('ctxArsene').textContent = (ars.role||'') + ' · capacité ' + (ars.weekly_capacity_hours||'?') + 'h/sem';
+  document.getElementById('ctxKentin').textContent = (ken.role||'') + ' · capacité ' + (ken.weekly_capacity_hours||'?') + 'h/sem';
+  if(chartTeamFull) chartTeamFull.destroy();
+  chartTeamFull = new Chart(document.getElementById('chartTeamFull'),{type:'bar',data:{labels:['Arsène','Kentin'],datasets:[
+    {label:'Charge %',data:[+ars.current_load_pct||0,+ken.current_load_pct||0],backgroundColor:['#5eead4','#a78bfa']},
+    {label:'Capacité',data:[100,100],backgroundColor:['#ffffff10','#ffffff10']}
+  ]},options:{plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,max:100}}}});
+}
+
+/* ---------- Render Logs ---------- */
+function renderLogs(d){
+  const f = document.getElementById('filterLogLevel').value;
+  const rows = (d.logs||[]).filter(l => f==='all' || l.level === f).slice(0,200);
+  document.getElementById('tblLogs').innerHTML = rows.map(l=>`
+    <tr>
+      <td>${fmtDate(l.ts)}</td>
+      <td><span class="badge ${l.level==='error'?'rejected':(l.level==='warn'?'high':'low')}">${esc(l.level||'')}</span></td>
+      <td>${esc(l.phase||'')}</td>
+      <td>${esc(l.status||'')}</td>
+      <td><span class="muted">${esc(l.prospect_id||'')}</span></td>
+      <td><span class="truncate" title="${esc(l.message||'')}">${esc(l.message||'')}</span></td>
+    </tr>`).join('') || '<tr><td colspan="6" class="muted">Aucun log.</td></tr>';
+}
+
+/* ---------- Decisions ---------- */
+function symbDecide(id, status){
+  const log = JSON.parse(localStorage.getItem('symbalyx_decisions') || '[]');
+  log.push({id,status,ts:new Date().toISOString()});
+  localStorage.setItem('symbalyx_decisions', JSON.stringify(log));
+  alert(`Décision enregistrée localement: ${status} sur ${id}.\nÀ propager dans business_control via webhook n8n (V5).`);
+}
+function symbExportCSV(){
+  if(!STATE.data) return;
+  const rows = (STATE.data.bcl||[]).filter(r=>r.decision_status==='pending');
+  const cols = ['priority_level','priority_score','item_type','item_id','title','recommendation','recommended_action','assigned_to','decision_status','ts'];
+  const csv = [cols.join(','), ...rows.map(r=>cols.map(c=>`"${String(r[c]??'').replace(/"/g,'""')}"`).join(','))].join('\n');
+  const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=`symbalyx_priorities_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+function symbAskNotif(){if(!('Notification' in window)) return; Notification.requestPermission();}
+let lastSig='';
+function symbNotify(msg){if(!('Notification' in window)||Notification.permission!=='granted') return; const sig=msg+'|'+new Date().getHours(); if(sig===lastSig) return; lastSig=sig; new Notification('Symbalyx',{body:msg}); document.getElementById('notifLog').textContent = msg + ' · ' + new Date().toLocaleTimeString();}
+
+/* ---------- Cfg UI ---------- */
+function symbLoadCfgUI(){
+  const c = STATE.cfg;
+  document.getElementById('cfgSource').value = c.source;
+  document.getElementById('cfgSheetsApiKey').value = c.sheets.apiKey || '';
+  document.getElementById('cfgSheetId').value = c.sheets.sheetId || '';
+  document.getElementById('cfgSupabaseUrl').value = c.supabase.url || '';
+  document.getElementById('cfgSupabaseKey').value = c.supabase.anonKey || '';
+}
+function symbSaveCfg(){
+  STATE.cfg.source = document.getElementById('cfgSource').value;
+  STATE.cfg.sheets.apiKey = document.getElementById('cfgSheetsApiKey').value.trim();
+  STATE.cfg.sheets.sheetId = document.getElementById('cfgSheetId').value.trim();
+  STATE.cfg.supabase.url = document.getElementById('cfgSupabaseUrl').value.trim();
+  STATE.cfg.supabase.anonKey = document.getElementById('cfgSupabaseKey').value.trim();
+  localStorage.setItem('symbalyx_cfg', JSON.stringify(STATE.cfg));
+  alert('Configuration enregistrée.'); symbRefresh();
+}
+
+/* ---------- Routing ---------- */
+function setView(v){
+  STATE.view = v;
+  document.querySelectorAll('main > section').forEach(s => s.classList.toggle('hidden', s.dataset.view !== v));
+  document.querySelectorAll('#nav a').forEach(a => a.classList.toggle('active', a.dataset.view === v));
+  symbRender();
+}
+document.querySelectorAll('#nav a').forEach(a => a.addEventListener('click', () => setView(a.dataset.view)));
+document.addEventListener('input', e => {
+  if(e.target.id === 'qProspects' && STATE.data) renderProspects(STATE.data);
+  if(e.target.id === 'qProjects' && STATE.data) renderProjects(STATE.data);
+});
+document.addEventListener('change', e => {
+  if(e.target.id === 'filterLogLevel' && STATE.data) renderLogs(STATE.data);
+  if((e.target.id === 'filterPerson' || e.target.id === 'filterPriority') && STATE.data) renderTopDashboard(STATE.data);
+});
+
+/* ---------- Refresh ---------- */
+async function symbRefresh(){
+  try{
+    STATE.data = await fetchData();
+    document.getElementById('srcInfo').textContent = `Source: ${STATE.cfg.source} · ${new Date().toLocaleTimeString()}`;
+    symbRender();
+  }catch(e){
+    document.getElementById('srcInfo').textContent = 'Erreur: ' + e.message;
+  }
+}
+function symbRender(){
+  const d = STATE.data || {};
+  if(STATE.view === 'dashboard'){ renderKPIs(d); renderCharts(d); renderTopDashboard(d); renderDigest(d); }
+  if(STATE.view === 'prospects') renderProspects(d);
+  if(STATE.view === 'projects')  renderProjects(d);
+  if(STATE.view === 'decisions') renderDecisions(d);
+  if(STATE.view === 'memory')    renderMemory(d);
+  if(STATE.view === 'team')      renderTeam(d);
+  if(STATE.view === 'logs')      renderLogs(d);
+}
+setInterval(symbRefresh, 5*60*1000);
+</script>
+</body>
+</html>

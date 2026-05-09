@@ -1,0 +1,161 @@
+{
+  "name": "Symbalyx — WF15 Memory Manager (sub-workflow)",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {"values": [
+          {"name": "mode", "type": "string"},
+          {"name": "subject_id", "type": "string"},
+          {"name": "subject_type", "type": "string"},
+          {"name": "niche", "type": "string"},
+          {"name": "limit", "type": "number"},
+          {"name": "fact", "type": "string"},
+          {"name": "confidence", "type": "number"},
+          {"name": "source", "type": "string"},
+          {"name": "bcl_id", "type": "string"},
+          {"name": "decision", "type": "string"},
+          {"name": "reason", "type": "string"}
+        ]}
+      },
+      "id": "15100001-0000-0000-0000-000000000001",
+      "name": "Trigger Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {"conditions": {"options": {"caseSensitive": false, "typeValidation": "loose"}, "conditions": [{"id":"r1","leftValue":"={{ $json.mode }}","rightValue":"READ_BY_SUBJECT","operator":{"type":"string","operation":"equals"}}], "combinator":"and"}, "renameOutput": true, "outputKey": "read_subject"},
+            {"conditions": {"options": {"caseSensitive": false, "typeValidation": "loose"}, "conditions": [{"id":"r2","leftValue":"={{ $json.mode }}","rightValue":"READ_BY_NICHE","operator":{"type":"string","operation":"equals"}}], "combinator":"and"}, "renameOutput": true, "outputKey": "read_niche"},
+            {"conditions": {"options": {"caseSensitive": false, "typeValidation": "loose"}, "conditions": [{"id":"r3","leftValue":"={{ $json.mode }}","rightValue":"READ_RECENT_DECISIONS","operator":{"type":"string","operation":"equals"}}], "combinator":"and"}, "renameOutput": true, "outputKey": "read_decisions"},
+            {"conditions": {"options": {"caseSensitive": false, "typeValidation": "loose"}, "conditions": [{"id":"r4","leftValue":"={{ $json.mode }}","rightValue":"WRITE_FACT","operator":{"type":"string","operation":"equals"}}], "combinator":"and"}, "renameOutput": true, "outputKey": "write_fact"},
+            {"conditions": {"options": {"caseSensitive": false, "typeValidation": "loose"}, "conditions": [{"id":"r5","leftValue":"={{ $json.mode }}","rightValue":"WRITE_DECISION","operator":{"type":"string","operation":"equals"}}], "combinator":"and"}, "renameOutput": true, "outputKey": "write_decision"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "15100002-0000-0000-0000-000000000002",
+      "name": "Switch mode",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "memory_commercial", "mode": "name"},
+        "options": {}
+      },
+      "id": "15100003-0000-0000-0000-000000000003",
+      "name": "Read memory_commercial",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [640, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $('Trigger Sub-workflow').first().json;\nconst now = Date.now();\nconst mode = inp.mode;\nconst limit = Number(inp.limit) || 20;\nconst rows = items.map(i => i.json).filter(r => {\n  if (r.expires_at && Date.parse(r.expires_at) < now) return false;\n  return true;\n});\nlet out = [];\nif (mode === 'READ_BY_SUBJECT') {\n  out = rows.filter(r => r.subject_id === inp.subject_id);\n} else if (mode === 'READ_BY_NICHE') {\n  out = rows.filter(r => String(r.fact || '').toLowerCase().includes(String(inp.niche || '').toLowerCase()) || String(r.source || '').toLowerCase().includes(String(inp.niche || '').toLowerCase()));\n}\nout = out.slice(0, limit);\nreturn [{ json: { mode, count: out.length, results: out } }];"
+      },
+      "id": "15100004-0000-0000-0000-000000000004",
+      "name": "Filter facts",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 100]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "memory_decisions", "mode": "name"},
+        "options": {}
+      },
+      "id": "15100005-0000-0000-0000-000000000005",
+      "name": "Read memory_decisions",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $('Trigger Sub-workflow').first().json;\nconst limit = Number(inp.limit) || 20;\nconst rows = items.map(i => i.json).sort((a,b)=>String(b.ts||'').localeCompare(String(a.ts||''))).slice(0, limit);\nreturn [{ json: { mode: 'READ_RECENT_DECISIONS', count: rows.length, results: rows } }];"
+      },
+      "id": "15100006-0000-0000-0000-000000000006",
+      "name": "Format recent decisions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $json;\nif (!inp.source || !String(inp.source).trim()) { throw new Error('WRITE_FACT requires source'); }\nconst conf = Number(inp.confidence);\nconst lowConf = !Number.isFinite(conf) || conf < 0.3;\nreturn [{ json: {\n  id: 'mem_' + Date.now(),\n  ts: new Date().toISOString(),\n  type: 'fact',\n  subject_id: inp.subject_id || '',\n  subject_type: inp.subject_type || '',\n  fact: inp.fact || '',\n  confidence: Number.isFinite(conf) ? conf : '',\n  source: inp.source,\n  expires_at: ''\n}}];"
+      },
+      "id": "15100007-0000-0000-0000-000000000007",
+      "name": "Build fact row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 480]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "memory_commercial", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "15100008-0000-0000-0000-000000000008",
+      "name": "Append memory_commercial",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [860, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $json;\nreturn [{ json: {\n  id: 'dec_' + Date.now(),\n  ts: new Date().toISOString(),\n  bcl_id: inp.bcl_id || '',\n  item_type: inp.subject_type || '',\n  item_id: inp.subject_id || '',\n  recommended_action: '',\n  decision: inp.decision || '',\n  decided_by: '',\n  reason: inp.reason || '',\n  outcome: '',\n  outcome_observed_at: ''\n}}];"
+      },
+      "id": "15100009-0000-0000-0000-000000000009",
+      "name": "Build decision row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 660]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "memory_decisions", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "1510000a-0000-0000-0000-00000000000a",
+      "name": "Append memory_decisions",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [860, 660]
+    }
+  ],
+  "connections": {
+    "Trigger Sub-workflow": { "main": [[{"node": "Switch mode", "type": "main", "index": 0}]] },
+    "Switch mode": {
+      "main": [
+        [{"node": "Read memory_commercial", "type": "main", "index": 0}],
+        [{"node": "Read memory_commercial", "type": "main", "index": 0}],
+        [{"node": "Read memory_decisions", "type": "main", "index": 0}],
+        [{"node": "Build fact row", "type": "main", "index": 0}],
+        [{"node": "Build decision row", "type": "main", "index": 0}]
+      ]
+    },
+    "Read memory_commercial": { "main": [[{"node": "Filter facts", "type": "main", "index": 0}]] },
+    "Read memory_decisions": { "main": [[{"node": "Format recent decisions", "type": "main", "index": 0}]] },
+    "Build fact row": { "main": [[{"node": "Append memory_commercial", "type": "main", "index": 0}]] },
+    "Build decision row": { "main": [[{"node": "Append memory_decisions", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "memory"}, {"name": "wf15"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000015",
+  "meta": {"instanceId": "symbalyx-wf15"}
+}
