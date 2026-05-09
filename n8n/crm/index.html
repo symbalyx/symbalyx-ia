@@ -223,10 +223,22 @@
   <div class="login">
     <h1>Symbalyx</h1>
     <p class="lead">Mot de passe local. Premier accès = tu choisis.</p>
-    <input id="pwd" type="password" placeholder="••••••••" autofocus>
+    <input id="pwd" type="password" placeholder="••••••••" autofocus onkeydown="if(event.key==='Enter')symbLogin()">
     <div style="height:8px"></div>
     <button class="btn primary" style="width:100%" onclick="symbLogin()">Entrer</button>
     <p class="muted" style="margin-top:10px">Le hash est stocké dans ce navigateur uniquement, jamais envoyé.</p>
+  </div>
+</div>
+
+<!-- ============== CHOIX D'IDENTITÉ (étape 2) ============== -->
+<div id="identityPick" class="login-wrap hidden">
+  <div class="login" style="max-width:480px">
+    <h1>Qui es-tu ?</h1>
+    <p class="lead">Choisis ton identité pour signer décisions et commentaires.</p>
+    <div id="identityList" class="stack"></div>
+    <p class="muted" id="identityHint" style="margin-top:10px"></p>
+    <div class="sep"></div>
+    <button class="btn ghost" onclick="symbBackToLogin()">← Mot de passe</button>
   </div>
 </div>
 
@@ -241,9 +253,11 @@
       <button data-view="decisions">Décisions</button>
       <button data-view="memory">Mémoire</button>
       <button data-view="logs">Logs</button>
+      <button data-view="team" class="hidden" id="navTeam">Équipe</button>
       <button data-view="settings">Réglages</button>
     </nav>
     <div class="right">
+      <span class="chip" id="meChip" title="Identité courante" onclick="setView('settings')" style="cursor:pointer"></span>
       <button class="iconbtn" id="btnNotif" title="Notifications" onclick="symbOpenNotif()">
         🔔
         <span id="notifDot" class="dot-badge hidden"></span>
@@ -357,7 +371,7 @@
       <h1 class="h1">Décisions</h1>
       <p class="lead">Recommandations IA en attente de validation humaine.</p>
       <div class="row" style="margin-bottom:10px">
-        <select id="filterPerson"><option value="all">Toute l'équipe</option><option>Arsène</option><option>Kentin</option><option>Arsène+Kentin</option></select>
+        <select id="filterPerson"><option value="all">Toute l'équipe</option><option value="me">À moi</option></select>
         <select id="filterPriority"><option value="all">Toutes priorités</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
         <button class="btn ghost right" onclick="symbExportCSV()">Export CSV</button>
       </div>
@@ -389,20 +403,43 @@
       <div class="card padless"><div class="list" id="listLogs"></div></div>
     </section>
 
+    <!-- =================== ÉQUIPE (admin) =================== -->
+    <section data-view="team" class="hidden">
+      <h1 class="h1">Équipe</h1>
+      <p class="lead" id="teamLead">Membres de l'agence. Source de vérité pour les identités, décisions et commentaires.</p>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Ajouter un membre</span></div>
+        <div class="grid grid-2">
+          <input id="tmName" placeholder="Nom (ex: Camille Dubois)">
+          <input id="tmEmail" placeholder="Email (optionnel)">
+          <select id="tmRole"></select>
+          <input id="tmInitials" placeholder="Initiales (auto si vide)" maxlength="4">
+          <input id="tmColor" type="color" value="#3a86ff" style="height:42px;padding:4px">
+        </div>
+        <div style="height:8px"></div>
+        <button class="btn primary" onclick="symbAddMember()">Ajouter</button>
+        <span class="muted" id="tmAddStatus" style="margin-left:8px"></span>
+      </div>
+
+      <div class="card padless">
+        <div class="list" id="listTeam"></div>
+      </div>
+
+      <p class="muted" style="margin-top:12px">Les modifications sont propagées aux décisions et commentaires en cours. Désactiver un membre l'enlève des sélecteurs sans effacer son historique.</p>
+    </section>
+
     <!-- =================== RÉGLAGES =================== -->
     <section data-view="settings" class="hidden">
       <h1 class="h1">Réglages</h1>
 
       <div class="card" style="margin-bottom:12px">
         <div class="card-h"><span class="t">Identité courante</span></div>
-        <p class="muted">Qui utilise ce navigateur ? Toutes les décisions et commentaires seront signés à ce nom.</p>
+        <p class="muted">Qui utilise ce navigateur ? Toutes les décisions et commentaires seront signés avec cet ID. Liste alimentée par <code>team_members</code>.</p>
         <div class="row">
           <label class="muted" style="min-width:60px">Moi</label>
-          <select id="cfgIdentity" style="max-width:220px">
-            <option value="Arsène">Arsène</option>
-            <option value="Kentin">Kentin</option>
-            <option value="Équipe">Équipe (générique)</option>
-          </select>
+          <select id="cfgIdentity" style="max-width:280px"></select>
+          <button class="btn ghost" onclick="symbBackToLogin()">Changer d'utilisateur</button>
         </div>
       </div>
 
@@ -507,31 +544,54 @@
    ============================================================ */
 
 const PWD_KEY = 'symbalyx_pwd_hash_v3';
+// Rôles centralisés (V8). Pas d'enforcement RBAC pour l'instant — juste la
+// sémantique pour l'UI et les filtres. À étendre quand on ajoutera les droits.
+const ROLES = [
+  { id: 'founder', label: 'Fondateur',   admin: true  },
+  { id: 'admin',   label: 'Admin',       admin: true  },
+  { id: 'sales',   label: 'Sales',       admin: false },
+  { id: 'dev',     label: 'Dev',         admin: false },
+  { id: 'viewer',  label: 'Viewer',      admin: false },
+  { id: 'member',  label: 'Membre',      admin: false }
+];
+const ROLE_LABEL = Object.fromEntries(ROLES.map(r => [r.id, r.label]));
+function isAdminRole(r){ const x = ROLES.find(x => x.id === r); return !!(x && x.admin); }
 const DEFAULT_CFG = {
   source: 'mock',
   sheets: { apiKey: '', sheetId: '{{GOOGLE_SHEET_ID}}', tabs: {
     bcl:'business_control', kpi:'kpi_snapshots', team:'team_state',
     review:'review_queue', projects:'project_queue', logs:'logs',
     memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial',
-    invoices:'invoices', notifs:'notifications_inbox'
+    invoices:'invoices', notifs:'notifications_inbox', members:'team_members'
   }},
   supabase: { url: '', anonKey: '' },
   webhook: { baseUrl: '', secret: '' },
-  identity: 'Arsène',
+  // V8 : identité = objet riche. null = pas encore choisi (login étape 2).
+  identity: null,
   prefs: { critical:true, hotReply:true, projectRisk:true, invoiceOverdue:true, morningDigest:true }
 };
 function loadCfg(){
   let c; try { c = JSON.parse(localStorage.getItem('symbalyx_cfg_v2') || 'null') || {}; } catch { c = {}; }
-  // Migration douce : s'assurer que les nouveaux blocs existent sans écraser l'existant.
+  // Migration : ancien format identity = string ('Arsène'/'Kentin'/'Équipe') → objet minimal.
+  let identity = c.identity;
+  if (typeof identity === 'string') {
+    identity = identity ? { id: '', name: identity, role: 'member', initials: '', color: '' } : null;
+  } else if (identity && typeof identity === 'object') {
+    identity = { id: identity.id || '', name: identity.name || '', role: identity.role || 'member', initials: identity.initials || '', color: identity.color || '' };
+    if (!identity.name) identity = null;
+  } else {
+    identity = null;
+  }
   return {
     source: c.source || DEFAULT_CFG.source,
-    sheets: { ...DEFAULT_CFG.sheets, ...(c.sheets || {}) },
+    sheets: { ...DEFAULT_CFG.sheets, ...(c.sheets || {}), tabs: { ...DEFAULT_CFG.sheets.tabs, ...((c.sheets||{}).tabs || {}) } },
     supabase: { ...DEFAULT_CFG.supabase, ...(c.supabase || {}) },
     webhook: { ...DEFAULT_CFG.webhook, ...(c.webhook || {}) },
-    identity: c.identity || DEFAULT_CFG.identity,
+    identity,
     prefs: { ...DEFAULT_CFG.prefs, ...(c.prefs || {}) }
   };
 }
+function saveCfg(){ localStorage.setItem('symbalyx_cfg_v2', JSON.stringify(STATE.cfg)); }
 const STATE = {
   cfg: loadCfg(),
   data: null,
@@ -565,7 +625,7 @@ function toast(msg, type='ok'){
   w.appendChild(t); setTimeout(()=>t.remove(), 3500);
 }
 
-/* ---------- auth ---------- */
+/* ---------- auth + identité (login en 2 étapes) ---------- */
 async function sha256(s){ const b = new TextEncoder().encode(s); const h = await crypto.subtle.digest('SHA-256', b);
   return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 async function symbLogin(){
@@ -573,8 +633,87 @@ async function symbLogin(){
   const h = await sha256(pwd); const stored = localStorage.getItem(PWD_KEY);
   if (!stored) localStorage.setItem(PWD_KEY, h);
   if (localStorage.getItem(PWD_KEY) !== h) { toast('Mot de passe incorrect','err'); return; }
-  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  $('login').classList.add('hidden');
+  // Si identité courante encore valide dans la liste actuelle, on skip l'étape 2.
+  const members = await symbLoadTeamMembersForLogin();
+  STATE.bootMembers = members;
+  const cur = STATE.cfg.identity;
+  const stillValid = cur && members.some(m => (cur.id && m.id === cur.id) || (!cur.id && m.name === cur.name));
+  if (stillValid) { symbEnterApp(); return; }
+  symbBootIdentitySelector(members);
+}
+async function symbLoadTeamMembersForLogin(){
+  // Tente le webhook (la source de vérité côté équipe).
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const r = await fetch(`${wh.baseUrl}/symbalyx-team-members?active_only=1`, { headers: { 'x-symbalyx-token': wh.secret } });
+      if (r.ok) {
+        const j = await r.json();
+        const list = (j && j.members) || [];
+        if (list.length) return list;
+      }
+    } catch {}
+  }
+  // Fallback : mock embarqué (dev) ou cache local.
+  if (STATE.cfg.source === 'mock') return MOCK.team_members.filter(m => m.is_active);
+  // Dernier recours : mock.
+  return MOCK.team_members.filter(m => m.is_active);
+}
+function symbBootIdentitySelector(members){
+  $('identityPick').classList.remove('hidden');
+  const list = $('identityList');
+  if (!members || !members.length) {
+    list.innerHTML = '<div class="muted">Aucun membre actif. Ajoute-toi via le mode admin (mock).</div>';
+    $('identityHint').textContent = '';
+    return;
+  }
+  list.innerHTML = members.map(m => `
+    <button class="btn" style="width:100%;text-align:left;display:flex;align-items:center;gap:10px"
+            onclick="symbPickIdentity('${esc(m.id||'')}','${esc(m.name)}')">
+      <span class="chip" style="background:${esc(m.color||'#3a86ff')};color:#fff;min-width:36px;text-align:center">${esc(m.initials||initialsFrom(m.name))}</span>
+      <span style="flex:1">
+        <strong>${esc(m.name)}</strong>
+        <span class="muted" style="margin-left:6px">${esc(ROLE_LABEL[m.role]||m.role||'')}</span>
+      </span>
+    </button>`).join('');
+  $('identityHint').textContent = `${members.length} membre${members.length>1?'s':''} actif${members.length>1?'s':''}.`;
+}
+function initialsFrom(name){
+  return String(name||'').split(/\s+/).filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase().slice(0,4) || '?';
+}
+function symbPickIdentity(id, name){
+  const list = STATE.bootMembers || [];
+  const m = list.find(x => (id && x.id === id) || (!id && x.name === name)) || { id, name, role:'member', initials:initialsFrom(name), color:'#3a86ff' };
+  STATE.cfg.identity = { id: m.id||'', name: m.name, role: m.role||'member', initials: m.initials||initialsFrom(m.name), color: m.color||'#3a86ff' };
+  saveCfg();
+  $('identityPick').classList.add('hidden');
+  symbEnterApp();
+}
+function symbBackToLogin(){
+  $('app').classList.add('hidden');
+  $('identityPick').classList.add('hidden');
+  $('login').classList.remove('hidden');
+  $('pwd').value = ''; $('pwd').focus();
+}
+function symbEnterApp(){
+  $('app').classList.remove('hidden');
+  symbApplyIdentityUI();
   symbLoadCfgUI(); symbInitNotifPrefs(); symbRegisterSW(); symbRefresh();
+}
+function symbApplyIdentityUI(){
+  const me = STATE.cfg.identity;
+  const chip = $('meChip');
+  if (chip) {
+    if (me) {
+      chip.innerHTML = `<span style="background:${esc(me.color||'#3a86ff')};color:#fff;padding:2px 6px;border-radius:6px;margin-right:6px">${esc(me.initials||initialsFrom(me.name))}</span>${esc(me.name)}`;
+    } else {
+      chip.textContent = '— pas d\'identité —';
+    }
+  }
+  // Onglet "Équipe" visible aux admins.
+  const navTeam = $('navTeam');
+  if (navTeam) navTeam.classList.toggle('hidden', !(me && isAdminRole(me.role)));
 }
 function symbLogout(){ sessionStorage.clear(); location.reload(); }
 function symbToggleTheme(){
@@ -611,6 +750,11 @@ const MOCK = {
   team: [
     {name:'Arsène',role:'sites/design/commercial',current_load_pct:72,weekly_capacity_hours:35},
     {name:'Kentin',role:'recherche/n8n/QA',current_load_pct:88,weekly_capacity_hours:35}
+  ],
+  // Référentiel équipe (V8). Source de vérité pour les identités.
+  team_members: [
+    {id:'tm_arsene',name:'Arsène',email:'arsene@symbalyx.local',role:'founder',initials:'AR',color:'#3a86ff',is_active:true,created_at:new Date(Date.now()-90*86400e3).toISOString()},
+    {id:'tm_kentin',name:'Kentin',email:'kentin@symbalyx.local',role:'admin', initials:'KE',color:'#ff8c42',is_active:true,created_at:new Date(Date.now()-90*86400e3).toISOString()}
   ],
   digest:"**Top priorités**\n- 3 réponses 'interested' à traiter sous 48h\n- Maquette V1 Salon Élégance avant vendredi\n- 5 nouveaux brouillons à préparer\n\n**Risques**\n- Kentin à 88%\n- proj_0011 bloqué 14j",
   review: [
@@ -669,13 +813,14 @@ async function fetchSheets(){
     const j = await r.json(); const [head, ...rows] = j.values || [];
     return rows.map(row => Object.fromEntries(head.map((h,i)=>[h, row[i]])));
   }
-  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs] = await Promise.all([
+  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs,members] = await Promise.all([
     read(c.tabs.bcl).catch(()=>[]), read(c.tabs.kpi).catch(()=>[]), read(c.tabs.team).catch(()=>[]),
     read(c.tabs.review).catch(()=>[]), read(c.tabs.projects).catch(()=>[]), read(c.tabs.logs).catch(()=>[]),
     read(c.tabs.memDec).catch(()=>[]), read(c.tabs.memPat).catch(()=>[]), read(c.tabs.memCom).catch(()=>[]),
-    read(c.tabs.invoices).catch(()=>[]), read(c.tabs.notifs).catch(()=>[])
+    read(c.tabs.invoices).catch(()=>[]), read(c.tabs.notifs).catch(()=>[]),
+    read(c.tabs.members || 'team_members').catch(()=>[])
   ]);
-  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, digest: '' };
+  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, team_members: normalizeMembers(members), digest: '' };
 }
 async function fetchSupabase(){
   const c = STATE.cfg.supabase;
@@ -694,8 +839,23 @@ async function fetchSupabase(){
     memCom: await get('memory_commercial','?select=*&order=ts.desc&limit=200'),
     invoices: await get('invoices','?select=*'),
     notifs: await get('notifications_inbox','?select=*&order=ts.desc&limit=100'),
+    team_members: normalizeMembers(await get('team_members','?select=*').catch(()=>[])),
     digest: ''
   };
+}
+// Normalise les bool venus de Sheets (string 'TRUE'/'FALSE') ou Supabase (bool natif).
+function normalizeMembers(rows){
+  const toBool = v => v === true || String(v).toLowerCase() === 'true' || String(v) === '1';
+  return (rows || []).map(m => ({
+    id: m.id || '',
+    name: m.name || '',
+    email: m.email || '',
+    role: (m.role || 'member').toLowerCase(),
+    initials: m.initials || '',
+    color: m.color || '',
+    is_active: toBool(m.is_active),
+    created_at: m.created_at || ''
+  })).filter(m => m.name);
 }
 
 /* ---------- routing ---------- */
@@ -901,11 +1061,32 @@ function renderProjects(d){
 }
 
 /* ---------- DECISIONS ---------- */
+function symbPopulatePersonFilter(d){
+  const sel = $('filterPerson'); if (!sel) return;
+  const cur = sel.value;
+  const members = (d.team_members || MOCK.team_members).filter(m => m.is_active !== false);
+  const opts = ['<option value="all">Toute l\'équipe</option>', '<option value="me">À moi</option>']
+    .concat(members.map(m => `<option value="${esc(m.name)}">${esc(m.name)}</option>`));
+  sel.innerHTML = opts.join('');
+  // Restaure la sélection si toujours présente.
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
 function renderDecisions(d){
+  symbPopulatePersonFilter(d);
   const fp = $('filterPerson')?.value || 'all';
   const fpr = $('filterPriority')?.value || 'all';
+  const me = STATE.cfg.identity;
+  const matchesPerson = (r) => {
+    if (fp === 'all') return true;
+    if (fp === 'me') return me && (
+      (r.assignee_id && me.id && r.assignee_id === me.id) ||
+      (r.assigned_to && me.name && String(r.assigned_to).toLowerCase().includes(me.name.toLowerCase()))
+    );
+    // Sinon = nom exact (ou inclusion pour gérer "Arsène+Kentin").
+    return String(r.assigned_to||'').toLowerCase().includes(String(fp).toLowerCase());
+  };
   const rows = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending')
-    .filter(r => fp==='all' || r.assigned_to === fp)
+    .filter(matchesPerson)
     .filter(r => fpr==='all' || lower(r.priority_level) === fpr)
     .sort((a,b)=>(+b.priority_score||0)-(+a.priority_score||0));
   $('listDecisions').innerHTML = rows.map(b => itemRow(b, true)).join('') || emptyRow('Aucune décision en attente.');
@@ -1129,10 +1310,11 @@ async function symbPostComment(type, id){
   if (!input) return;
   const body = (input.value || '').trim();
   if (!body) { toast('Commentaire vide', 'err'); return; }
-  const me = STATE.cfg.identity || 'Équipe';
+  const me = STATE.cfg.identity;
+  if (!me || !me.name) { toast('Choisis une identité d\'abord (Réglages)', 'err'); return; }
   const wh = STATE.cfg.webhook;
   const key = symbCommentKey(type, id);
-  const local = { id: 'local_' + Date.now(), ts: new Date().toISOString(), item_type: type, item_id: id, author: me, body, _pending: true };
+  const local = { id: 'local_' + Date.now(), ts: new Date().toISOString(), item_type: type, item_id: id, author: me.name, author_id: me.id || '', body, _pending: true };
   // Optimistic UI : on l'affiche tout de suite.
   const cur = STATE.commentsCache[key] || [];
   cur.push(local);
@@ -1148,7 +1330,7 @@ async function symbPostComment(type, id){
     const r = await fetch(wh.baseUrl + '/symbalyx-comments', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-symbalyx-token': wh.secret },
-      body: JSON.stringify({ item_type: type, item_id: id, author: me, body })
+      body: JSON.stringify({ item_type: type, item_id: id, author: me.name, author_id: me.id || '', body })
     });
     const j = await r.json().catch(()=>({}));
     if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP '+r.status));
@@ -1202,11 +1384,12 @@ function refreshBadges(){
 /* ---------- decisions actions ---------- */
 async function symbDecide(id, status, opts){
   opts = opts || {};
-  const me = STATE.cfg.identity || 'Équipe';
+  const me = STATE.cfg.identity;
+  if (!me || !me.name) { toast('Choisis une identité d\'abord (Réglages)', 'err'); return; }
   const reason = (opts.reason || '').toString();
   // Optimistic UI : marque la ligne BCL localement comme déjà décidée.
   const row = (STATE.data?.bcl || []).find(x => x.id === id);
-  if (row) { row.decision_status = status; row.decided_by = me; row.decided_at = new Date().toISOString(); }
+  if (row) { row.decision_status = status; row.decided_by = me.name; row.decider_id = me.id || ''; row.decided_at = new Date().toISOString(); }
   symbRender();
   // Cas 1 : webhook configuré → POST n8n.
   const wh = STATE.cfg.webhook;
@@ -1215,7 +1398,7 @@ async function symbDecide(id, status, opts){
       const res = await fetch(wh.baseUrl + '/symbalyx-decision', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-symbalyx-token': wh.secret },
-        body: JSON.stringify({ bcl_id: id, decision: status, decided_by: me, reason })
+        body: JSON.stringify({ bcl_id: id, decision: status, decided_by: me.name, decider_id: me.id || '', reason })
       });
       const j = await res.json().catch(()=>({}));
       if (!res.ok || j.ok === false) throw new Error(j.error || ('HTTP '+res.status));
@@ -1223,7 +1406,7 @@ async function symbDecide(id, status, opts){
       return;
     } catch (e) {
       // Rollback optimistic + fallback queue locale.
-      if (row) { row.decision_status = 'pending'; row.decided_by = ''; row.decided_at = ''; }
+      if (row) { row.decision_status = 'pending'; row.decided_by = ''; row.decider_id = ''; row.decided_at = ''; }
       symbRender();
       symbQueueDecisionLocally(id, status, me, reason);
       toast('Webhook KO ('+e.message+') · décision mise en file locale', 'err');
@@ -1234,8 +1417,8 @@ async function symbDecide(id, status, opts){
   symbQueueDecisionLocally(id, status, me, reason);
   toast(`${status === 'approved' ? 'Approuvé' : 'Décision'} · à propager (configurer le webhook dans Réglages)`, status==='approved'?'ok':'err');
 }
-function symbQueueDecisionLocally(id, status, by, reason){
-  STATE.pendingDecisions.push({ id, status, by, reason, ts: new Date().toISOString() });
+function symbQueueDecisionLocally(id, status, me, reason){
+  STATE.pendingDecisions.push({ id, status, by: me?.name||'', decider_id: me?.id||'', reason, ts: new Date().toISOString() });
   localStorage.setItem('symbalyx_decisions', JSON.stringify(STATE.pendingDecisions));
 }
 async function symbTestWebhook(){
@@ -1309,7 +1492,101 @@ function isPrefAllowed(kind){
   const p = m[kind]; return !p || STATE.cfg.prefs[p] !== false;
 }
 
+/* ---------- équipe (admin) ---------- */
+function symbPopulateRoleSelect(elId){
+  const sel = $(elId); if (!sel) return;
+  sel.innerHTML = ROLES.map(r => `<option value="${r.id}">${esc(r.label)}</option>`).join('');
+}
+function symbRenderTeam(d){
+  const list = $('listTeam'); if (!list) return;
+  const me = STATE.cfg.identity;
+  if (!(me && isAdminRole(me.role))) {
+    list.innerHTML = '<div class="muted" style="padding:14px">Section réservée aux admins.</div>';
+    return;
+  }
+  const members = d.team_members || MOCK.team_members;
+  if (!members.length) {
+    list.innerHTML = '<div class="muted" style="padding:14px">Aucun membre.</div>'; return;
+  }
+  list.innerHTML = members.map(m => `
+    <div class="item" style="display:flex;align-items:center;gap:10px">
+      <span class="chip" style="background:${esc(m.color||'#3a86ff')};color:#fff;min-width:36px;text-align:center">${esc(m.initials||initialsFrom(m.name))}</span>
+      <div style="flex:1">
+        <div><strong>${esc(m.name)}</strong> ${m.is_active===false?'<span class="muted">(désactivé)</span>':''}</div>
+        <div class="muted">${esc(ROLE_LABEL[m.role]||m.role||'-')} · ${esc(m.email||'sans email')}</div>
+      </div>
+      <button class="btn ghost" onclick="symbToggleMember('${esc(m.id)}', ${m.is_active===false ? 'true':'false'})">${m.is_active===false?'Réactiver':'Désactiver'}</button>
+    </div>`).join('');
+}
+async function symbAddMember(){
+  const me = STATE.cfg.identity;
+  if (!(me && isAdminRole(me.role))) { toast('Seuls les admins peuvent ajouter','err'); return; }
+  const name = $('tmName').value.trim();
+  const email = $('tmEmail').value.trim();
+  const role = $('tmRole').value;
+  const initials = $('tmInitials').value.trim().toUpperCase();
+  const color = $('tmColor').value;
+  if (!name) { toast('Nom requis','err'); return; }
+  const status = $('tmAddStatus');
+  status.textContent = 'Ajout…';
+  const wh = STATE.cfg.webhook;
+  const body = { name, email, role, initials, color };
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const r = await fetch(wh.baseUrl + '/symbalyx-team-members', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify(body)
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP '+r.status));
+      status.textContent = 'Ajouté · ' + (j.member?.id || '');
+      toast('Membre ajouté');
+    } catch (e) { status.textContent = ''; toast('Webhook KO ('+e.message+')','err'); return; }
+  } else {
+    // Mode local (mock) : on l'ajoute en mémoire — non persistant entre sessions.
+    const m = { id: 'tm_' + Date.now().toString(36), name, email, role, initials: initials || initialsFrom(name), color, is_active: true, created_at: new Date().toISOString() };
+    (STATE.data?.team_members || MOCK.team_members).push(m);
+    status.textContent = 'Ajouté en local (mode mock — pas persisté)';
+    toast('Ajouté en local');
+  }
+  $('tmName').value=''; $('tmEmail').value=''; $('tmInitials').value='';
+  await symbRefresh();
+}
+async function symbToggleMember(id, makeActive){
+  const me = STATE.cfg.identity;
+  if (!(me && isAdminRole(me.role))) { toast('Seuls les admins peuvent modifier','err'); return; }
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const r = await fetch(wh.baseUrl + '/symbalyx-team-members', {
+        method: 'PATCH',
+        headers: { 'Content-Type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ id, is_active: !!makeActive })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP '+r.status));
+      toast(makeActive ? 'Réactivé' : 'Désactivé');
+    } catch (e) { toast('Webhook KO ('+e.message+')','err'); return; }
+  } else {
+    // Mode local : update in-memory.
+    const list = STATE.data?.team_members || MOCK.team_members;
+    const m = list.find(x => x.id === id); if (m) m.is_active = !!makeActive;
+    toast('Modifié en local');
+  }
+  await symbRefresh();
+}
+
 /* ---------- cfg UI ---------- */
+function symbPopulateIdentitySelect(){
+  const sel = $('cfgIdentity'); if (!sel) return;
+  const members = (STATE.data?.team_members || STATE.bootMembers || MOCK.team_members).filter(m => m.is_active !== false);
+  const cur = STATE.cfg.identity;
+  sel.innerHTML = members.map(m => {
+    const sel2 = (cur && ((cur.id && cur.id === m.id) || (!cur.id && cur.name === m.name))) ? ' selected' : '';
+    return `<option value="${esc(m.id||m.name)}"${sel2}>${esc(m.name)} · ${esc(ROLE_LABEL[m.role]||m.role||'')}</option>`;
+  }).join('');
+}
 function symbLoadCfgUI(){
   const c = STATE.cfg;
   $('cfgSource').value = c.source;
@@ -1319,7 +1596,8 @@ function symbLoadCfgUI(){
   $('cfgSupabaseKey').value = c.supabase.anonKey || '';
   $('cfgWebhookBase').value = c.webhook.baseUrl || '';
   $('cfgWebhookSecret').value = c.webhook.secret || '';
-  $('cfgIdentity').value = c.identity || 'Arsène';
+  symbPopulateIdentitySelect();
+  symbPopulateRoleSelect('tmRole');
 }
 function symbSaveCfg(){
   STATE.cfg.source = $('cfgSource').value;
@@ -1329,8 +1607,13 @@ function symbSaveCfg(){
   STATE.cfg.supabase.anonKey = $('cfgSupabaseKey').value.trim();
   STATE.cfg.webhook.baseUrl = $('cfgWebhookBase').value.trim().replace(/\/+$/,'');
   STATE.cfg.webhook.secret = $('cfgWebhookSecret').value;
-  STATE.cfg.identity = $('cfgIdentity').value;
-  localStorage.setItem('symbalyx_cfg_v2', JSON.stringify(STATE.cfg));
+  // Identité : on retrouve le membre depuis la liste pour stocker l'objet riche.
+  const sel = $('cfgIdentity').value;
+  const members = (STATE.data?.team_members || STATE.bootMembers || MOCK.team_members);
+  const m = members.find(x => x.id === sel) || members.find(x => x.name === sel);
+  if (m) STATE.cfg.identity = { id: m.id||'', name: m.name, role: m.role||'member', initials: m.initials||initialsFrom(m.name), color: m.color||'#3a86ff' };
+  saveCfg();
+  symbApplyIdentityUI();
   toast('Configuration enregistrée'); symbRefresh();
 }
 
@@ -1350,12 +1633,15 @@ async function symbRefresh(){
 }
 function symbRender(){
   const d = STATE.data || {};
+  symbApplyIdentityUI();
   if (STATE.view === 'today')     renderToday(d);
   if (STATE.view === 'prospects') renderProspects(d);
   if (STATE.view === 'projects')  renderProjects(d);
   if (STATE.view === 'decisions') renderDecisions(d);
   if (STATE.view === 'memory')    renderMemory(d);
   if (STATE.view === 'logs')      renderLogs(d);
+  if (STATE.view === 'team')      symbRenderTeam(d);
+  if (STATE.view === 'settings')  symbPopulateIdentitySelect();
   // Toujours mettre à jour le compteur du nav mobile
   const navCount = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending').length;
   $('navDecCount').textContent = navCount > 0 ? `Décider · ${navCount}` : 'Décider';

@@ -18,7 +18,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Auth + validation payload + normalisation\nconst h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) {\n  return [{ json: { _ok: false, _status: 500, _error: 'SYMBALYX_WEBHOOK_SECRET not configured on n8n' } }];\n}\nif (token !== expected) {\n  return [{ json: { _ok: false, _status: 401, _error: 'invalid_token' } }];\n}\nconst body = $json.body || {};\nconst bcl_id = String(body.bcl_id || '').trim();\nconst decision = String(body.decision || '').trim().toLowerCase();\nconst decided_by = String(body.decided_by || '').trim();\nconst reason = String(body.reason || '').trim();\nconst ALLOWED = ['approved','rejected','snoozed','abandoned'];\nif (!bcl_id) return [{ json: { _ok: false, _status: 400, _error: 'missing bcl_id' } }];\nif (!ALLOWED.includes(decision)) return [{ json: { _ok: false, _status: 400, _error: 'invalid decision (must be one of '+ALLOWED.join(',')+')' } }];\nif (!decided_by) return [{ json: { _ok: false, _status: 400, _error: 'missing decided_by' } }];\nreturn [{ json: { _ok: true, bcl_id, decision, decided_by, reason } }];"
+        "jsCode": "// Auth + validation payload + normalisation\nconst h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) {\n  return [{ json: { _ok: false, _status: 500, _error: 'SYMBALYX_WEBHOOK_SECRET not configured on n8n' } }];\n}\nif (token !== expected) {\n  return [{ json: { _ok: false, _status: 401, _error: 'invalid_token' } }];\n}\nconst body = $json.body || {};\nconst bcl_id = String(body.bcl_id || '').trim();\nconst decision = String(body.decision || '').trim().toLowerCase();\nconst decided_by = String(body.decided_by || '').trim();\nconst decider_id = String(body.decider_id || '').trim();\nconst reason = String(body.reason || '').trim();\nconst ALLOWED = ['approved','rejected','snoozed','abandoned'];\nif (!bcl_id) return [{ json: { _ok: false, _status: 400, _error: 'missing bcl_id' } }];\nif (!ALLOWED.includes(decision)) return [{ json: { _ok: false, _status: 400, _error: 'invalid decision (must be one of '+ALLOWED.join(',')+')' } }];\nif (!decided_by) return [{ json: { _ok: false, _status: 400, _error: 'missing decided_by' } }];\nreturn [{ json: { _ok: true, bcl_id, decision, decided_by, decider_id, reason } }];"
       },
       "id": "18100002-0000-0000-0000-000000000002",
       "name": "Auth & validate",
@@ -82,7 +82,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Cherche la ligne BCL et capture ai_initial_priority avant update\nconst inp = $('Auth & validate').first().json;\nconst bcl_id = inp.bcl_id;\nconst rows = items.map(i => i.json);\nconst row = rows.find(r => String(r.id) === bcl_id);\nif (!row) {\n  return [{ json: { _ok: false, _status: 404, _error: 'bcl_id not found: ' + bcl_id } }];\n}\nreturn [{ json: {\n  _ok: true,\n  _status: 200,\n  bcl_id,\n  decision: inp.decision,\n  decided_by: inp.decided_by,\n  reason: inp.reason,\n  // Snapshot pour memory_decisions\n  item_type: row.item_type || '',\n  item_id: row.item_id || '',\n  recommended_action: row.recommended_action || '',\n  ai_initial_priority: row.priority_level || '',\n  title: row.title || '',\n  email: row.email || '',\n  current_status: row.decision_status || ''\n}}];"
+        "jsCode": "// Cherche la ligne BCL et capture ai_initial_priority avant update\nconst inp = $('Auth & validate').first().json;\nconst bcl_id = inp.bcl_id;\nconst rows = items.map(i => i.json);\nconst row = rows.find(r => String(r.id) === bcl_id);\nif (!row) {\n  return [{ json: { _ok: false, _status: 404, _error: 'bcl_id not found: ' + bcl_id } }];\n}\nreturn [{ json: {\n  _ok: true,\n  _status: 200,\n  bcl_id,\n  decision: inp.decision,\n  decided_by: inp.decided_by,\n  decider_id: inp.decider_id || '',\n  reason: inp.reason,\n  // Snapshot pour memory_decisions\n  item_type: row.item_type || '',\n  item_id: row.item_id || '',\n  recommended_action: row.recommended_action || '',\n  ai_initial_priority: row.priority_level || '',\n  title: row.title || '',\n  email: row.email || '',\n  current_status: row.decision_status || ''\n}}];"
       },
       "id": "18100007-0000-0000-0000-000000000007",
       "name": "Find row & snapshot",
@@ -118,6 +118,7 @@
             "id": "={{ $json.bcl_id }}",
             "decision_status": "={{ $json.decision }}",
             "decided_by": "={{ $json.decided_by }}",
+            "decider_id": "={{ $json.decider_id }}",
             "decided_at": "={{ new Date().toISOString() }}"
           },
           "matchingColumns": ["id"],
@@ -125,6 +126,7 @@
             {"id": "id", "displayName": "id", "required": true, "defaultMatch": true, "display": true, "canBeUsedToMatch": true, "type": "string"},
             {"id": "decision_status", "displayName": "decision_status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
             {"id": "decided_by", "displayName": "decided_by", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "decider_id", "displayName": "decider_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
             {"id": "decided_at", "displayName": "decided_at", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"}
           ]
         },
@@ -138,7 +140,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Construit la ligne memory_decisions pour append. ai_initial_priority capturée AVANT update.\n// On relit le snapshot depuis Find row & snapshot pour ne pas dépendre de la sortie du Sheets update.\nconst r = $('Find row & snapshot').first().json;\nreturn [{ json: {\n  id: 'dec_' + Date.now(),\n  ts: new Date().toISOString(),\n  bcl_id: r.bcl_id,\n  item_type: r.item_type || '',\n  item_id: r.item_id || '',\n  recommended_action: r.recommended_action || '',\n  ai_initial_priority: r.ai_initial_priority || '',\n  decision: r.decision,\n  decided_by: r.decided_by,\n  reason: r.reason || '',\n  outcome: '',\n  outcome_observed_at: ''\n}}];"
+        "jsCode": "// Construit la ligne memory_decisions pour append. ai_initial_priority capturée AVANT update.\n// On relit le snapshot depuis Find row & snapshot pour ne pas dépendre de la sortie du Sheets update.\nconst r = $('Find row & snapshot').first().json;\nreturn [{ json: {\n  id: 'dec_' + Date.now(),\n  ts: new Date().toISOString(),\n  bcl_id: r.bcl_id,\n  item_type: r.item_type || '',\n  item_id: r.item_id || '',\n  recommended_action: r.recommended_action || '',\n  ai_initial_priority: r.ai_initial_priority || '',\n  decision: r.decision,\n  decided_by: r.decided_by,\n  decider_id: r.decider_id || '',\n  reason: r.reason || '',\n  outcome: '',\n  outcome_observed_at: ''\n}}];"
       },
       "id": "1810000a-0000-0000-0000-00000000000a",
       "name": "Build memory_decision row",
@@ -292,7 +294,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ ok: true, bcl_id: $('Find row & snapshot').first().json.bcl_id, decision: $('Auth & validate').first().json.decision, decided_by: $('Auth & validate').first().json.decided_by, action_routed: $('Find row & snapshot').first().json.recommended_action }) }}",
+        "responseBody": "={{ JSON.stringify({ ok: true, bcl_id: $('Find row & snapshot').first().json.bcl_id, decision: $('Auth & validate').first().json.decision, decided_by: $('Auth & validate').first().json.decided_by, decider_id: $('Auth & validate').first().json.decider_id, action_routed: $('Find row & snapshot').first().json.recommended_action }) }}",
         "options": {"responseCode": 200}
       },
       "id": "18100013-0000-0000-0000-000000000013",

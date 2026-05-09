@@ -1,0 +1,304 @@
+{
+  "name": "Symbalyx — WF21 Team Members CRUD",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "symbalyx-team-members",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "21100001-0000-0000-0000-000000000001",
+      "name": "Webhook GET /team-members",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 200],
+      "webhookId": "symbalyx-team-members-get",
+      "notes": "GET /webhook/symbalyx-team-members?active_only=1  header: x-symbalyx-token"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "symbalyx-team-members",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "21100002-0000-0000-0000-000000000002",
+      "name": "Webhook POST /team-members",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 500],
+      "webhookId": "symbalyx-team-members-post",
+      "notes": "POST /webhook/symbalyx-team-members  body: { name, email?, role, initials?, color? }  header: x-symbalyx-token"
+    },
+    {
+      "parameters": {
+        "httpMethod": "PATCH",
+        "path": "symbalyx-team-members",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "21100003-0000-0000-0000-000000000003",
+      "name": "Webhook PATCH /team-members",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 800],
+      "webhookId": "symbalyx-team-members-patch",
+      "notes": "PATCH /webhook/symbalyx-team-members  body: { id, is_active?, role?, name?, email?, initials?, color? }  header: x-symbalyx-token"
+    },
+    {
+      "parameters": {
+        "jsCode": "const h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) return [{ json: { _ok: false, _status: 500, _error: 'SYMBALYX_WEBHOOK_SECRET not configured' } }];\nif (token !== expected) return [{ json: { _ok: false, _status: 401, _error: 'invalid_token' } }];\nconst q = $json.query || {};\nconst active_only = String(q.active_only || '').trim() === '1' || String(q.active_only || '').toLowerCase() === 'true';\nreturn [{ json: { _ok: true, active_only } }];"
+      },
+      "id": "21100004-0000-0000-0000-000000000004",
+      "name": "Auth GET",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) return [{ json: { _ok: false, _status: 500, _error: 'SYMBALYX_WEBHOOK_SECRET not configured' } }];\nif (token !== expected) return [{ json: { _ok: false, _status: 401, _error: 'invalid_token' } }];\nconst b = $json.body || {};\nconst name = String(b.name || '').trim();\nconst email = String(b.email || '').trim();\nconst role = String(b.role || 'member').trim().toLowerCase();\nconst initials = String(b.initials || '').trim().toUpperCase().slice(0, 4);\nconst color = String(b.color || '').trim();\nconst ALLOWED_ROLES = ['founder','admin','sales','dev','viewer','member'];\nif (!name) return [{ json: { _ok: false, _status: 400, _error: 'missing name' } }];\nif (name.length > 80) return [{ json: { _ok: false, _status: 400, _error: 'name too long' } }];\nif (email && !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(email)) return [{ json: { _ok: false, _status: 400, _error: 'invalid email' } }];\nif (!ALLOWED_ROLES.includes(role)) return [{ json: { _ok: false, _status: 400, _error: 'invalid role (allowed: '+ALLOWED_ROLES.join(',')+')' } }];\nif (color && !/^#[0-9a-fA-F]{3,8}$/.test(color)) return [{ json: { _ok: false, _status: 400, _error: 'invalid color (hex expected)' } }];\nconst auto_initials = initials || name.split(/\\s+/).filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase().slice(0,4);\nconst id = 'tm_' + Date.now().toString(36) + Math.random().toString(36).slice(2,5);\nreturn [{ json: { _ok: true, id, name, email, role, initials: auto_initials, color: color || '#3a86ff', is_active: true, created_at: new Date().toISOString() } }];"
+      },
+      "id": "21100005-0000-0000-0000-000000000005",
+      "name": "Auth & build POST",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "const h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) return [{ json: { _ok: false, _status: 500, _error: 'SYMBALYX_WEBHOOK_SECRET not configured' } }];\nif (token !== expected) return [{ json: { _ok: false, _status: 401, _error: 'invalid_token' } }];\nconst b = $json.body || {};\nconst id = String(b.id || '').trim();\nif (!id) return [{ json: { _ok: false, _status: 400, _error: 'missing id' } }];\nconst patch = {};\nif (b.is_active !== undefined) patch.is_active = (b.is_active === true || String(b.is_active).toLowerCase() === 'true');\nif (b.role !== undefined) {\n  const ALLOWED_ROLES = ['founder','admin','sales','dev','viewer','member'];\n  const role = String(b.role).trim().toLowerCase();\n  if (!ALLOWED_ROLES.includes(role)) return [{ json: { _ok: false, _status: 400, _error: 'invalid role' } }];\n  patch.role = role;\n}\nif (b.name !== undefined) patch.name = String(b.name).trim().slice(0,80);\nif (b.email !== undefined) {\n  const e = String(b.email).trim();\n  if (e && !/^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$/.test(e)) return [{ json: { _ok: false, _status: 400, _error: 'invalid email' } }];\n  patch.email = e;\n}\nif (b.initials !== undefined) patch.initials = String(b.initials).trim().toUpperCase().slice(0,4);\nif (b.color !== undefined) {\n  const c = String(b.color).trim();\n  if (c && !/^#[0-9a-fA-F]{3,8}$/.test(c)) return [{ json: { _ok: false, _status: 400, _error: 'invalid color' } }];\n  patch.color = c;\n}\nif (Object.keys(patch).length === 0) return [{ json: { _ok: false, _status: 400, _error: 'no fields to update' } }];\nreturn [{ json: { _ok: true, id, patch } }];"
+      },
+      "id": "21100006-0000-0000-0000-000000000006",
+      "name": "Auth & build PATCH",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 800]
+    },
+    {
+      "parameters": {
+        "conditions": {"options": {"caseSensitive": false, "typeValidation": "loose"}, "conditions": [
+          {"id": "ok-get", "leftValue": "={{ $json._ok }}", "rightValue": true, "operator": {"type": "boolean", "operation": "equals"}}
+        ], "combinator": "and"},
+        "options": {}
+      },
+      "id": "21100007-0000-0000-0000-000000000007",
+      "name": "If GET ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {"options": {"caseSensitive": false, "typeValidation": "loose"}, "conditions": [
+          {"id": "ok-post", "leftValue": "={{ $json._ok }}", "rightValue": true, "operator": {"type": "boolean", "operation": "equals"}}
+        ], "combinator": "and"},
+        "options": {}
+      },
+      "id": "21100008-0000-0000-0000-000000000008",
+      "name": "If POST ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {"options": {"caseSensitive": false, "typeValidation": "loose"}, "conditions": [
+          {"id": "ok-patch", "leftValue": "={{ $json._ok }}", "rightValue": true, "operator": {"type": "boolean", "operation": "equals"}}
+        ], "combinator": "and"},
+        "options": {}
+      },
+      "id": "21100009-0000-0000-0000-000000000009",
+      "name": "If PATCH ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [640, 800]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json._error }) }}",
+        "options": {"responseCode": "={{ $json._status || 400 }}"}
+      },
+      "id": "2110000a-0000-0000-0000-00000000000a",
+      "name": "Respond 4xx (GET)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [840, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json._error }) }}",
+        "options": {"responseCode": "={{ $json._status || 400 }}"}
+      },
+      "id": "2110000b-0000-0000-0000-00000000000b",
+      "name": "Respond 4xx (POST)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [840, 680]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json._error }) }}",
+        "options": {"responseCode": "={{ $json._status || 400 }}"}
+      },
+      "id": "2110000c-0000-0000-0000-00000000000c",
+      "name": "Respond 4xx (PATCH)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [840, 980]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "team_members", "mode": "name"},
+        "options": {}
+      },
+      "id": "2110000d-0000-0000-0000-00000000000d",
+      "name": "Read team_members (GET)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [840, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $('Auth GET').first().json;\nconst all = items.map(i => i.json);\nconst toBool = v => v === true || String(v).toLowerCase() === 'true' || String(v) === '1';\nconst filtered = inp.active_only ? all.filter(m => toBool(m.is_active)) : all;\nfiltered.sort((a,b) => String(a.name||'').localeCompare(String(b.name||'')));\n// Normalisation booléennes pour le client.\nconst out = filtered.map(m => ({ ...m, is_active: toBool(m.is_active) }));\nreturn [{ json: { ok: true, count: out.length, members: out } }];"
+      },
+      "id": "2110000e-0000-0000-0000-00000000000e",
+      "name": "Filter active",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1060, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {"responseCode": 200}
+      },
+      "id": "2110000f-0000-0000-0000-00000000000f",
+      "name": "Respond 200 (GET)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1280, 100]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "team_members", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "21100010-0000-0000-0000-000000000010",
+      "name": "Append team_members",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [840, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, member: $json }) }}",
+        "options": {"responseCode": 200}
+      },
+      "id": "21100011-0000-0000-0000-000000000011",
+      "name": "Respond 200 (POST)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1060, 400]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "team_members", "mode": "name"},
+        "operation": "update",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "name": "={{ $json.patch.name }}",
+            "email": "={{ $json.patch.email }}",
+            "role": "={{ $json.patch.role }}",
+            "initials": "={{ $json.patch.initials }}",
+            "color": "={{ $json.patch.color }}",
+            "is_active": "={{ $json.patch.is_active }}"
+          },
+          "matchingColumns": ["id"],
+          "schema": [
+            {"id": "id", "displayName": "id", "required": true, "defaultMatch": true, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "name", "displayName": "name", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "email", "displayName": "email", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "role", "displayName": "role", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "initials", "displayName": "initials", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "color", "displayName": "color", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "is_active", "displayName": "is_active", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "21100012-0000-0000-0000-000000000012",
+      "name": "Update team_members",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [840, 800],
+      "notes": "Les colonnes du patch absentes sont ignorées par n8n quand la valeur est undefined."
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, id: $('Auth & build PATCH').first().json.id, patch: $('Auth & build PATCH').first().json.patch }) }}",
+        "options": {"responseCode": 200}
+      },
+      "id": "21100013-0000-0000-0000-000000000013",
+      "name": "Respond 200 (PATCH)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1060, 800]
+    }
+  ],
+  "connections": {
+    "Webhook GET /team-members": { "main": [[{"node": "Auth GET", "type": "main", "index": 0}]] },
+    "Webhook POST /team-members": { "main": [[{"node": "Auth & build POST", "type": "main", "index": 0}]] },
+    "Webhook PATCH /team-members": { "main": [[{"node": "Auth & build PATCH", "type": "main", "index": 0}]] },
+    "Auth GET": { "main": [[{"node": "If GET ok?", "type": "main", "index": 0}]] },
+    "Auth & build POST": { "main": [[{"node": "If POST ok?", "type": "main", "index": 0}]] },
+    "Auth & build PATCH": { "main": [[{"node": "If PATCH ok?", "type": "main", "index": 0}]] },
+    "If GET ok?": {
+      "main": [
+        [{"node": "Read team_members (GET)", "type": "main", "index": 0}],
+        [{"node": "Respond 4xx (GET)", "type": "main", "index": 0}]
+      ]
+    },
+    "If POST ok?": {
+      "main": [
+        [{"node": "Append team_members", "type": "main", "index": 0}],
+        [{"node": "Respond 4xx (POST)", "type": "main", "index": 0}]
+      ]
+    },
+    "If PATCH ok?": {
+      "main": [
+        [{"node": "Update team_members", "type": "main", "index": 0}],
+        [{"node": "Respond 4xx (PATCH)", "type": "main", "index": 0}]
+      ]
+    },
+    "Read team_members (GET)": { "main": [[{"node": "Filter active", "type": "main", "index": 0}]] },
+    "Filter active": { "main": [[{"node": "Respond 200 (GET)", "type": "main", "index": 0}]] },
+    "Append team_members": { "main": [[{"node": "Respond 200 (POST)", "type": "main", "index": 0}]] },
+    "Update team_members": { "main": [[{"node": "Respond 200 (PATCH)", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "team"}, {"name": "wf21"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000021",
+  "meta": {"instanceId": "symbalyx-wf21"}
+}
