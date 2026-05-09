@@ -240,6 +240,38 @@ create table if not exists invoices (
   notes           text
 );
 
+-- ----------------- Memory: decisions (V7 — ferme la boucle d'apprentissage) -----------------
+create table if not exists memory_decisions (
+  id                    text primary key,
+  ts                    timestamptz default now(),
+  bcl_id                text,
+  item_type             text,
+  item_id               text,
+  recommended_action    text,
+  ai_initial_priority   text,         -- priority_level capturé au moment de la reco
+  decision              text,         -- approved|rejected|snoozed|abandoned
+  decided_by            text,
+  reason                text,
+  outcome               text,         -- rempli a posteriori (reply_received|no_reply|delivered|...)
+  outcome_observed_at   timestamptz
+);
+create index if not exists idx_memdec_bcl on memory_decisions(bcl_id);
+create index if not exists idx_memdec_item on memory_decisions(item_type, item_id);
+
+-- ----------------- Team comments (V7 — synchro équipe Arsène/Kentin) -----------------
+create table if not exists team_comments (
+  id          text primary key,
+  ts          timestamptz default now(),
+  item_type   text not null,         -- bcl|prospect|project|invoice
+  item_id     text not null,
+  author      text not null,         -- 'Arsène' | 'Kentin' | autre
+  body        text not null,
+  resolved    boolean default false,
+  parent_id   text                   -- pour threads (optionnel)
+);
+create index if not exists idx_tc_item on team_comments(item_type, item_id);
+create index if not exists idx_tc_ts on team_comments(ts desc);
+
 -- ----------------- Vue agrégée pour le dashboard -----------------
 create or replace view v_dashboard_summary as
 select

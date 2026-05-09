@@ -392,6 +392,36 @@
     <!-- =================== RÉGLAGES =================== -->
     <section data-view="settings" class="hidden">
       <h1 class="h1">Réglages</h1>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Identité courante</span></div>
+        <p class="muted">Qui utilise ce navigateur ? Toutes les décisions et commentaires seront signés à ce nom.</p>
+        <div class="row">
+          <label class="muted" style="min-width:60px">Moi</label>
+          <select id="cfgIdentity" style="max-width:220px">
+            <option value="Arsène">Arsène</option>
+            <option value="Kentin">Kentin</option>
+            <option value="Équipe">Équipe (générique)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Webhook n8n (boucle décision + équipe)</span></div>
+        <p class="muted">URL de base des webhooks (sans le suffixe). Ex : <code>https://n8n.example.com/webhook</code>. Le secret est envoyé en header <code>x-symbalyx-token</code>.</p>
+        <div class="grid grid-2">
+          <div>
+            <input id="cfgWebhookBase" placeholder="https://n8n.example.com/webhook">
+          </div>
+          <div>
+            <input id="cfgWebhookSecret" type="password" placeholder="secret partagé (SYMBALYX_WEBHOOK_SECRET)">
+          </div>
+        </div>
+        <div style="height:8px"></div>
+        <button class="btn ghost" onclick="symbTestWebhook()">Tester la connexion</button>
+        <span id="webhookStatus" class="muted" style="margin-left:8px"></span>
+      </div>
+
       <div class="card" style="margin-bottom:12px">
         <div class="card-h"><span class="t">Source de données</span></div>
         <div class="row">
@@ -477,23 +507,42 @@
    ============================================================ */
 
 const PWD_KEY = 'symbalyx_pwd_hash_v3';
+const DEFAULT_CFG = {
+  source: 'mock',
+  sheets: { apiKey: '', sheetId: '{{GOOGLE_SHEET_ID}}', tabs: {
+    bcl:'business_control', kpi:'kpi_snapshots', team:'team_state',
+    review:'review_queue', projects:'project_queue', logs:'logs',
+    memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial',
+    invoices:'invoices', notifs:'notifications_inbox'
+  }},
+  supabase: { url: '', anonKey: '' },
+  webhook: { baseUrl: '', secret: '' },
+  identity: 'Arsène',
+  prefs: { critical:true, hotReply:true, projectRisk:true, invoiceOverdue:true, morningDigest:true }
+};
+function loadCfg(){
+  let c; try { c = JSON.parse(localStorage.getItem('symbalyx_cfg_v2') || 'null') || {}; } catch { c = {}; }
+  // Migration douce : s'assurer que les nouveaux blocs existent sans écraser l'existant.
+  return {
+    source: c.source || DEFAULT_CFG.source,
+    sheets: { ...DEFAULT_CFG.sheets, ...(c.sheets || {}) },
+    supabase: { ...DEFAULT_CFG.supabase, ...(c.supabase || {}) },
+    webhook: { ...DEFAULT_CFG.webhook, ...(c.webhook || {}) },
+    identity: c.identity || DEFAULT_CFG.identity,
+    prefs: { ...DEFAULT_CFG.prefs, ...(c.prefs || {}) }
+  };
+}
 const STATE = {
-  cfg: JSON.parse(localStorage.getItem('symbalyx_cfg_v2') || JSON.stringify({
-    source: 'mock',
-    sheets: { apiKey: '', sheetId: '{{GOOGLE_SHEET_ID}}', tabs: {
-      bcl:'business_control', kpi:'kpi_snapshots', team:'team_state',
-      review:'review_queue', projects:'project_queue', logs:'logs',
-      memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial',
-      invoices:'invoices', notifs:'notifications_inbox'
-    }},
-    supabase: { url: '', anonKey: '' },
-    prefs: { critical:true, hotReply:true, projectRisk:true, invoiceOverdue:true, morningDigest:true }
-  })),
+  cfg: loadCfg(),
   data: null,
   view: 'today',
   filters: { person:'all', priority:'all', prospects:'all', projects:'all', memory:'patterns', logs:'all' },
   notifs: [],
-  notifsRead: JSON.parse(localStorage.getItem('symbalyx_notifs_read') || '[]')
+  notifsRead: JSON.parse(localStorage.getItem('symbalyx_notifs_read') || '[]'),
+  // Cache local des commentaires par item, fallback hors-ligne / si webhook KO.
+  commentsCache: JSON.parse(localStorage.getItem('symbalyx_comments_cache') || '{}'),
+  // Décisions en attente de propagation (si webhook absent ou échec).
+  pendingDecisions: JSON.parse(localStorage.getItem('symbalyx_decisions') || '[]')
 };
 
 /* ---------- helpers ---------- */
@@ -1018,10 +1067,98 @@ function symbOpenDetail(type, id){
       <p class="muted">Toute relance passe par un brouillon Gmail à valider, jamais d'envoi auto.</p>
       <button class="btn ghost" onclick="symbCloseDetail()">Fermer</button>`;
   }
+  // Bloc commentaires partagés équipe — universel pour tous les types.
+  html += `
+    <div class="sep"></div>
+    <div class="card-h"><span class="t">Commentaires équipe</span><span class="muted" id="cmtMeta_${esc(id)}"></span></div>
+    <div class="list" id="cmtList_${esc(id)}"><div class="muted">Chargement…</div></div>
+    <div style="height:8px"></div>
+    <div class="row">
+      <input id="cmtInput_${esc(id)}" placeholder="Écrire un commentaire (signé ${esc(STATE.cfg.identity||'Équipe')})…">
+      <button class="btn primary" onclick="symbPostComment('${type}','${esc(id)}')">Envoyer</button>
+    </div>`;
   $('detailContent').innerHTML = html;
   $('detailBg').classList.add('open'); $('detailSheet').classList.add('open');
+  symbLoadComments(type, id);
 }
 function symbCloseDetail(){ $('detailBg').classList.remove('open'); $('detailSheet').classList.remove('open'); }
+
+/* ---------- comments (team sync) ---------- */
+function symbCommentKey(type, id){ return type + ':' + id; }
+function symbRenderComments(type, id, comments, source){
+  const list = $('cmtList_' + id);
+  const meta = $('cmtMeta_' + id);
+  if (!list) return;
+  if (!comments || comments.length === 0) {
+    list.innerHTML = '<div class="muted">Aucun commentaire.</div>';
+  } else {
+    list.innerHTML = comments.map(c => `
+      <div class="item" style="display:block">
+        <div class="row" style="margin-bottom:4px">
+          <strong>${esc(c.author||'?')}</strong>
+          <span class="muted" style="margin-left:8px">${esc(fmtRelative(c.ts))}</span>
+        </div>
+        <div>${esc(c.body||'')}</div>
+      </div>`).join('');
+  }
+  if (meta) meta.textContent = source === 'remote' ? 'sync' : (source === 'cache' ? 'hors-ligne (cache)' : 'local');
+}
+async function symbLoadComments(type, id){
+  const key = symbCommentKey(type, id);
+  const cached = STATE.commentsCache[key] || [];
+  // Affiche immédiatement le cache (UX), puis tente la sync.
+  symbRenderComments(type, id, cached, cached.length ? 'cache' : 'local');
+  const wh = STATE.cfg.webhook;
+  if (!wh.baseUrl || !wh.secret) return;
+  try {
+    const url = `${wh.baseUrl}/symbalyx-comments?item_type=${encodeURIComponent(type)}&item_id=${encodeURIComponent(id)}&limit=100`;
+    const r = await fetch(url, { headers: { 'x-symbalyx-token': wh.secret } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const remote = (j && j.comments) || [];
+    STATE.commentsCache[key] = remote;
+    localStorage.setItem('symbalyx_comments_cache', JSON.stringify(STATE.commentsCache));
+    symbRenderComments(type, id, remote, 'remote');
+  } catch (e) {
+    // Garde l'affichage cache, indique l'état.
+    const meta = $('cmtMeta_' + id); if (meta) meta.textContent = 'hors-ligne (' + e.message + ')';
+  }
+}
+async function symbPostComment(type, id){
+  const input = $('cmtInput_' + id);
+  if (!input) return;
+  const body = (input.value || '').trim();
+  if (!body) { toast('Commentaire vide', 'err'); return; }
+  const me = STATE.cfg.identity || 'Équipe';
+  const wh = STATE.cfg.webhook;
+  const key = symbCommentKey(type, id);
+  const local = { id: 'local_' + Date.now(), ts: new Date().toISOString(), item_type: type, item_id: id, author: me, body, _pending: true };
+  // Optimistic UI : on l'affiche tout de suite.
+  const cur = STATE.commentsCache[key] || [];
+  cur.push(local);
+  STATE.commentsCache[key] = cur;
+  localStorage.setItem('symbalyx_comments_cache', JSON.stringify(STATE.commentsCache));
+  symbRenderComments(type, id, cur, 'local');
+  input.value = '';
+  if (!wh.baseUrl || !wh.secret) {
+    toast('Commentaire local (configurer le webhook pour partager)', 'ok');
+    return;
+  }
+  try {
+    const r = await fetch(wh.baseUrl + '/symbalyx-comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-symbalyx-token': wh.secret },
+      body: JSON.stringify({ item_type: type, item_id: id, author: me, body })
+    });
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP '+r.status));
+    // Recharge depuis la source pour récupérer l'id officiel et l'ordre canonique.
+    await symbLoadComments(type, id);
+    toast('Commentaire partagé');
+  } catch (e) {
+    toast('Webhook KO ('+e.message+') · gardé en local', 'err');
+  }
+}
 
 /* ---------- NOTIF drawer ---------- */
 function symbOpenNotif(){
@@ -1063,12 +1200,61 @@ function refreshBadges(){
 }
 
 /* ---------- decisions actions ---------- */
-function symbDecide(id, status){
-  // Lecture seule : on enregistre localement et on pousse dans une queue exportable.
-  const log = JSON.parse(localStorage.getItem('symbalyx_decisions') || '[]');
-  log.push({id,status,ts:new Date().toISOString()});
-  localStorage.setItem('symbalyx_decisions', JSON.stringify(log));
-  toast(`${status === 'approved' ? 'Approuvé' : 'Rejeté'} · à propager dans business_control`, status==='approved'?'ok':'err');
+async function symbDecide(id, status, opts){
+  opts = opts || {};
+  const me = STATE.cfg.identity || 'Équipe';
+  const reason = (opts.reason || '').toString();
+  // Optimistic UI : marque la ligne BCL localement comme déjà décidée.
+  const row = (STATE.data?.bcl || []).find(x => x.id === id);
+  if (row) { row.decision_status = status; row.decided_by = me; row.decided_at = new Date().toISOString(); }
+  symbRender();
+  // Cas 1 : webhook configuré → POST n8n.
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const res = await fetch(wh.baseUrl + '/symbalyx-decision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ bcl_id: id, decision: status, decided_by: me, reason })
+      });
+      const j = await res.json().catch(()=>({}));
+      if (!res.ok || j.ok === false) throw new Error(j.error || ('HTTP '+res.status));
+      toast(`${status === 'approved' ? 'Approuvé' : 'Décision'} · propagé (action: ${j.action_routed || '-'})`, status==='approved'?'ok':'err');
+      return;
+    } catch (e) {
+      // Rollback optimistic + fallback queue locale.
+      if (row) { row.decision_status = 'pending'; row.decided_by = ''; row.decided_at = ''; }
+      symbRender();
+      symbQueueDecisionLocally(id, status, me, reason);
+      toast('Webhook KO ('+e.message+') · décision mise en file locale', 'err');
+      return;
+    }
+  }
+  // Cas 2 : pas de webhook → file locale exportable.
+  symbQueueDecisionLocally(id, status, me, reason);
+  toast(`${status === 'approved' ? 'Approuvé' : 'Décision'} · à propager (configurer le webhook dans Réglages)`, status==='approved'?'ok':'err');
+}
+function symbQueueDecisionLocally(id, status, by, reason){
+  STATE.pendingDecisions.push({ id, status, by, reason, ts: new Date().toISOString() });
+  localStorage.setItem('symbalyx_decisions', JSON.stringify(STATE.pendingDecisions));
+}
+async function symbTestWebhook(){
+  const el = $('webhookStatus');
+  const c = STATE.cfg.webhook;
+  // On lit depuis l'UI au cas où l'utilisateur n'a pas encore cliqué Enregistrer.
+  const baseUrl = ($('cfgWebhookBase').value || '').trim().replace(/\/+$/,'');
+  const secret = $('cfgWebhookSecret').value;
+  if (!baseUrl || !secret) { el.textContent = 'URL ou secret manquant.'; return; }
+  el.textContent = 'Test en cours…';
+  try {
+    // Un GET /comments avec un item bidon : on s'attend à 200 ok:true (vide) si auth ok.
+    const url = `${baseUrl}/symbalyx-comments?item_type=bcl&item_id=__ping__&limit=1`;
+    const r = await fetch(url, { headers: { 'x-symbalyx-token': secret } });
+    const j = await r.json().catch(()=>({}));
+    if (r.status === 401) { el.textContent = 'Auth refusée (secret invalide).'; return; }
+    if (!r.ok) { el.textContent = 'HTTP ' + r.status; return; }
+    el.textContent = 'OK · webhook joignable.';
+  } catch (e) { el.textContent = 'Erreur réseau : ' + e.message; }
 }
 function symbExportCSV(){
   const d = STATE.data || {}; const rows = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending');
@@ -1131,6 +1317,9 @@ function symbLoadCfgUI(){
   $('cfgSheetId').value = c.sheets.sheetId || '';
   $('cfgSupabaseUrl').value = c.supabase.url || '';
   $('cfgSupabaseKey').value = c.supabase.anonKey || '';
+  $('cfgWebhookBase').value = c.webhook.baseUrl || '';
+  $('cfgWebhookSecret').value = c.webhook.secret || '';
+  $('cfgIdentity').value = c.identity || 'Arsène';
 }
 function symbSaveCfg(){
   STATE.cfg.source = $('cfgSource').value;
@@ -1138,6 +1327,9 @@ function symbSaveCfg(){
   STATE.cfg.sheets.sheetId = $('cfgSheetId').value.trim();
   STATE.cfg.supabase.url = $('cfgSupabaseUrl').value.trim();
   STATE.cfg.supabase.anonKey = $('cfgSupabaseKey').value.trim();
+  STATE.cfg.webhook.baseUrl = $('cfgWebhookBase').value.trim().replace(/\/+$/,'');
+  STATE.cfg.webhook.secret = $('cfgWebhookSecret').value;
+  STATE.cfg.identity = $('cfgIdentity').value;
   localStorage.setItem('symbalyx_cfg_v2', JSON.stringify(STATE.cfg));
   toast('Configuration enregistrée'); symbRefresh();
 }

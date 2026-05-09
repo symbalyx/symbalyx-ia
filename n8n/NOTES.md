@@ -1,4 +1,4 @@
-# Symbalyx — NOTES.md (V4)
+# Symbalyx — NOTES.md (V7)
 
 ## Ce qui est fait
 - **Prospection (V1)** : WF1 ingestion + 3 agents (analyse, score, email) → `review_queue`.
@@ -14,6 +14,12 @@
   - WF99 Error Handler (Error Trigger global → logs)
   - WF00 Kill Switch (sub-workflow lecteur de `config`)
   - 6 statuts `decision_status` standardisés (pending/approved/rejected/done/snoozed/error)
+- **Boucle de décision + équipe (V7)** :
+  - **WF18 Decision Executor** : webhook `POST /webhook/symbalyx-decision`. Reçoit `{bcl_id, decision, decided_by, reason?}`, met à jour `business_control`, écrit dans `memory_decisions` (avec `ai_initial_priority` capturée), route l'action approuvée (`follow_up_24h` → flag review_queue pour WF2 ; `quote` → log pour WF5 ; `reminder_*` → log pour WF14 ; rejected/snoozed/abandoned → noop).
+  - **WF19 Team Sync** : 2 webhooks (`POST /webhook/symbalyx-comments`, `GET /webhook/symbalyx-comments?item_type=…&item_id=…`). Permet à Arsène et Kentin de partager des commentaires sur n'importe quel item BCL/prospect/projet/facture, persistés dans la sheet `team_comments`.
+  - **Auth** : header `x-symbalyx-token`, secret `SYMBALYX_WEBHOOK_SECRET` (env n8n) à recopier dans le CRM (Réglages).
+  - **CRM** : Réglages exposent identité courante (Arsène/Kentin/Équipe) + URL webhook + secret. `symbDecide` POST le webhook avec optimistic UI et fallback localStorage si KO. Modale détail affiche un fil de commentaires partagés (cache local pour réactivité).
+  - **Schémas** : `memory_decisions` gagne la colonne `ai_initial_priority`. Nouveau onglet `team_comments` (`id, ts, item_type, item_id, author, body, resolved, parent_id`).
 - **Data layer** :
   - `n8n/schemas/*.csv` — 12 onglets Sheets
   - `n8n/schemas/supabase_schema.sql` — schéma Postgres compatible (V5 migration)
@@ -28,7 +34,12 @@
 3. **IDs de sub-workflows** à remplacer dans :
    - `04_reply_classifier.json` → `REPLACE_WITH_WF5_ID`
    - `09_weekly_summary.json` → `REPLACE_WITH_WF7_ID`, `REPLACE_WITH_WF8_ID`
-4. **Onglets Google Sheets** à créer (12 au total) — headers dans `n8n/schemas/`.
+   - `18_decision_executor.json` → `REPLACE_WITH_WF00_ID` (sub-workflow kill switch)
+4. **Onglets Google Sheets** à créer — headers dans `n8n/schemas/`. **Nouveaux V7** : `team_comments`, `memory_decisions` (colonne `ai_initial_priority` ajoutée).
+5. **Webhooks V7** :
+   - Variable d'env n8n : `SYMBALYX_WEBHOOK_SECRET` (≥ 32 chars aléatoires).
+   - Activer WF18 + WF19 → noter les URLs `/webhook/symbalyx-decision` et `/webhook/symbalyx-comments`.
+   - Dans le CRM : Réglages → renseigner URL de base (sans suffixe) + secret + identité courante. Bouton "Tester la connexion" disponible.
 5. **Activer `99_error_handler`** comme **Error Workflow** dans les settings de chaque workflow critique (Settings → Error Workflow).
 6. **Cron** : laisser actif uniquement WF9 (lundi 8h) qui chaîne WF7+WF8. Désactiver crons WF7/WF8 pour éviter doubles exécutions.
 
@@ -73,7 +84,13 @@ WF99 ← Error Workflow global de tous les WF critiques
 - `opt_out=true` → action `abandon` forcée, jamais de relance.
 - Réponse `interested`/`needs_quote` ne peut JAMAIS atterrir dans `leads_to_drop`.
 
-## Roadmap V5
+## Roadmap restante (priorités passation V7)
+- **P2 Vraie source de données** : configurer Sheets API (lecture seule) ou Supabase (RLS) dans le CRM. Lancer WF1 sur 5–10 vrais prospects.
+- **P4 Research agent renforcé (WF03)** : ajouter Brave Search ou SerpAPI dans le node Fetch website (~10–30 €/mois).
+- **P5 Auto-critique (A7+)** : remplacer le body du node `A7 — LLM Prioritization` (WF7) par `prompts/07b_prioritization_with_critique.md`.
+- **P6 Site builder (WF20)** : à créer — brancher en sortie de WF5 pour qu'à chaque réponse `interested`, un blueprint soit généré et stocké dans `site_blueprints`.
+
+## Roadmap V5 (legacy)
 **V5.0 — Productivité**
 - Brancher décisions du dashboard sur webhook n8n (vraie écriture dans `business_control`).
 - WF15 : `decision_executor` qui exécute concrètement les `approved` (créer draft, snooze, abandon).
