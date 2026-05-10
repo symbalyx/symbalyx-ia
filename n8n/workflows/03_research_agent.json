@@ -1,0 +1,219 @@
+{
+  "name": "Symbalyx — WF03 Hardened Research Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {"values": [{"name": "prospect_id", "type": "string"}]}
+      },
+      "id": "03100001-0000-0000-0000-000000000001",
+      "name": "Trigger Sub-workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {},
+      "id": "03100002-0000-0000-0000-000000000002",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 480]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "review_queue", "mode": "name"},
+        "filtersUI": {"values": [{"lookupColumn": "id", "lookupValue": "={{ $json.prospect_id || 'p_TEST' }}"}]},
+        "options": {}
+      },
+      "id": "03100003-0000-0000-0000-000000000003",
+      "name": "Lookup prospect",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 380]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.website_url }}",
+        "options": {
+          "timeout": 8000,
+          "redirect": {"redirect": {"followRedirects": true, "maxRedirects": 3}},
+          "response": {"response": {"neverError": true, "responseFormat": "text"}}
+        }
+      },
+      "id": "03100004-0000-0000-0000-000000000004",
+      "name": "Fetch website (best-effort)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 280],
+      "onError": "continueRegularOutput",
+      "retryOnFail": false,
+      "notesInFlow": true,
+      "notes": "Fetch HTML public, 8s timeout, ne plante pas si offline."
+    },
+    {
+      "parameters": {
+        "jsCode": "const html = String($json.body || $json.data || '').slice(0, 50000);\nconst hasViewport = /<meta[^>]+name=[\"']viewport[\"']/i.test(html);\nconst hasHttps = String($('Lookup prospect').first().json.website_url || '').startsWith('https://');\nconst cmsHints = [\n  ['wordpress', /wp-content|wp-includes|wordpress/i],\n  ['wix',       /wixstatic|wix\\.com/i],\n  ['squarespace', /squarespace/i],\n  ['shopify',   /cdn\\.shopify/i],\n  ['custom',    /(?:)/]\n];\nlet cms = 'unknown';\nfor (const [name, re] of cmsHints) { if (re.test(html)) { cms = name; break; } }\nconst yearMatch = html.match(/(?:©|copyright)\\s*(20\\d{2})/i);\nconst lastYear = yearMatch ? Number(yearMatch[1]) : null;\nconst snippets = [];\nconst homeExcerpt = html.replace(/<script[\\s\\S]*?<\\/script>/g,'').replace(/<style[\\s\\S]*?<\\/style>/g,'').replace(/<[^>]+>/g,' ').replace(/\\s+/g,' ').trim().slice(0, 800);\nif (homeExcerpt) snippets.push({ id: 'home_html', url: $('Lookup prospect').first().json.website_url || '', extract: homeExcerpt });\nreturn [{ json: {\n  prospect: $('Lookup prospect').first().json,\n  website_signals: { has_viewport: hasViewport, has_https: hasHttps, cms_hint: cms, last_visible_year: lastYear, html_size: html.length },\n  snippets\n}}];"
+      },
+      "id": "03100005-0000-0000-0000-000000000005",
+      "name": "Extract signals + snippets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 280]
+    },
+    {
+      "parameters": {
+        "workflowId": "REPLACE_WITH_WF15_ID",
+        "source": "parameter",
+        "workflowInputs": {
+          "value": {
+            "mode": "READ_BY_NICHE",
+            "niche": "={{ $json.prospect.niche }}",
+            "limit": 6
+          },
+          "schema": [
+            {"id": "mode", "displayName": "mode", "required": false, "defaultMatch": false, "display": true, "type": "string"},
+            {"id": "niche", "displayName": "niche", "required": false, "defaultMatch": false, "display": true, "type": "string"},
+            {"id": "limit", "displayName": "limit", "required": false, "defaultMatch": false, "display": true, "type": "number"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "03100006-0000-0000-0000-000000000006",
+      "name": "Memory: niche hits",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [1080, 280],
+      "notes": "Remplacer REPLACE_WITH_WF15_ID après import."
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "memory_patterns", "mode": "name"},
+        "options": {}
+      },
+      "id": "03100007-0000-0000-0000-000000000007",
+      "name": "Read memory_patterns",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1080, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "const ctx = $('Extract signals + snippets').first().json;\nconst niche = String(ctx.prospect.niche || '').toLowerCase();\nconst memHits = ($('Memory: niche hits').first() && $('Memory: niche hits').first().json && $('Memory: niche hits').first().json.results) || [];\nconst patterns = $('Read memory_patterns').all().map(i=>i.json).filter(p => String(p.niche || '').toLowerCase() === niche || String(p.niche || '').toLowerCase() === 'all').slice(0, 8);\nreturn [{ json: {\n  prospect: ctx.prospect,\n  website_signals: ctx.website_signals,\n  snippets: ctx.snippets,\n  memory_hits: memHits,\n  patterns\n}}];"
+      },
+      "id": "03100008-0000-0000-0000-000000000008",
+      "name": "Build research payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Content-Type", "value": "application/json"}]},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL_PREMIUM || 'gpt-4o'}}\",\n  \"temperature\": 0.1,\n  \"max_tokens\": 1800,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Tu es analyste de prospection senior. Méthode: 1) plan en 3-5 hypothèses, 2) chaque hypothèse cite source_ids parmi snippets fournis (pas d'invention), 3) self-critique + confiance par hypothèse, 4) verdict structuré. Garde-fous: aucune donnée privée, pas de promesses, opt_out détecté -> abandon, conflits explicites, confiance globale <0.55 -> needs_human_research=true. JSON strict sans markdown.\" },\n    { \"role\": \"user\", \"content\": \"Prospect:\\n\" + {{ JSON.stringify($json.prospect) }} + \"\\n\\nSignaux site:\\n\" + {{ JSON.stringify($json.website_signals) }} + \"\\n\\nSnippets:\\n\" + {{ JSON.stringify($json.snippets) }} + \"\\n\\nMémoire pertinente:\\n\" + {{ JSON.stringify($json.memory_hits) }} + \"\\n\\nPatterns historiques niche:\\n\" + {{ JSON.stringify($json.patterns) }} + \"\\n\\nRetourne STRICTEMENT:\\n{\\n  \\\"research_plan\\\":[\\\"...\\\"],\\n  \\\"evidence\\\":[{\\\"hypothesis\\\":\\\"...\\\",\\\"verdict\\\":\\\"supported|refuted|unknown\\\",\\\"source_ids\\\":[\\\"...\\\"],\\\"confidence\\\":0.0-1.0,\\\"what_could_invalidate\\\":\\\"...\\\"}],\\n  \\\"business_summary\\\":\\\"...\\\",\\n  \\\"website_status\\\":\\\"no_website|likely_outdated|unknown|decent\\\",\\n  \\\"website_evidence\\\":\\\"...\\\",\\n  \\\"digital_maturity\\\":{\\\"google_business_present\\\":true|false|null,\\\"https\\\":true|false|null,\\\"responsive_hint\\\":true|false|null,\\\"cms_hint\\\":\\\"...\\\"},\\n  \\\"opportunity_score\\\":1-10,\\n  \\\"opportunity_reason\\\":\\\"...\\\",\\n  \\\"project_difficulty_score\\\":1-10,\\n  \\\"project_difficulty_label\\\":\\\"simple|medium|complex\\\",\\n  \\\"suggested_angle\\\":\\\"...\\\",\\n  \\\"opt_out_signal\\\":true|false,\\n  \\\"conflicts\\\":[\\\"...\\\"],\\n  \\\"global_confidence\\\":0.0-1.0,\\n  \\\"next_research_steps\\\":[\\\"...\\\"],\\n  \\\"needs_human_research\\\":true|false,\\n  \\\"requires_human_validation\\\":true\\n}\" }\n  ]\n}",
+        "options": {"timeout": 60000, "response": {"response": {"neverError": true}}}
+      },
+      "id": "03100009-0000-0000-0000-000000000009",
+      "name": "A3R — LLM Hardened Research",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1520, 380],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 4000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const llm = $json; let r = {};\ntry { const c = llm.choices && llm.choices[0] && llm.choices[0].message && llm.choices[0].message.content; if (c) r = JSON.parse(c); } catch(e){ r = {}; }\nconst ctx = $('Build research payload').first().json;\nconst pid = ctx.prospect.id;\n// Update review_queue avec champs enrichis + flag needs_human_research\nreturn [{ json: {\n  id: pid,\n  status: r.needs_human_research ? 'needs_human_research' : (r.opt_out_signal ? 'rejected' : 'analyzed'),\n  business_summary: r.business_summary || '',\n  website_status: r.website_status || 'unknown',\n  opportunity_score: r.opportunity_score || '',\n  opportunity_reason: r.opportunity_reason || '',\n  suggested_angle: r.suggested_angle || '',\n  project_difficulty_score: r.project_difficulty_score || '',\n  project_difficulty_label: r.project_difficulty_label || '',\n  project_difficulty_reason: (r.evidence && r.evidence[0] && r.evidence[0].what_could_invalidate) || '',\n  human_notes: 'global_confidence=' + (r.global_confidence || 0) + ' | conflicts=' + ((r.conflicts || []).join(' | ')) + ' | needs_human_research=' + !!r.needs_human_research,\n  updated_at: new Date().toISOString()\n}}];"
+      },
+      "id": "0310000a-0000-0000-0000-00000000000a",
+      "name": "Format → review_queue update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1740, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "review_queue", "mode": "name"},
+        "operation": "update",
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "matchingColumns": ["id"],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "0310000b-0000-0000-0000-00000000000b",
+      "name": "Update review_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1960, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "logs", "mode": "name"},
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.id }}",
+            "phase": "research",
+            "status": "={{ $json.status }}",
+            "level": "info",
+            "message": "Research agent (hardened) terminé",
+            "meta": "={{ JSON.stringify({ status: $json.status, opportunity_score: $json.opportunity_score }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id":"ts","displayName":"ts","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"prospect_id","displayName":"prospect_id","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"phase","displayName":"phase","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"status","displayName":"status","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"level","displayName":"level","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"message","displayName":"message","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"},
+            {"id":"meta","displayName":"meta","required":false,"defaultMatch":false,"display":true,"canBeUsedToMatch":true,"type":"string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0310000c-0000-0000-0000-00000000000c",
+      "name": "Log: research",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [2180, 380]
+    }
+  ],
+  "connections": {
+    "Trigger Sub-workflow": { "main": [[{"node": "Lookup prospect", "type": "main", "index": 0}]] },
+    "Trigger Manuel": { "main": [[{"node": "Lookup prospect", "type": "main", "index": 0}]] },
+    "Lookup prospect": { "main": [[{"node": "Fetch website (best-effort)", "type": "main", "index": 0}]] },
+    "Fetch website (best-effort)": { "main": [[{"node": "Extract signals + snippets", "type": "main", "index": 0}]] },
+    "Extract signals + snippets": { "main": [[{"node": "Memory: niche hits", "type": "main", "index": 0}, {"node": "Read memory_patterns", "type": "main", "index": 0}]] },
+    "Memory: niche hits": { "main": [[{"node": "Build research payload", "type": "main", "index": 0}]] },
+    "Read memory_patterns": { "main": [[{"node": "Build research payload", "type": "main", "index": 0}]] },
+    "Build research payload": { "main": [[{"node": "A3R — LLM Hardened Research", "type": "main", "index": 0}]] },
+    "A3R — LLM Hardened Research": { "main": [[{"node": "Format → review_queue update", "type": "main", "index": 0}]] },
+    "Format → review_queue update": { "main": [[{"node": "Update review_queue", "type": "main", "index": 0}]] },
+    "Update review_queue": { "main": [[{"node": "Log: research", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "research"}, {"name": "wf03"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000003",
+  "meta": {"instanceId": "symbalyx-wf03"}
+}

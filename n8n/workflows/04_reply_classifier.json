@@ -1,0 +1,390 @@
+{
+  "name": "Symbalyx — WF4 Reply Classifier",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {"mode": "everyMinute"}
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "readStatus": "unread"
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "id": "0c000001-0000-0000-0000-000000000001",
+      "name": "Gmail Trigger (inbox poll)",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300],
+      "notes": "Poll Gmail toutes les minutes pour les emails non lus."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extraire from / subject / body / message_id\nconst out = [];\nfor (const item of items) {\n  const r = item.json || {};\n  // n8n Gmail trigger returns headers in payload.headers and text in snippet/body\n  const fromRaw = (r.From || r.from || (r.payload && r.payload.headers && (r.payload.headers.find(h => h.name === 'From') || {}).value) || '').toString();\n  const subject = (r.Subject || r.subject || (r.payload && r.payload.headers && (r.payload.headers.find(h => h.name === 'Subject') || {}).value) || '').toString();\n  const text = (r.text || r.snippet || r.body || '').toString();\n  const messageId = (r.id || r.messageId || '').toString();\n\n  // Extract just the email\n  const m = fromRaw.match(/<([^>]+)>/);\n  const fromEmail = (m ? m[1] : fromRaw).trim().toLowerCase();\n\n  out.push({\n    json: {\n      reply_message_id: messageId,\n      reply_from: fromEmail,\n      reply_from_raw: fromRaw,\n      reply_subject: subject,\n      reply_text: text,\n      reply_received_at: new Date().toISOString()\n    }\n  });\n}\nreturn out;"
+      },
+      "id": "0c000002-0000-0000-0000-000000000002",
+      "name": "Extraire champs email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "review_queue",
+          "mode": "name"
+        },
+        "filtersUI": {
+          "values": [
+            {
+              "lookupColumn": "email",
+              "lookupValue": "={{ $json.reply_from }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "0c000003-0000-0000-0000-000000000003",
+      "name": "Lookup prospect par email",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": false, "typeValidation": "loose"},
+          "conditions": [
+            {
+              "id": "cond-found",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {"type": "string", "operation": "notEmpty"}
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0c000004-0000-0000-0000-000000000004",
+      "name": "If prospect connu ?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Combine prospect (lookup result) + reply context (Extraire champs email)\nconst prospect = $json;\nconst reply = $('Extraire champs email').first().json;\nreturn [{\n  json: {\n    ...prospect,\n    reply_message_id: reply.reply_message_id,\n    reply_from: reply.reply_from,\n    reply_subject: reply.reply_subject,\n    reply_text: reply.reply_text,\n    reply_received_at: reply.reply_received_at\n  }\n}];"
+      },
+      "id": "0c000005-0000-0000-0000-000000000005",
+      "name": "Merge prospect + reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1080, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{"name": "Content-Type", "value": "application/json"}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL || 'gpt-4o-mini'}}\",\n  \"temperature\": 0,\n  \"max_tokens\": 300,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Tu es classifieur d'emails entrants pour Symbalyx. Catégories fermées: interested, not_interested, ask_later, wrong_contact, needs_quote, unclear. Détection opt_out (stop, ne plus contacter, désinscription) -> not_interested + opt_out_signal=true. Réponds JSON strict sans markdown.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Texte: \\\"\\\"\\\"\\n\" + {{ JSON.stringify($json.reply_text || '') }} + \"\\n\\\"\\\"\\\"\\n\\nSujet: \" + {{ JSON.stringify($json.reply_subject || '') }} + \"\\nDe: \" + {{ JSON.stringify($json.reply_from || '') }} + \"\\n\\nRetourne STRICTEMENT:\\n{\\n  \\\"category\\\": \\\"interested|not_interested|ask_later|wrong_contact|needs_quote|unclear\\\",\\n  \\\"confidence\\\": 0.0-1.0,\\n  \\\"opt_out_signal\\\": true|false,\\n  \\\"follow_up_hint\\\": \\\"ISO date si ask_later sinon null\\\",\\n  \\\"reason\\\": \\\"1 phrase\\\"\\n}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 30000,
+          "response": {"response": {"neverError": true}}
+        }
+      },
+      "id": "0c000006-0000-0000-0000-000000000006",
+      "name": "A4 — LLM Classify Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1300, 220],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\nfor (const item of items) {\n  const llm = item.json;\n  let parsed = {};\n  try {\n    const c = llm && llm.choices && llm.choices[0] && llm.choices[0].message && llm.choices[0].message.content;\n    if (!c) throw new Error('NO_CONTENT');\n    parsed = JSON.parse(c);\n  } catch (e) {\n    parsed = { category: 'unclear', confidence: 0, opt_out_signal: false, follow_up_hint: null, reason: 'parse_error: ' + (e && e.message) };\n  }\n  const prev = $('Merge prospect + reply').first().json;\n  out.push({\n    json: {\n      ...prev,\n      reply_category: parsed.category,\n      reply_confidence: parsed.confidence,\n      reply_opt_out_signal: parsed.opt_out_signal === true,\n      reply_follow_up_hint: parsed.follow_up_hint || '',\n      reply_reason: parsed.reason || '',\n      updated_at: new Date().toISOString()\n    }\n  });\n}\nreturn out;"
+      },
+      "id": "0c000007-0000-0000-0000-000000000007",
+      "name": "Parser Classification",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1520, 220]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "review_queue",
+          "mode": "name"
+        },
+        "operation": "update",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "id": "={{ $json.id }}",
+            "status": "reply_received",
+            "reply_category": "={{ $json.reply_category }}",
+            "reply_text": "={{ $json.reply_text }}",
+            "reply_received_at": "={{ $json.reply_received_at }}",
+            "reply_opt_out": "={{ $json.reply_opt_out_signal ? 'true' : 'false' }}",
+            "updated_at": "={{ new Date().toISOString() }}"
+          },
+          "matchingColumns": ["id"],
+          "schema": [
+            {"id": "id", "displayName": "id", "required": true, "defaultMatch": true, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "reply_category", "displayName": "reply_category", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "reply_text", "displayName": "reply_text", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "reply_received_at", "displayName": "reply_received_at", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "reply_opt_out", "displayName": "reply_opt_out", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
+            {"id": "updated_at", "displayName": "updated_at", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0c000008-0000-0000-0000-000000000008",
+      "name": "Update review_queue (reply)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1740, 220],
+      "notesInFlow": true,
+      "notes": "Ajouter colonnes reply_category, reply_text, reply_received_at, reply_opt_out à review_queue avant exécution."
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {"caseSensitive": false, "typeValidation": "loose"},
+                "conditions": [
+                  {
+                    "id": "rule-interested",
+                    "leftValue": "={{ $json.reply_category }}",
+                    "rightValue": "interested",
+                    "operator": {"type": "string", "operation": "equals"}
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "interested"
+            },
+            {
+              "conditions": {
+                "options": {"caseSensitive": false, "typeValidation": "loose"},
+                "conditions": [
+                  {
+                    "id": "rule-needsquote",
+                    "leftValue": "={{ $json.reply_category }}",
+                    "rightValue": "needs_quote",
+                    "operator": {"type": "string", "operation": "equals"}
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "needs_quote"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "0c000009-0000-0000-0000-000000000009",
+      "name": "Switch sur catégorie",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [1960, 220]
+    },
+    {
+      "parameters": {
+        "workflowId": "REPLACE_WITH_WF5_ID",
+        "source": "parameter",
+        "workflowInputs": {
+          "value": {
+            "prospect_id": "={{ $json.id }}",
+            "reply_text": "={{ $json.reply_text }}",
+            "reply_category": "={{ $json.reply_category }}"
+          },
+          "schema": [
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "type": "string"},
+            {"id": "reply_text", "displayName": "reply_text", "required": false, "defaultMatch": false, "display": true, "type": "string"},
+            {"id": "reply_category", "displayName": "reply_category", "required": false, "defaultMatch": false, "display": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0c00000a-0000-0000-0000-00000000000a",
+      "name": "Execute WF5 (Brief)",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [2200, 120],
+      "notesInFlow": true,
+      "notes": "Remplacer workflowId par l'ID du workflow 05_project_brief après import."
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "logs",
+          "mode": "name"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.id }}",
+            "phase": "reply",
+            "status": "={{ $json.reply_category }}",
+            "level": "info",
+            "message": "Réponse classée",
+            "meta": "={{ JSON.stringify({ confidence: $json.reply_confidence, opt_out: $json.reply_opt_out_signal, reason: $json.reply_reason }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0c00000b-0000-0000-0000-00000000000b",
+      "name": "Log: reply_handled",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [2420, 320]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "{{GOOGLE_SHEET_ID}}",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "logs",
+          "mode": "name"
+        },
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "",
+            "phase": "reply",
+            "status": "unknown_sender",
+            "level": "warn",
+            "message": "Réponse reçue d'un email hors review_queue",
+            "meta": "={{ JSON.stringify({ from: $json.reply_from, subject: $json.reply_subject }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0c00000c-0000-0000-0000-00000000000c",
+      "name": "Log: unknown_sender",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1080, 420]
+    }
+  ],
+  "connections": {
+    "Gmail Trigger (inbox poll)": {
+      "main": [[{"node": "Extraire champs email", "type": "main", "index": 0}]]
+    },
+    "Extraire champs email": {
+      "main": [[{"node": "Lookup prospect par email", "type": "main", "index": 0}]]
+    },
+    "Lookup prospect par email": {
+      "main": [[{"node": "If prospect connu ?", "type": "main", "index": 0}]]
+    },
+    "If prospect connu ?": {
+      "main": [
+        [{"node": "Merge prospect + reply", "type": "main", "index": 0}],
+        [{"node": "Log: unknown_sender", "type": "main", "index": 0}]
+      ]
+    },
+    "Merge prospect + reply": {
+      "main": [[{"node": "A4 — LLM Classify Reply", "type": "main", "index": 0}]]
+    },
+    "A4 — LLM Classify Reply": {
+      "main": [[{"node": "Parser Classification", "type": "main", "index": 0}]]
+    },
+    "Parser Classification": {
+      "main": [[{"node": "Update review_queue (reply)", "type": "main", "index": 0}]]
+    },
+    "Update review_queue (reply)": {
+      "main": [[{"node": "Switch sur catégorie", "type": "main", "index": 0}]]
+    },
+    "Switch sur catégorie": {
+      "main": [
+        [{"node": "Execute WF5 (Brief)", "type": "main", "index": 0}],
+        [{"node": "Execute WF5 (Brief)", "type": "main", "index": 0}],
+        [{"node": "Log: reply_handled", "type": "main", "index": 0}]
+      ]
+    },
+    "Execute WF5 (Brief)": {
+      "main": [[{"node": "Log: reply_handled", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "reply"}, {"name": "wf4"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000004",
+  "meta": {"instanceId": "symbalyx-wf4"}
+}

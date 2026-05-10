@@ -1,0 +1,189 @@
+{
+  "name": "Symbalyx — WF7 Prioritization Engine",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "0f000001-0000-0000-0000-000000000001",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 480]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{"field": "hours", "hoursInterval": 24}]
+        }
+      },
+      "id": "0f000002-0000-0000-0000-000000000002",
+      "name": "Schedule (daily 6am)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "review_queue", "mode": "name"},
+        "options": {}
+      },
+      "id": "0f000003-0000-0000-0000-000000000003",
+      "name": "Lire review_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 280]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "project_queue", "mode": "name"},
+        "options": {}
+      },
+      "id": "0f000004-0000-0000-0000-000000000004",
+      "name": "Lire project_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// === SCORING DÉTERMINISTE — règles simples & explicables ===\n// Lit review_queue (prospects) + project_queue (projets), calcule un score 0-10,\n// renvoie items prêts pour LLM, gardés top N (limite coût).\n\nconst now = Date.now();\nconst run_id = 'pri_' + now;\nconst MAX_ITEMS = 30; // top 30 items envoyés au LLM\n\nconst prospects = $('Lire review_queue').all().map(i => i.json);\nconst projects  = $('Lire project_queue').all().map(i => i.json);\n\n// --- Helpers ---\nfunction num(v, def = 0) { const n = Number(v); return Number.isFinite(n) ? n : def; }\nfunction daysSince(iso) {\n  if (!iso) return 999;\n  const t = Date.parse(iso);\n  if (Number.isNaN(t)) return 999;\n  return Math.max(0, Math.floor((now - t) / 86400000));\n}\nfunction recencyScore(d) {\n  // 0d=10, 7d=8, 14d=6, 30d=4, 60d=2, 90d+=1\n  if (d <= 0) return 10;\n  if (d <= 7) return 8;\n  if (d <= 14) return 6;\n  if (d <= 30) return 4;\n  if (d <= 60) return 2;\n  return 1;\n}\nfunction nicheFitScore(niche) {\n  const n = String(niche || '').toLowerCase();\n  // niches préférées Symbalyx : score plus élevé\n  if (['plombier', 'electricien', 'artisan', 'coiffeur', 'salon'].includes(n)) return 9;\n  if (['coach', 'consultant', 'photographe', 'restaurant'].includes(n)) return 7;\n  if (n) return 5;\n  return 3;\n}\nfunction replyBonus(cat) {\n  const c = String(cat || '').toLowerCase();\n  if (c === 'interested')   return 10;\n  if (c === 'needs_quote')  return 9;\n  if (c === 'ask_later')    return 5;\n  if (c === 'unclear')      return 3;\n  if (c === 'not_interested') return 0;\n  return 0;\n}\nfunction urgencyFromDeadline(iso) {\n  if (!iso) return 4;\n  const d = (Date.parse(iso) - now) / 86400000;\n  if (d <= 7) return 10;\n  if (d <= 14) return 8;\n  if (d <= 30) return 6;\n  if (d <= 60) return 4;\n  return 2;\n}\nfunction valueFromComplexity(c) {\n  const x = String(c || '').toLowerCase();\n  if (x === 'complex') return 8;\n  if (x === 'medium')  return 6;\n  if (x === 'simple')  return 4;\n  return 5;\n}\n\n// --- Score prospects ---\nconst PPS_W = { opportunity: 0.35, easiness: 0.20, recency: 0.20, fit: 0.15, reply: 0.10 };\nconst scoredProspects = prospects\n  .filter(p => {\n    const optOut = p.opt_out === true || String(p.opt_out || '').toLowerCase() === 'true';\n    return !optOut && String(p.status || '').toLowerCase() !== 'rejected';\n  })\n  .map(p => {\n    const opp  = num(p.opportunity_score, 5);\n    const diff = num(p.project_difficulty_score, 5);\n    const easiness = 11 - diff;\n    const last = p.reply_received_at || p.updated_at || p.created_at;\n    const rec  = recencyScore(daysSince(last));\n    const fit  = nicheFitScore(p.niche);\n    const rep  = replyBonus(p.reply_category);\n\n    const score = +(\n      PPS_W.opportunity * opp +\n      PPS_W.easiness    * easiness +\n      PPS_W.recency     * rec +\n      PPS_W.fit         * fit +\n      PPS_W.reply       * rep\n    ).toFixed(2);\n\n    return {\n      item_type: 'prospect',\n      item_id: p.id,\n      title: `${p.company_name || 'Prospect'} — ${p.city || ''} (${p.niche || '?'})`.trim(),\n      score_raw: score,\n      score_breakdown: {\n        opportunity_score: opp,\n        difficulty_score: diff,\n        easiness, recency: rec, niche_fit: fit, reply_bonus: rep,\n        days_since_last: daysSince(last)\n      },\n      data: {\n        company_name: p.company_name,\n        contact_name: p.contact_name,\n        email: p.email,\n        city: p.city,\n        niche: p.niche,\n        website_status: p.website_status,\n        opportunity_reason: p.opportunity_reason,\n        suggested_angle: p.suggested_angle,\n        project_difficulty_label: p.project_difficulty_label,\n        reply_category: p.reply_category,\n        reply_text_excerpt: String(p.reply_text || '').slice(0, 200),\n        status: p.status,\n        opt_out: p.opt_out\n      }\n    };\n  });\n\n// --- Score projets ---\nconst PrPS_W = { urgency: 0.30, value: 0.25, easiness: 0.20, responsiveness: 0.15, fit: 0.10 };\nconst scoredProjects = projects\n  .filter(p => ['new', 'in_progress'].includes(String(p.status || '').toLowerCase()))\n  .map(p => {\n    const urg = urgencyFromDeadline(p.deadline);\n    const val = valueFromComplexity(p.estimated_project_complexity);\n    const cmpx = (function () {\n      const x = String(p.estimated_project_complexity || '').toLowerCase();\n      if (x === 'simple') return 3;\n      if (x === 'medium') return 5;\n      if (x === 'complex') return 8;\n      return 5;\n    })();\n    const easiness = 11 - cmpx;\n    const resp = recencyScore(daysSince(p.updated_at));\n    const fit  = nicheFitScore(p.niche);\n\n    const score = +(\n      PrPS_W.urgency       * urg +\n      PrPS_W.value         * val +\n      PrPS_W.easiness      * easiness +\n      PrPS_W.responsiveness* resp +\n      PrPS_W.fit           * fit\n    ).toFixed(2);\n\n    return {\n      item_type: 'project',\n      item_id: p.id,\n      title: `${p.client_name || 'Projet'} — ${p.niche || ''} (${p.estimated_project_complexity || '?'})`.trim(),\n      score_raw: score,\n      score_breakdown: {\n        urgency: urg, value: val, complexity: cmpx, easiness,\n        responsiveness: resp, niche_fit: fit,\n        days_since_update: daysSince(p.updated_at)\n      },\n      data: {\n        client_name: p.client_name,\n        niche: p.niche,\n        city: p.city,\n        complexity: p.estimated_project_complexity,\n        scope_excerpt: String(p.estimated_project_scope || '').slice(0, 200),\n        next_questions: p.next_questions_to_ask,\n        status: p.status,\n        assigned_to: p.assigned_to,\n        deadline: p.deadline\n      }\n    };\n  });\n\n// --- Combine + tri + top N ---\nconst all = [...scoredProspects, ...scoredProjects]\n  .sort((a, b) => b.score_raw - a.score_raw)\n  .slice(0, MAX_ITEMS);\n\n// On retourne 1 seul item avec un payload prêt LLM (batch unique)\nreturn [{\n  json: {\n    run_id,\n    items_count: all.length,\n    items: all\n  }\n}];"
+      },
+      "id": "0f000005-0000-0000-0000-000000000005",
+      "name": "Score déterministe (top N)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{"name": "Content-Type", "value": "application/json"}]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL || 'gpt-4o-mini'}}\",\n  \"temperature\": 0.1,\n  \"max_tokens\": 2500,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Tu es l'analyste d'opérations Symbalyx. Tu reçois des items déjà scorés et tu produis des recommandations actionnables. Pas de décisions finales. Pas de promesses prix/délais. Owner : commercial/design->Arsène, recherche/QA/setup->Kentin, complex->Arsène+Kentin. opt_out=true -> action=abandon, priority=low. Réponds JSON strict.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Lot d'items à prioriser:\\n\" + {{ JSON.stringify($json.items) }} + \"\\n\\nMapping priority_level: >=8.0 critical, >=6.0 high, >=4.0 medium, <4.0 low.\\nMapping action selon (impact, effort): high+low->push_now/quick_close; high+high->schedule/deliver_focus; low+low->follow_up_72h/quick_close; low+high->deprioritize/abandon.\\nCas: interested->push_now+follow_up_24h; needs_quote->quote+Arsène; ask_later->follow_up_30d; project blocked->review+Arsène+Kentin; deadline<=7j->deliver_focus+critical.\\n\\nRetourne STRICTEMENT:\\n{\\n  \\\"recommendations\\\": [\\n    {\\n      \\\"item_type\\\": \\\"prospect|project\\\",\\n      \\\"item_id\\\": \\\"...\\\",\\n      \\\"title\\\": \\\"max 80 chars\\\",\\n      \\\"priority_level\\\": \\\"low|medium|high|critical\\\",\\n      \\\"expected_impact\\\": \\\"low|medium|high\\\",\\n      \\\"effort_level\\\": \\\"low|medium|high\\\",\\n      \\\"recommended_action\\\": \\\"push_now|schedule|quick_close|deprioritize|follow_up_24h|follow_up_72h|follow_up_30d|abandon|request_info|quote|deliver_focus|review\\\",\\n      \\\"assigned_to\\\": \\\"Arsène|Kentin|Arsène+Kentin\\\",\\n      \\\"recommendation\\\": \\\"max 200 chars\\\",\\n      \\\"reason\\\": \\\"1 phrase\\\",\\n      \\\"requires_human_validation\\\": true\\n    }\\n  ]\\n}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000,
+          "response": {"response": {"neverError": true}}
+        }
+      },
+      "id": "0f000006-0000-0000-0000-000000000006",
+      "name": "A7 — LLM Prioritization",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 380],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 4000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse LLM + merge avec score déterministe + explode 1 ligne par recommandation\nconst llm = $json;\nlet parsed = { recommendations: [] };\ntry {\n  const c = llm && llm.choices && llm.choices[0] && llm.choices[0].message && llm.choices[0].message.content;\n  if (c) parsed = JSON.parse(c);\n} catch (e) {\n  parsed = { recommendations: [], _llm_error: String(e && e.message || e) };\n}\n\nconst ctx = $('Score déterministe (top N)').first().json;\nconst run_id = ctx.run_id;\nconst byId = new Map((ctx.items || []).map(i => [i.item_id, i]));\nconst now = new Date().toISOString();\n\nconst rows = (parsed.recommendations || []).map((r, idx) => {\n  const det = byId.get(r.item_id) || {};\n  return {\n    json: {\n      id: 'bcl_' + Date.now() + '_' + String(idx).padStart(3, '0'),\n      ts: now,\n      run_id,\n      source_workflow: 'WF7',\n      item_type: r.item_type,\n      item_id: r.item_id,\n      title: r.title || det.title || '',\n      recommendation: r.recommendation || '',\n      recommended_action: r.recommended_action || '',\n      priority_score: det.score_raw != null ? det.score_raw : '',\n      priority_level: r.priority_level || '',\n      expected_impact: r.expected_impact || '',\n      effort_level: r.effort_level || '',\n      assigned_to: r.assigned_to || '',\n      requires_human_validation: 'true',\n      decision_status: 'pending',\n      decided_by: '',\n      decided_at: '',\n      notes: r.reason || ''\n    }\n  };\n});\n\nif (rows.length === 0) {\n  return [{\n    json: {\n      id: 'bcl_' + Date.now() + '_empty',\n      ts: now,\n      run_id,\n      source_workflow: 'WF7',\n      item_type: 'ops',\n      item_id: '',\n      title: 'WF7 — aucune reco',\n      recommendation: parsed._llm_error ? ('LLM error: ' + parsed._llm_error) : 'Aucun item à prioriser cette exécution',\n      recommended_action: 'review',\n      priority_score: '',\n      priority_level: 'low',\n      expected_impact: 'low',\n      effort_level: 'low',\n      assigned_to: 'Arsène+Kentin',\n      requires_human_validation: 'true',\n      decision_status: 'pending',\n      decided_by: '',\n      decided_at: '',\n      notes: ''\n    }\n  }];\n}\nreturn rows;"
+      },
+      "id": "0f000007-0000-0000-0000-000000000007",
+      "name": "Parser & Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "business_control", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "0f000008-0000-0000-0000-000000000008",
+      "name": "Append → business_control",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1320, 380]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "logs", "mode": "name"},
+        "operation": "append",
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ts": "={{ new Date().toISOString() }}",
+            "prospect_id": "={{ $json.item_id }}",
+            "phase": "prioritize",
+            "status": "={{ $json.priority_level }}",
+            "level": "info",
+            "message": "Reco WF7 enregistrée",
+            "meta": "={{ JSON.stringify({ run_id: $json.run_id, action: $json.recommended_action, score: $json.priority_score, owner: $json.assigned_to }) }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {"id": "ts", "displayName": "ts", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "prospect_id", "displayName": "prospect_id", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "phase", "displayName": "phase", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "status", "displayName": "status", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "level", "displayName": "level", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "message", "displayName": "message", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"},
+            {"id": "meta", "displayName": "meta", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": true, "type": "string"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0f000009-0000-0000-0000-000000000009",
+      "name": "Log: prioritize",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1540, 380]
+    }
+  ],
+  "connections": {
+    "Trigger Manuel": {
+      "main": [[
+        {"node": "Lire review_queue", "type": "main", "index": 0},
+        {"node": "Lire project_queue", "type": "main", "index": 0}
+      ]]
+    },
+    "Schedule (daily 6am)": {
+      "main": [[
+        {"node": "Lire review_queue", "type": "main", "index": 0},
+        {"node": "Lire project_queue", "type": "main", "index": 0}
+      ]]
+    },
+    "Lire review_queue": {
+      "main": [[{"node": "Score déterministe (top N)", "type": "main", "index": 0}]]
+    },
+    "Lire project_queue": {
+      "main": [[{"node": "Score déterministe (top N)", "type": "main", "index": 0}]]
+    },
+    "Score déterministe (top N)": {
+      "main": [[{"node": "A7 — LLM Prioritization", "type": "main", "index": 0}]]
+    },
+    "A7 — LLM Prioritization": {
+      "main": [[{"node": "Parser & Format", "type": "main", "index": 0}]]
+    },
+    "Parser & Format": {
+      "main": [[{"node": "Append → business_control", "type": "main", "index": 0}]]
+    },
+    "Append → business_control": {
+      "main": [[{"node": "Log: prioritize", "type": "main", "index": 0}]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "business-control"}, {"name": "wf7"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000007",
+  "meta": {"instanceId": "symbalyx-wf7"}
+}

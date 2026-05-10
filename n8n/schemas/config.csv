@@ -1,0 +1,7 @@
+key,value,notes
+KILL_SWITCH,false,si true tous les workflows critiques s'arrêtent
+MAX_BATCH,30,top N items envoyés au LLM dans WF7
+MAX_RUNS_PER_HOUR,6,limite de re-exécutions
+ALLOW_GMAIL_DRAFTS,true,si false aucun draft Gmail n'est créé
+ALLOW_FINANCE_REMINDERS,true,coupe-circuit WF14
+LLM_DAILY_BUDGET_USD,5,suivi manuel pour l'instant

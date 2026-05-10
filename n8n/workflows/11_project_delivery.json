@@ -1,0 +1,115 @@
+{
+  "name": "Symbalyx — WF11 Project Delivery Watch",
+  "nodes": [
+    {
+      "parameters": {"rule": {"interval": [{"field": "hours", "hoursInterval": 12}]}},
+      "id": "11100001-0000-0000-0000-000000000001",
+      "name": "Schedule (12h)",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 280]
+    },
+    {
+      "parameters": {},
+      "id": "11100002-0000-0000-0000-000000000002",
+      "name": "Trigger Manuel",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [200, 460]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "project_queue", "mode": "name"},
+        "options": {}
+      },
+      "id": "11100003-0000-0000-0000-000000000003",
+      "name": "Lire project_queue",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [420, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = Date.now();\nfunction d(iso){ if(!iso) return null; const t=Date.parse(iso); return Number.isFinite(t) ? Math.floor((t-now)/86400000) : null; }\nfunction d2(iso){ if(!iso) return 999; const t=Date.parse(iso); return Number.isFinite(t) ? Math.floor((now-t)/86400000) : 999; }\nconst out = [];\nfor (const it of items) {\n  const p = it.json || {};\n  const status = String(p.status || '').toLowerCase();\n  if (!['new','in_progress','blocked'].includes(status)) continue;\n  const daysToDeadline = d(p.deadline);\n  const daysSinceUpdate = d2(p.updated_at);\n  const flags = [];\n  let risk = 'low';\n  if (status === 'blocked') { flags.push('blocked'); risk = 'high'; }\n  if (daysToDeadline !== null && daysToDeadline <= 3) { flags.push('deadline_imminent'); risk = 'critical'; }\n  else if (daysToDeadline !== null && daysToDeadline <= 7) { flags.push('deadline_soon'); if(risk==='low') risk='high'; }\n  if (daysSinceUpdate >= 7) { flags.push('stale'); if(risk==='low') risk='medium'; }\n  if (daysSinceUpdate >= 14) { flags.push('very_stale'); if(risk!=='critical') risk='high'; }\n  if (flags.length) {\n    out.push({ json: { project: p, flags, risk, days_to_deadline: daysToDeadline, days_since_update: daysSinceUpdate } });\n  }\n}\nreturn out;"
+      },
+      "id": "11100004-0000-0000-0000-000000000004",
+      "name": "Détecter blocages/risques",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 360]
+    },
+    {
+      "parameters": {"batchSize": 1, "options": {}},
+      "id": "11100005-0000-0000-0000-000000000005",
+      "name": "Boucle (1 par 1)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [860, 360]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "{{LLM_API_URL}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {"parameters": [{"name": "Content-Type", "value": "application/json"}]},
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"={{$env.LLM_MODEL || 'gpt-4o-mini'}}\",\n  \"temperature\": 0.2,\n  \"max_tokens\": 500,\n  \"response_format\": { \"type\": \"json_object\" },\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Tu es PM Symbalyx. Pour chaque projet à risque, recommande UNE action courte. Pas de promesses. JSON strict.\" },\n    { \"role\": \"user\", \"content\": \"Projet:\\n\" + {{ JSON.stringify($json.project) }} + \"\\n\\nFlags détectés: \" + {{ JSON.stringify($json.flags) }} + \"\\nRisk: \" + {{ JSON.stringify($json.risk) }} + \"\\nJours restants: \" + {{ JSON.stringify($json.days_to_deadline) }} + \"\\nJours depuis MAJ: \" + {{ JSON.stringify($json.days_since_update) }} + \"\\n\\nRetourne STRICTEMENT: {\\n  \\\"recommendation\\\": \\\"1-2 phrases\\\",\\n  \\\"recommended_action\\\": \\\"unblock|reassign|extend_deadline|reduce_scope|escalate|status_check|none\\\",\\n  \\\"owner_suggestion\\\": \\\"Arsène|Kentin|Arsène+Kentin\\\",\\n  \\\"client_message_draft\\\": \\\"si pertinent, brouillon court à valider, sinon vide\\\"\\n}\" }\n  ]\n}",
+        "options": {"timeout": 30000, "response": {"response": {"neverError": true}}}
+      },
+      "id": "11100006-0000-0000-0000-000000000006",
+      "name": "A11 — LLM Risk Reco",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1080, 360],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 3000,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const llm = $json; let r = {};\ntry { const c = llm.choices && llm.choices[0] && llm.choices[0].message && llm.choices[0].message.content; if (c) r = JSON.parse(c); } catch(e){ r = {}; }\nconst ctx = $('Boucle (1 par 1)').first().json;\nconst project = ctx.project || {};\nreturn [{ json: {\n  id: 'bcl_' + Date.now() + '_pd',\n  ts: new Date().toISOString(),\n  run_id: 'pd_' + Date.now(),\n  source_workflow: 'WF11',\n  item_type: 'project',\n  item_id: project.id,\n  title: 'Risque projet — ' + (project.client_name || project.id),\n  recommendation: r.recommendation || ('Flags: ' + (ctx.flags||[]).join(',')),\n  recommended_action: r.recommended_action || 'status_check',\n  priority_score: '',\n  priority_level: ctx.risk === 'critical' ? 'critical' : (ctx.risk === 'high' ? 'high' : 'medium'),\n  expected_impact: 'high',\n  effort_level: 'medium',\n  assigned_to: r.owner_suggestion || 'Arsène+Kentin',\n  requires_human_validation: 'true',\n  decision_status: 'pending',\n  decided_by: '',\n  decided_at: '',\n  notes: 'flags=' + (ctx.flags||[]).join(',') + (r.client_message_draft ? ' | client_draft: ' + r.client_message_draft : '')\n}}];"
+      },
+      "id": "11100007-0000-0000-0000-000000000007",
+      "name": "Format → BCL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 360]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "business_control", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "11100008-0000-0000-0000-000000000008",
+      "name": "Append → business_control",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1520, 360]
+    }
+  ],
+  "connections": {
+    "Schedule (12h)": { "main": [[{"node": "Lire project_queue", "type": "main", "index": 0}]] },
+    "Trigger Manuel": { "main": [[{"node": "Lire project_queue", "type": "main", "index": 0}]] },
+    "Lire project_queue": { "main": [[{"node": "Détecter blocages/risques", "type": "main", "index": 0}]] },
+    "Détecter blocages/risques": { "main": [[{"node": "Boucle (1 par 1)", "type": "main", "index": 0}]] },
+    "Boucle (1 par 1)": { "main": [[{"node": "A11 — LLM Risk Reco", "type": "main", "index": 0}], []] },
+    "A11 — LLM Risk Reco": { "main": [[{"node": "Format → BCL", "type": "main", "index": 0}]] },
+    "Format → BCL": { "main": [[{"node": "Append → business_control", "type": "main", "index": 0}]] },
+    "Append → business_control": { "main": [[{"node": "Boucle (1 par 1)", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {"executionOrder": "v1"},
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "delivery"}, {"name": "wf11"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000011",
+  "meta": {"instanceId": "symbalyx-wf11"}
+}

@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Symbalyx — Control Room</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#0b0d10; --panel:#11151a; --panel2:#161b22; --line:#23272e;
+    --txt:#e6e9ef; --muted:#8b95a5; --acc:#5eead4; --warn:#f59e0b;
+    --crit:#ef4444; --ok:#22c55e; --info:#60a5fa;
+  }
+  [data-theme="light"] {
+    --bg:#f7f8fa; --panel:#ffffff; --panel2:#f1f3f6; --line:#e2e6ec;
+    --txt:#10131a; --muted:#5b6473; --acc:#0ea5a4; --warn:#b45309;
+    --crit:#b91c1c; --ok:#15803d; --info:#1d4ed8;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt); font:14px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial; }
+  header { display:flex; align-items:center; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); position:sticky; top:0; background:var(--bg); z-index:5; }
+  header h1 { margin:0; font-size:16px; letter-spacing:.5px; }
+  header .right { margin-left:auto; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  button, select, input { background:var(--panel); color:var(--txt); border:1px solid var(--line); border-radius:8px; padding:6px 10px; font:inherit; }
+  button:hover { border-color:var(--acc); cursor:pointer; }
+  .grid { display:grid; gap:14px; padding:14px; grid-template-columns:repeat(12,1fr); }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .card h2 { margin:0 0 8px; font-size:13px; color:var(--muted); text-transform:uppercase; letter-spacing:.6px; }
+  .span-3 { grid-column:span 3; } .span-4 { grid-column:span 4; } .span-6 { grid-column:span 6; } .span-8 { grid-column:span 8; } .span-12 { grid-column:span 12; }
+  .kpi { font-size:28px; font-weight:600; }
+  .kpi small { display:block; font-size:11px; color:var(--muted); font-weight:400; margin-top:4px; }
+  table { width:100%; border-collapse:collapse; font-size:13px; }
+  th, td { text-align:left; padding:8px 6px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:500; font-size:11px; text-transform:uppercase; letter-spacing:.5px; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; }
+  .badge.critical{ background:var(--crit); color:#fff; }
+  .badge.high { background:var(--warn); color:#000; }
+  .badge.medium { background:var(--info); color:#000; }
+  .badge.low { background:var(--panel2); color:var(--muted); }
+  .badge.pending{ background:var(--panel2); color:var(--muted); border:1px solid var(--line); }
+  .badge.approved { background:var(--ok); color:#000; }
+  .badge.rejected { background:var(--crit); color:#fff; }
+  .actions button { margin-right:4px; padding:3px 8px; font-size:12px; }
+  .approve { color:var(--ok); border-color:var(--ok); }
+  .reject  { color:var(--crit); border-color:var(--crit); }
+  .login { max-width:340px; margin:18vh auto; padding:24px; background:var(--panel); border:1px solid var(--line); border-radius:14px; }
+  .login input { width:100%; margin-top:8px; }
+  .row { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  pre.digest { white-space:pre-wrap; background:var(--panel2); padding:10px; border-radius:8px; font:12px/1.5 ui-monospace,Menlo; max-height:280px; overflow:auto; }
+  .muted { color:var(--muted); font-size:12px; }
+  @media (max-width:900px){ .span-3,.span-4,.span-6,.span-8 { grid-column:span 12; } header h1 { font-size:14px; } }
+</style>
+</head>
+<body>
+
+<div id="login" class="login" style="display:none">
+  <h2 style="margin:0 0 8px">Symbalyx Control Room</h2>
+  <div class="muted">Mot de passe local (stocké dans ce navigateur uniquement).</div>
+  <input id="pwd" type="password" placeholder="mot de passe" autofocus>
+  <div class="row" style="margin-top:10px">
+    <button onclick="symbLogin()">Entrer</button>
+    <span class="muted">Premier accès : tu choisis le mot de passe ici.</span>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+<header>
+  <h1>Symbalyx · Control Room</h1>
+  <div class="right">
+    <select id="filterPerson">
+      <option value="all">Toute l'équipe</option>
+      <option value="Arsène">Arsène</option>
+      <option value="Kentin">Kentin</option>
+      <option value="Arsène+Kentin">Arsène+Kentin</option>
+    </select>
+    <select id="filterPriority">
+      <option value="all">Toutes priorités</option>
+      <option value="critical">Critical</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+      <option value="low">Low</option>
+    </select>
+    <button onclick="symbExportCSV()">Export CSV</button>
+    <button onclick="symbToggleTheme()">🌓 Theme</button>
+    <button onclick="symbRefresh()">↻ Refresh</button>
+    <button onclick="symbLogout()">Logout</button>
+  </div>
+</header>
+
+<div class="grid">
+  <div class="card span-3"><h2>Pending critical</h2><div class="kpi" id="kpi_critical">—</div><small>items à valider en priorité</small></div>
+  <div class="card span-3"><h2>Pending total</h2><div class="kpi" id="kpi_pending">—</div><small>file business_control</small></div>
+  <div class="card span-3"><h2>Projets actifs</h2><div class="kpi" id="kpi_projects">—</div><small>new + in_progress</small></div>
+  <div class="card span-3"><h2>Réponses interested</h2><div class="kpi" id="kpi_interested">—</div><small>cumul</small></div>
+
+  <div class="card span-8"><h2>KPIs hebdo</h2><canvas id="chartKpi" height="120"></canvas></div>
+  <div class="card span-4"><h2>Charge équipe</h2><canvas id="chartTeam" height="120"></canvas></div>
+
+  <div class="card span-12"><h2>Top 10 priorités du jour</h2>
+    <table id="tblTop"><thead><tr>
+      <th>#</th><th>Priorité</th><th>Type</th><th>Titre</th><th>Action</th>
+      <th>Owner</th><th>Score</th><th>Status</th><th></th>
+    </tr></thead><tbody></tbody></table>
+  </div>
+
+  <div class="card span-6"><h2>Dernier digest hebdo</h2><pre class="digest" id="digest">—</pre></div>
+  <div class="card span-6"><h2>Notifications</h2>
+    <div class="row"><button onclick="symbAskNotif()">Activer notifications browser</button></div>
+    <div id="notifLog" class="muted" style="margin-top:8px">—</div>
+  </div>
+
+  <div class="card span-12 muted">
+    Source : <span id="srcLabel">Mock data (configurer Sheets API ou Supabase dans <code>config.js</code>)</span> · Refresh auto 5 min.
+  </div>
+</div>
+</div>
+
+<script>
+/* === Symbalyx Control Room — vanilla JS ===
+   Lecture seule. Aucun envoi externe.
+   Sources possibles :
+   - SHEETS  : Google Sheets via API key (publique en lecture) ou Apps Script proxy
+   - SUPABASE: REST PostgREST + anon key (RLS read-only)
+   - MOCK    : données factices intégrées (par défaut)
+*/
+const CONFIG = {
+  source: 'mock',                     // 'mock' | 'sheets' | 'supabase'
+  refreshMs: 5 * 60 * 1000,
+  sheets: {
+    apiKey: '',                       // <-- à remplir
+    sheetId: '{{GOOGLE_SHEET_ID}}',
+    tabs: { bcl:'business_control', kpi:'kpi_snapshots', team:'team_state' }
+  },
+  supabase: {
+    url: '',                          // https://xxx.supabase.co
+    anonKey: '',
+    tables: { bcl:'business_control', kpi:'kpi_snapshots', team:'team_state' }
+  },
+  passwordHashKey: 'symbalyx_pwd_hash'
+};
+
+/* --------- Auth simple (hash localStorage, lecture seule) --------- */
+async function sha256(s){ const buf = new TextEncoder().encode(s); const h = await crypto.subtle.digest('SHA-256', buf); return [...new Uint8Array(h)].map(b=>b.toString(16).padStart(2,'0')).join(''); }
+async function symbLogin(){
+  const pwd = document.getElementById('pwd').value;
+  if (!pwd) return;
+  const stored = localStorage.getItem(CONFIG.passwordHashKey);
+  const hash = await sha256(pwd);
+  if (!stored) { localStorage.setItem(CONFIG.passwordHashKey, hash); }
+  if (localStorage.getItem(CONFIG.passwordHashKey) !== hash) { alert('Mot de passe incorrect'); return; }
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  symbRefresh();
+}
+function symbLogout(){ sessionStorage.clear(); location.reload(); }
+function symbToggleTheme(){
+  const cur = document.documentElement.getAttribute('data-theme');
+  const nxt = cur === 'light' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', nxt);
+  localStorage.setItem('symbalyx_theme', nxt);
+}
+(function(){ const t = localStorage.getItem('symbalyx_theme'); if (t) document.documentElement.setAttribute('data-theme', t); })();
+
+/* --------- Mock data --------- */
+const MOCK = {
+  bcl: [
+    {id:'bcl_1', ts:new Date().toISOString(), source_workflow:'WF7', item_type:'prospect', item_id:'p_0042', title:'Plomberie Dupont — Bordeaux', recommendation:'Relancer sous 48h', recommended_action:'follow_up_24h', priority_score:8.6, priority_level:'critical', expected_impact:'high', effort_level:'low', assigned_to:'Arsène', decision_status:'pending', notes:'reply=interested'},
+    {id:'bcl_2', ts:new Date().toISOString(), source_workflow:'WF11', item_type:'project', item_id:'proj_0007', title:'Salon Élégance — vitrine + RDV', recommendation:'Bloquer focus 4h cette semaine', recommended_action:'schedule', priority_score:7.1, priority_level:'high', expected_impact:'medium', effort_level:'medium', assigned_to:'Arsène', decision_status:'pending', notes:''},
+    {id:'bcl_3', ts:new Date().toISOString(), source_workflow:'WF7', item_type:'prospect', item_id:'p_0019', title:'Coach Lyon (60j sans réponse)', recommendation:'Abandonner', recommended_action:'abandon', priority_score:2.3, priority_level:'low', expected_impact:'low', effort_level:'low', assigned_to:'Kentin', decision_status:'pending', notes:''},
+  ],
+  kpi: Array.from({length:8}).map((_,i)=>({
+    period:`2026-W${12+i}`,
+    prospects_total: 40+i*3, prospects_pending: 5+(i%4),
+    prospects_drafted: 8+i, prospects_replied_interested: 1+(i%3),
+    projects_active: 3+(i%4), projects_blocked: (i%3===0?1:0),
+    high_priority_count: 4+(i%5), critical_count: 1+(i%2),
+    team_load_arsene_pct: 60+i*2, team_load_kentin_pct: 70+i*2
+  })),
+  team: [
+    {name:'Arsène', current_load_pct:72, weekly_capacity_hours:35},
+    {name:'Kentin', current_load_pct:88, weekly_capacity_hours:35}
+  ],
+  digest: "**Top priorités**\n- 3 réponses 'interested' à traiter sous 48h\n- Maquette V1 Salon Élégance avant vendredi\n- 5 nouveaux brouillons à préparer\n\n**Risques**\n- Kentin à 88%\n- proj_0011 bloqué 14j\n\n**À pousser** : p_0042, p_0051\n**À abandonner** : 4 leads inactifs >60j"
+};
+
+/* --------- Source dispatcher --------- */
+async function fetchData(){
+  if (CONFIG.source === 'mock') return MOCK;
+  if (CONFIG.source === 'sheets') return await fetchSheets();
+  if (CONFIG.source === 'supabase') return await fetchSupabase();
+  return MOCK;
+}
+async function fetchSheets(){
+  const c = CONFIG.sheets;
+  if (!c.apiKey || !c.sheetId) throw new Error('Sheets non configuré');
+  async function read(tab){
+    const url = `https://sheets.googleapis.com/v4/spreadsheets/${c.sheetId}/values/${encodeURIComponent(tab)}?key=${c.apiKey}`;
+    const r = await fetch(url); if (!r.ok) throw new Error('Sheets HTTP '+r.status);
+    const j = await r.json(); const [head, ...rows] = j.values || [];
+    return rows.map(row => Object.fromEntries(head.map((h,i)=>[h, row[i]])));
+  }
+  return { bcl: await read(c.tabs.bcl), kpi: await read(c.tabs.kpi), team: await read(c.tabs.team), digest: '' };
+}
+async function fetchSupabase(){
+  const c = CONFIG.supabase;
+  if (!c.url || !c.anonKey) throw new Error('Supabase non configuré');
+  const headers = { apikey: c.anonKey, Authorization:`Bearer ${c.anonKey}` };
+  async function get(t, q=''){ const r = await fetch(`${c.url}/rest/v1/${t}${q}`, { headers }); if (!r.ok) throw new Error('SB HTTP '+r.status); return r.json(); }
+  return {
+    bcl:  await get(c.tables.bcl,  '?select=*&decision_status=eq.pending&order=ts.desc&limit=200'),
+    kpi:  await get(c.tables.kpi,  '?select=*&order=ts.desc&limit=12'),
+    team: await get(c.tables.team, '?select=*'),
+    digest: ''
+  };
+}
+
+/* --------- Filters / state --------- */
+let lastData = null;
+function getFilters(){
+  return {
+    person: document.getElementById('filterPerson').value,
+    priority: document.getElementById('filterPriority').value
+  };
+}
+function applyFilters(rows){
+  const f = getFilters();
+  return (rows||[]).filter(r =>
+    (f.person === 'all' || r.assigned_to === f.person) &&
+    (f.priority === 'all' || r.priority_level === f.priority)
+  );
+}
+
+/* --------- Render --------- */
+let chartKpi, chartTeam;
+function renderKPIs(d){
+  const pending = (d.bcl||[]).filter(b=>b.decision_status==='pending');
+  const critical = pending.filter(b=>b.priority_level==='critical').length;
+  document.getElementById('kpi_pending').textContent = pending.length;
+  document.getElementById('kpi_critical').textContent = critical;
+  const last = (d.kpi||[]).slice(-1)[0] || {};
+  document.getElementById('kpi_projects').textContent = last.projects_active ?? '—';
+  document.getElementById('kpi_interested').textContent = last.prospects_replied_interested ?? '—';
+  if (critical > 0) symbNotify(`${critical} item(s) critical en attente`);
+}
+function renderCharts(d){
+  const k = d.kpi || [];
+  const labels = k.map(x=>x.period);
+  if (chartKpi) chartKpi.destroy();
+  chartKpi = new Chart(document.getElementById('chartKpi'), {
+    type:'line',
+    data:{ labels, datasets:[
+      {label:'Prospects pending', data:k.map(x=>+x.prospects_pending||0), tension:.3},
+      {label:'Drafted', data:k.map(x=>+x.prospects_drafted||0), tension:.3},
+      {label:'Interested', data:k.map(x=>+x.prospects_replied_interested||0), tension:.3},
+      {label:'Projets actifs', data:k.map(x=>+x.projects_active||0), tension:.3}
+    ]},
+    options:{ responsive:true, plugins:{ legend:{ position:'bottom' } }, scales:{ y:{ beginAtZero:true } } }
+  });
+  const team = d.team || [];
+  if (chartTeam) chartTeam.destroy();
+  chartTeam = new Chart(document.getElementById('chartTeam'), {
+    type:'bar',
+    data:{ labels: team.map(t=>t.name), datasets:[{label:'Charge %', data: team.map(t=>+t.current_load_pct||0), backgroundColor: team.map(t=>(+t.current_load_pct>=85?'#ef4444':(+t.current_load_pct>=70?'#f59e0b':'#22c55e')))}]},
+    options:{ responsive:true, plugins:{ legend:{ display:false } }, scales:{ y:{ beginAtZero:true, max:100 } } }
+  });
+}
+function renderTop(d){
+  const tbody = document.querySelector('#tblTop tbody');
+  const rows = applyFilters(d.bcl).filter(r=>r.decision_status==='pending')
+    .sort((a,b)=>(+b.priority_score||0) - (+a.priority_score||0))
+    .slice(0,10);
+  tbody.innerHTML = rows.map((r,i)=>`
+    <tr>
+      <td>${i+1}</td>
+      <td><span class="badge ${r.priority_level||'low'}">${r.priority_level||'-'}</span></td>
+      <td>${r.item_type||'-'}</td>
+      <td><strong>${escapeHtml(r.title||r.item_id||'')}</strong><br><span class="muted">${escapeHtml(r.recommendation||'')}</span></td>
+      <td>${escapeHtml(r.recommended_action||'-')}</td>
+      <td>${escapeHtml(r.assigned_to||'-')}</td>
+      <td>${r.priority_score||'-'}</td>
+      <td><span class="badge ${r.decision_status||'pending'}">${r.decision_status||'pending'}</span></td>
+      <td class="actions">
+        <button class="approve" onclick="symbDecide('${r.id}','approved')">approve</button>
+        <button class="reject"  onclick="symbDecide('${r.id}','rejected')">reject</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="9" class="muted">Aucune reco en attente.</td></tr>';
+}
+function renderDigest(d){ document.getElementById('digest').textContent = d.digest || '—'; }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c]); }
+
+/* --------- Decisions (lecture seule par défaut) --------- */
+function symbDecide(id, status){
+  // Mode lecture seule : marqué localement et exporté pour traçabilité.
+  // Pour écrire dans Sheets/Supabase, brancher ici un POST vers ton n8n webhook.
+  const log = JSON.parse(localStorage.getItem('symbalyx_decisions') || '[]');
+  log.push({id, status, ts: new Date().toISOString()});
+  localStorage.setItem('symbalyx_decisions', JSON.stringify(log));
+  alert(`Décision enregistrée localement: ${status} sur ${id}.\nSync à faire à la main dans business_control.`);
+}
+
+/* --------- Export CSV --------- */
+function symbExportCSV(){
+  if (!lastData) return;
+  const rows = applyFilters(lastData.bcl).filter(r=>r.decision_status==='pending');
+  const cols = ['priority_level','priority_score','item_type','item_id','title','recommendation','recommended_action','assigned_to','decision_status','ts'];
+  const esc = v => `"${String(v??'').replace(/"/g,'""')}"`;
+  const csv = [cols.join(','), ...rows.map(r=>cols.map(c=>esc(r[c])).join(','))].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'}); const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=`symbalyx_priorities_${new Date().toISOString().slice(0,10)}.csv`; a.click();
+}
+
+/* --------- Notifications browser --------- */
+function symbAskNotif(){ if (!('Notification' in window)) return alert('Pas supporté'); Notification.requestPermission(); }
+let lastCriticalSig = '';
+function symbNotify(msg){
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'granted') return;
+  const sig = msg + '|' + new Date().getHours();
+  if (sig === lastCriticalSig) return;
+  lastCriticalSig = sig;
+  new Notification('Symbalyx', { body: msg });
+  document.getElementById('notifLog').textContent = msg + ' · ' + new Date().toLocaleTimeString();
+}
+
+/* --------- Refresh --------- */
+async function symbRefresh(){
+  try {
+    const d = await fetchData();
+    lastData = d;
+    document.getElementById('srcLabel').textContent = `Source: ${CONFIG.source} · MAJ ${new Date().toLocaleTimeString()}`;
+    renderKPIs(d); renderCharts(d); renderTop(d); renderDigest(d);
+  } catch(e) {
+    document.getElementById('srcLabel').textContent = 'Erreur: ' + e.message;
+  }
+}
+document.getElementById('filterPerson').addEventListener('change', ()=>renderTop(lastData||{}));
+document.getElementById('filterPriority').addEventListener('change', ()=>renderTop(lastData||{}));
+setInterval(symbRefresh, CONFIG.refreshMs);
+
+/* --------- Boot --------- */
+(function boot(){
+  document.getElementById('login').style.display = 'block';
+})();
+</script>
+</body>
+</html>
