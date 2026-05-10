@@ -36,24 +36,30 @@ Astuce PC : dans la popup client ID, tu peux **télécharger le JSON** pour gard
 
 ---
 
-## Étape 4 — Importer les workflows (5 min)
+## Étape 4 — Préparer les workflows avec tes IDs (2 min)
 
-Dans n8n : **Workflows → Import from URL** pour chaque fichier raw GitHub.
+Avant d'importer dans n8n, injecte tes vraies valeurs dans les JSONs :
 
-URLs (branche de dev) :
+```bash
+# Clone le repo si pas déjà fait
+git clone https://github.com/symbalyx/symbalyx-ia
+cd symbalyx-ia
+git checkout claude/symbalyx-decision-team-sync-ZyoMB
 
+# Lance le script d'injection (remplace les placeholders dans les 6 fichiers)
+# WF00_ID = l'ID que tu verras dans l'URL n8n après avoir importé WF00 en premier
+node n8n/setup/inject.js TON_GOOGLE_SHEET_ID ID_DU_WF00_DANS_N8N
 ```
-https://raw.githubusercontent.com/symbalyx/symbalyx-ia/claude/symbalyx-decision-team-sync-ZyoMB/n8n/workflows/00_kill_switch.json
-https://raw.githubusercontent.com/symbalyx/symbalyx-ia/claude/symbalyx-decision-team-sync-ZyoMB/n8n/workflows/18_decision_executor.json
-https://raw.githubusercontent.com/symbalyx/symbalyx-ia/claude/symbalyx-decision-team-sync-ZyoMB/n8n/workflows/19_team_sync.json
-https://raw.githubusercontent.com/symbalyx/symbalyx-ia/claude/symbalyx-decision-team-sync-ZyoMB/n8n/workflows/21_team_members.json
-https://raw.githubusercontent.com/symbalyx/symbalyx-ia/claude/symbalyx-decision-team-sync-ZyoMB/n8n/workflows/22_outcome_reconciliation.json
-https://raw.githubusercontent.com/symbalyx/symbalyx-ia/claude/symbalyx-decision-team-sync-ZyoMB/n8n/workflows/99_error_handler.json
-```
+
+**Ordre d'import dans n8n :**
+1. Importe WF00 en premier → note son ID depuis l'URL (`/workflow/XXXX`).
+2. Lance `node n8n/setup/inject.js SHEET_ID XXXX`.
+3. Importe les 5 autres workflows depuis les fichiers modifiés sur ton disque.
+
+n8n : **Workflows → + Add Workflow → Import from File** (pas Import from URL — tu veux les fichiers déjà patchés).
 
 Pour chaque workflow importé :
-- **N'active pas encore** (attends les credentials).
-- Dans WF18 et WF22, remplace `REPLACE_WITH_WF00_ID` par l'ID de WF00 (visible dans l'URL quand tu ouvres WF00).
+- **N'active pas encore** (attends les credentials étape 5).
 
 ---
 
