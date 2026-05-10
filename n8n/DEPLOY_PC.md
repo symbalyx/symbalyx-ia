@@ -38,6 +38,9 @@ Astuce PC : dans la popup client ID, tu peux **télécharger le JSON** pour gard
 
 ## Étape 4 — Préparer les workflows avec tes IDs (2 min)
 
+Workflows essentiels du smoke test : WF00, WF18, WF19, WF21, WF22, WF99.
+Workflows optionnels (V8.3) : WF20 finance, WF30 WhatsApp (skeleton, désactivé par défaut).
+
 Avant d'importer dans n8n, injecte tes vraies valeurs dans les JSONs :
 
 ```bash

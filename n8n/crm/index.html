@@ -304,6 +304,7 @@
       <button data-view="prospects">Prospects</button>
       <button data-view="projects">Projets</button>
       <button data-view="decisions">Décisions</button>
+      <button data-view="money">Argent</button>
       <button data-view="memory">Mémoire</button>
       <button data-view="logs">Logs</button>
       <button data-view="team" class="hidden" id="navTeam">Équipe</button>
@@ -456,6 +457,92 @@
         <button data-lf="error">Error</button>
       </div>
       <div class="card padless"><div class="list" id="listLogs"></div></div>
+    </section>
+
+    <!-- =================== ARGENT =================== -->
+    <section data-view="money" class="hidden">
+      <h1 class="h1">Argent</h1>
+      <p class="lead">Solde, runway, factures à encaisser, dépenses à payer, et la wishlist (achats que l'IA recommande).</p>
+
+      <!-- KPIs financiers -->
+      <div class="grid grid-4" style="margin-bottom:12px">
+        <div class="card">
+          <div class="card-h"><span class="t">Solde</span></div>
+          <div class="kpi" id="kpi_balance">— €</div>
+          <small id="kpi_balanceSub">trésorerie nette</small>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="t">Revenus du mois</span></div>
+          <div class="kpi" id="kpi_revenue">— €</div>
+          <small id="kpi_revenueSub">encaissé ce mois</small>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="t">Dépenses du mois</span></div>
+          <div class="kpi" id="kpi_expense">— €</div>
+          <small id="kpi_expenseSub">payé ce mois</small>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="t">Runway</span></div>
+          <div class="kpi" id="kpi_runway">—</div>
+          <small id="kpi_runwaySub">mois de marge au rythme actuel</small>
+        </div>
+      </div>
+
+      <!-- Recommandation IA -->
+      <div class="card" id="moneyAdvice" style="margin-bottom:12px;display:none">
+        <div class="card-h"><span class="t">Recommandation IA</span></div>
+        <div id="moneyAdviceBody"></div>
+      </div>
+
+      <!-- Quick add -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Ajouter une opération</span></div>
+        <div class="grid grid-2">
+          <select id="finType">
+            <option value="income">Recette (encaissée ou facture envoyée)</option>
+            <option value="expense">Dépense (payée ou à payer)</option>
+            <option value="wishlist">Wishlist (achat envisagé)</option>
+          </select>
+          <input id="finAmount" type="number" step="0.01" placeholder="Montant € (HT)">
+          <input id="finDesc" placeholder="Description (ex: Hébergement Vercel, Devis Salon Marie)">
+          <input id="finCategory" placeholder="Catégorie (ex: hosting, materiel, formation)">
+          <input id="finDueDate" type="date" placeholder="Date d'échéance / paiement">
+          <select id="finStatus">
+            <option value="pending">En attente (à encaisser / à payer / envisagé)</option>
+            <option value="done">Réalisé (encaissé / payé / acheté)</option>
+          </select>
+        </div>
+        <div style="height:8px"></div>
+        <button class="btn primary" onclick="symbAddFinance()">Ajouter</button>
+        <span class="muted" id="finAddStatus" style="margin-left:8px"></span>
+      </div>
+
+      <!-- À encaisser + à payer -->
+      <div class="grid grid-2" style="margin-bottom:12px">
+        <div class="card padless">
+          <div style="padding:14px 14px 6px"><span class="card-h t">À encaisser</span> <span class="right pill" id="incomingCount">0</span></div>
+          <div class="list" id="listIncoming"></div>
+        </div>
+        <div class="card padless">
+          <div style="padding:14px 14px 6px"><span class="card-h t">À payer</span> <span class="right pill" id="outgoingCount">0</span></div>
+          <div class="list" id="listOutgoing"></div>
+        </div>
+      </div>
+
+      <!-- Wishlist -->
+      <div class="card padless" style="margin-bottom:12px">
+        <div style="padding:14px 14px 6px;display:flex;align-items:center;gap:8px">
+          <span class="card-h t" style="margin:0">Wishlist — Achats envisagés</span>
+          <span class="right pill" id="wishlistCount">0</span>
+        </div>
+        <div class="list" id="listWishlist"></div>
+      </div>
+
+      <!-- Historique -->
+      <div class="card padless">
+        <div style="padding:14px 14px 6px"><span class="card-h t">Dernières opérations</span></div>
+        <div class="list" id="listFinHistory"></div>
+      </div>
     </section>
 
     <!-- =================== ÉQUIPE (admin) =================== -->
@@ -642,7 +729,8 @@ const DEFAULT_CFG = {
     bcl:'business_control', kpi:'kpi_snapshots', team:'team_state',
     review:'review_queue', projects:'project_queue', logs:'logs',
     memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial',
-    invoices:'invoices', notifs:'notifications_inbox', members:'team_members'
+    invoices:'invoices', notifs:'notifications_inbox', members:'team_members',
+    finance:'finance_ledger', wishlist:'wishlist'
   }},
   supabase: { url: '', anonKey: '' },
   webhook: { baseUrl: '', secret: '' },
@@ -873,6 +961,19 @@ const MOCK = {
     {id:'notif_1',ts:new Date(Date.now()-30*60e3).toISOString(),kind:'reply_hot',severity:'high',title:'Réponse interested : Plomberie Dupont',body:'« Bonjour, votre proposition m\'intéresse, dispo jeudi 14h ? »',deeplink:'#prospects/p_0042',item_id:'p_0042',read:'false'},
     {id:'notif_2',ts:new Date(Date.now()-2*3600e3).toISOString(),kind:'bcl_critical',severity:'critical',title:'Critical à valider : Plomberie Dupont',body:'Relancer sous 48h, projet vitrine simple, fit niche.',deeplink:'#decisions/bcl_1',item_id:'bcl_1',read:'false'},
     {id:'notif_3',ts:new Date(Date.now()-26*3600e3).toISOString(),kind:'project_blocked',severity:'high',title:'Projet bloqué : Atelier Marc',body:'Bloqué depuis 14 jours, attente photos client.',deeplink:'#projects/proj_0011',item_id:'proj_0011',read:'true'}
+  ],
+  finance: [
+    {id:'fin_1', ts:new Date(Date.now()-12*86400e3).toISOString(), type:'income',  amount:1200, currency:'EUR', category:'project', description:'Acompte Salon Élégance',           status:'done',    due_date:'',                                                                  paid_at:new Date(Date.now()-12*86400e3).toISOString().slice(0,10), created_by:'Arsène'},
+    {id:'fin_2', ts:new Date(Date.now()-8*86400e3).toISOString(),  type:'expense', amount:25,   currency:'EUR', category:'hosting', description:'Vercel Pro',                          status:'done',    due_date:'',                                                                  paid_at:new Date(Date.now()-8*86400e3).toISOString().slice(0,10),  created_by:'Kentin'},
+    {id:'fin_3', ts:new Date(Date.now()-3*86400e3).toISOString(),  type:'expense', amount:20,   currency:'EUR', category:'tooling', description:'n8n Cloud Starter',                    status:'done',    due_date:'',                                                                  paid_at:new Date(Date.now()-3*86400e3).toISOString().slice(0,10),  created_by:'Kentin'},
+    {id:'fin_4', ts:new Date(Date.now()-1*86400e3).toISOString(),  type:'income',  amount:850,  currency:'EUR', category:'project', description:'Solde Salon Élégance (envoyée)',     status:'pending', due_date:new Date(Date.now()+15*86400e3).toISOString().slice(0,10),           paid_at:'',                                                                       created_by:'Arsène'},
+    {id:'fin_5', ts:new Date(Date.now()-1*86400e3).toISOString(),  type:'expense', amount:99,   currency:'EUR', category:'subscription', description:'Anthropic API (estimation mois)', status:'pending', due_date:new Date(Date.now()+10*86400e3).toISOString().slice(0,10),           paid_at:'',                                                                       created_by:'Kentin'}
+  ],
+  wishlist: [
+    {id:'wl_1', ts:new Date(Date.now()-5*86400e3).toISOString(), item:'Macbook Air M4 (Kentin)',         category:'hardware',     price_estimate:1399, priority:'medium', justification:'Kentin tourne sur un PC vieillissant, ralenti dev/QA.',           recommended_by:'IA',     decided:'pending',  decided_at:''},
+    {id:'wl_2', ts:new Date(Date.now()-3*86400e3).toISOString(), item:'Domaine .com agence',              category:'tooling',      price_estimate:15,   priority:'high',   justification:'Crédibilité commerciale, premier point de contact prospects.',  recommended_by:'IA',     decided:'pending',  decided_at:''},
+    {id:'wl_3', ts:new Date(Date.now()-2*86400e3).toISOString(), item:'Formation copywriting (1 jour)',   category:'formation',    price_estimate:450,  priority:'low',    justification:"Améliorer taux de réponse cold email. ROI estimé 3-5x.",         recommended_by:'IA',     decided:'pending',  decided_at:''},
+    {id:'wl_4', ts:new Date(Date.now()-1*86400e3).toISOString(), item:'Plan Stripe Atlas (incorporation)', category:'legal',        price_estimate:500,  priority:'medium', justification:"Si on dépasse 30k€ HT, structure plus propre + facturation US.", recommended_by:'IA',     decided:'pending',  decided_at:''}
   ]
 };
 
@@ -893,14 +994,16 @@ async function fetchSheets(){
     const j = await r.json(); const [head, ...rows] = j.values || [];
     return rows.map(row => Object.fromEntries(head.map((h,i)=>[h, row[i]])));
   }
-  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs,members] = await Promise.all([
+  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs,members,finance,wishlist] = await Promise.all([
     read(c.tabs.bcl).catch(()=>[]), read(c.tabs.kpi).catch(()=>[]), read(c.tabs.team).catch(()=>[]),
     read(c.tabs.review).catch(()=>[]), read(c.tabs.projects).catch(()=>[]), read(c.tabs.logs).catch(()=>[]),
     read(c.tabs.memDec).catch(()=>[]), read(c.tabs.memPat).catch(()=>[]), read(c.tabs.memCom).catch(()=>[]),
     read(c.tabs.invoices).catch(()=>[]), read(c.tabs.notifs).catch(()=>[]),
-    read(c.tabs.members || 'team_members').catch(()=>[])
+    read(c.tabs.members || 'team_members').catch(()=>[]),
+    read(c.tabs.finance || 'finance_ledger').catch(()=>[]),
+    read(c.tabs.wishlist || 'wishlist').catch(()=>[])
   ]);
-  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, team_members: normalizeMembers(members), digest: '' };
+  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, team_members: normalizeMembers(members), finance, wishlist, digest: '' };
 }
 async function fetchSupabase(){
   const c = STATE.cfg.supabase;
@@ -920,6 +1023,8 @@ async function fetchSupabase(){
     invoices: await get('invoices','?select=*'),
     notifs: await get('notifications_inbox','?select=*&order=ts.desc&limit=100'),
     team_members: normalizeMembers(await get('team_members','?select=*').catch(()=>[])),
+    finance: await get('finance_ledger','?select=*&order=ts.desc&limit=500').catch(()=>[]),
+    wishlist: await get('wishlist','?select=*&order=ts.desc&limit=200').catch(()=>[]),
     digest: ''
   };
 }
@@ -1259,6 +1364,293 @@ function renderLogs(d){
         <span class="badge ${l.level==='error'?'b-critical':l.level==='warn'?'b-high':'b-low'}">${esc(l.level||'')}</span>
       </div>
     </div>`).join('') || emptyRow('Aucun log.');
+}
+
+/* ---------- ARGENT (finance) ---------- */
+const FIN_CAT_LABEL = {
+  hosting:'hébergement', tooling:'outils', subscription:'abonnement',
+  hardware:'matériel', formation:'formation', legal:'juridique',
+  marketing:'marketing', tax:'taxes/charges', salary:'salaire',
+  project:'projet client', refund:'remboursement', other:'autre'
+};
+function fmtMoney(n, cur){
+  const v = Number(n) || 0;
+  return v.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' ' + (cur || '€').replace('EUR','€');
+}
+function symbComputeFinance(d){
+  const ledger = (d.finance || []).map(r => ({
+    ...r,
+    amount: Number(r.amount) || 0,
+    type: lower(r.type),
+    status: lower(r.status || 'pending')
+  }));
+  const now = new Date(); const yyyymm = now.toISOString().slice(0,7);
+  let balance = 0, monthRev = 0, monthExp = 0;
+  let pendingIn = 0, pendingOut = 0;
+  for (const r of ledger) {
+    if (r.status === 'done') {
+      const sign = r.type === 'income' ? 1 : (r.type === 'expense' ? -1 : 0);
+      balance += sign * r.amount;
+      const ref = (r.paid_at || r.ts || '').slice(0,7);
+      if (ref === yyyymm) {
+        if (r.type === 'income')  monthRev += r.amount;
+        if (r.type === 'expense') monthExp += r.amount;
+      }
+    } else if (r.status === 'pending') {
+      if (r.type === 'income')  pendingIn  += r.amount;
+      if (r.type === 'expense') pendingOut += r.amount;
+    }
+  }
+  // Rythme mensuel = moyenne des 3 derniers mois de dépenses réalisées (ou ce mois si pas d'historique).
+  const months = {};
+  for (const r of ledger) {
+    if (r.type !== 'expense' || r.status !== 'done') continue;
+    const m = (r.paid_at || r.ts || '').slice(0,7); if (!m) continue;
+    months[m] = (months[m] || 0) + r.amount;
+  }
+  const recent = Object.keys(months).sort().slice(-3);
+  const burn = recent.length ? recent.reduce((s,m)=>s+months[m],0) / recent.length : monthExp || 1;
+  const runway = burn > 0 ? balance / burn : Infinity;
+  return { balance, monthRev, monthExp, pendingIn, pendingOut, burn, runway, ledger };
+}
+function symbBuildMoneyAdvice(s, d){
+  const tips = [];
+  if (s.runway < 1) {
+    tips.push({ kind:'crit', msg:`⚠ Runway < 1 mois (${s.runway.toFixed(1)}). Encaisse les ${fmtMoney(s.pendingIn)} en attente avant tout achat.` });
+  } else if (s.runway < 3) {
+    tips.push({ kind:'warn', msg:`Runway court (${s.runway.toFixed(1)} mois). Reporte les achats wishlist non urgents.` });
+  } else if (s.runway > 12 && s.balance > 5000) {
+    tips.push({ kind:'ok', msg:`Trésorerie confortable (${s.runway.toFixed(0)} mois). Tu peux investir : formation, outil, sous-traitance ponctuelle.` });
+  }
+  if (s.pendingIn > 0) {
+    tips.push({ kind:'info', msg:`${fmtMoney(s.pendingIn)} à encaisser. Relance les factures impayées d'abord.` });
+  }
+  if (s.monthExp > s.monthRev && s.monthRev > 0) {
+    tips.push({ kind:'warn', msg:`Ce mois : dépenses (${fmtMoney(s.monthExp)}) > revenus (${fmtMoney(s.monthRev)}). Vérifie les abonnements.` });
+  }
+  // Wishlist priorisée vs trésor
+  const wl = (d.wishlist || []).filter(w => lower(w.decided||'pending') === 'pending');
+  const totalWish = wl.reduce((s,w) => s + (Number(w.price_estimate)||0), 0);
+  if (totalWish > 0) {
+    if (s.balance >= totalWish + (s.burn * 3)) {
+      tips.push({ kind:'ok', msg:`Wishlist (${fmtMoney(totalWish)}) couverte avec 3 mois de runway après. Tu peux décider sereinement.` });
+    } else if (s.balance >= totalWish) {
+      tips.push({ kind:'warn', msg:`Wishlist (${fmtMoney(totalWish)}) couverte mais runway descend sous 3 mois après. Priorise l'item "high".` });
+    }
+  }
+  return tips;
+}
+function renderMoney(d){
+  const s = symbComputeFinance(d);
+  $('kpi_balance').textContent = fmtMoney(s.balance);
+  $('kpi_revenue').textContent = fmtMoney(s.monthRev);
+  $('kpi_expense').textContent = fmtMoney(s.monthExp);
+  $('kpi_runway').textContent = isFinite(s.runway) ? s.runway.toFixed(1) + ' mois' : '∞';
+  $('kpi_balanceSub').textContent = `${(d.finance||[]).length} opération(s)`;
+  $('kpi_revenueSub').textContent = `+ ${fmtMoney(s.pendingIn)} à encaisser`;
+  $('kpi_expenseSub').textContent = `+ ${fmtMoney(s.pendingOut)} à payer`;
+  $('kpi_runwaySub').textContent = `burn ${fmtMoney(s.burn)}/mois`;
+
+  // Recommandation IA
+  const tips = symbBuildMoneyAdvice(s, d);
+  const advBox = $('moneyAdvice'); const advBody = $('moneyAdviceBody');
+  if (tips.length) {
+    advBox.style.display = '';
+    advBody.innerHTML = tips.map(t => {
+      const cls = t.kind === 'crit' ? 'b-critical' : t.kind === 'warn' ? 'b-high' : t.kind === 'ok' ? 'b-ok' : 'b-medium';
+      return `<div style="margin:6px 0"><span class="badge ${cls}">${t.kind}</span> ${esc(t.msg)}</div>`;
+    }).join('');
+  } else {
+    advBox.style.display = 'none';
+  }
+
+  // À encaisser
+  const incoming = s.ledger.filter(r => r.type === 'income' && r.status === 'pending')
+    .sort((a,b) => (a.due_date||'9') > (b.due_date||'9') ? 1 : -1);
+  $('incomingCount').textContent = incoming.length;
+  $('listIncoming').innerHTML = incoming.map(r => `
+    <div class="item">
+      <div class="ic ok">+</div>
+      <div class="body">
+        <div class="ttl truncate">${esc(r.description||'(sans description)')}</div>
+        <div class="meta">${esc(FIN_CAT_LABEL[r.category]||r.category||'')} · échéance ${esc(r.due_date||'—')}</div>
+      </div>
+      <div class="right">
+        <strong>${fmtMoney(r.amount, r.currency)}</strong>
+        <button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="symbMarkFinanceDone('${esc(r.id)}')">Encaissé</button>
+      </div>
+    </div>`).join('') || emptyRow('Rien à encaisser. Bravo.');
+
+  // À payer
+  const outgoing = s.ledger.filter(r => r.type === 'expense' && r.status === 'pending')
+    .sort((a,b) => (a.due_date||'9') > (b.due_date||'9') ? 1 : -1);
+  $('outgoingCount').textContent = outgoing.length;
+  $('listOutgoing').innerHTML = outgoing.map(r => `
+    <div class="item">
+      <div class="ic warn">−</div>
+      <div class="body">
+        <div class="ttl truncate">${esc(r.description||'(sans description)')}</div>
+        <div class="meta">${esc(FIN_CAT_LABEL[r.category]||r.category||'')} · échéance ${esc(r.due_date||'—')}</div>
+      </div>
+      <div class="right">
+        <strong>${fmtMoney(r.amount, r.currency)}</strong>
+        <button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="symbMarkFinanceDone('${esc(r.id)}')">Payé</button>
+      </div>
+    </div>`).join('') || emptyRow('Aucune dépense en attente.');
+
+  // Wishlist
+  const wl = (d.wishlist || []).slice().sort((a,b) => {
+    const order = { high:0, medium:1, low:2 };
+    return (order[lower(a.priority)]??3) - (order[lower(b.priority)]??3);
+  });
+  $('wishlistCount').textContent = wl.filter(w=>lower(w.decided||'pending')==='pending').length;
+  $('listWishlist').innerHTML = wl.map(w => {
+    const decided = lower(w.decided||'pending');
+    const cls = decided === 'approved' ? 'b-ok' : decided === 'rejected' ? 'b-critical' : 'b-pending';
+    return `<div class="item">
+      <div class="ic ${lower(w.priority)==='high'?'crit':lower(w.priority)==='medium'?'warn':''}">★</div>
+      <div class="body">
+        <div class="ttl truncate">${esc(w.item||'')}</div>
+        <div class="meta">${esc(FIN_CAT_LABEL[w.category]||w.category||'')} · ${esc(w.justification||'')}</div>
+        <div class="meta">${esc(w.recommended_by||'IA')} · ${fmtRelative(w.ts)}</div>
+      </div>
+      <div class="right">
+        <strong>${fmtMoney(w.price_estimate)}</strong>
+        <span class="badge ${cls}">${decided === 'pending' ? esc(w.priority||'?') : esc(decided)}</span>
+        ${decided === 'pending' ? `
+          <div class="actions">
+            <button class="btn success" onclick="symbDecideWish('${esc(w.id)}','approved')">Acheter</button>
+            <button class="btn danger"  onclick="symbDecideWish('${esc(w.id)}','rejected')">Plus tard</button>
+          </div>` : ''}
+      </div>
+    </div>`;
+  }).join('') || emptyRow('Wishlist vide. L\'IA proposera des achats utiles ici.');
+
+  // Historique
+  const hist = s.ledger.slice().sort((a,b)=>Date.parse(b.ts)-Date.parse(a.ts)).slice(0, 30);
+  $('listFinHistory').innerHTML = hist.map(r => `
+    <div class="item">
+      <div class="ic ${r.type==='income'?'ok':r.type==='expense'?'warn':''}">${r.type==='income'?'+':r.type==='expense'?'−':'·'}</div>
+      <div class="body">
+        <div class="ttl truncate">${esc(r.description||'')}</div>
+        <div class="meta">${esc(FIN_CAT_LABEL[r.category]||r.category||'')} · ${esc(r.created_by||'')}</div>
+        <div class="meta">${fmtRelative(r.ts)} · ${esc(r.status)}</div>
+      </div>
+      <div class="right">
+        <strong style="color:${r.type==='income'?'var(--ok)':r.type==='expense'?'var(--warn)':'var(--muted)'}">
+          ${r.type==='income'?'+':r.type==='expense'?'−':''} ${fmtMoney(r.amount, r.currency)}
+        </strong>
+      </div>
+    </div>`).join('') || emptyRow('Aucune opération.');
+}
+
+async function symbAddFinance(){
+  const type = $('finType').value;
+  const amount = Number($('finAmount').value);
+  const desc = $('finDesc').value.trim();
+  const category = $('finCategory').value.trim() || 'other';
+  const due = $('finDueDate').value;
+  const status = $('finStatus').value;
+  const me = STATE.cfg.identity;
+  if (!amount || amount <= 0) { toast('Montant invalide','err'); return; }
+  if (!desc) { toast('Description manquante','err'); return; }
+  if (!me)   { toast('Identité requise','err'); return; }
+
+  if (type === 'wishlist') {
+    const item = { id:'wl_'+Date.now(), ts:new Date().toISOString(), item:desc, category, price_estimate:amount,
+      priority:'medium', justification:desc, recommended_by:me.name, decided:'pending', decided_at:'' };
+    await symbPostFinance('wishlist', item);
+    return;
+  }
+
+  const row = {
+    id:'fin_'+Date.now(), ts:new Date().toISOString(),
+    type, amount, currency:'EUR', category, description:desc,
+    status, due_date: due || '',
+    paid_at: status === 'done' ? (new Date().toISOString().slice(0,10)) : '',
+    created_by: me.name, created_by_id: me.id || ''
+  };
+  await symbPostFinance('ledger', row);
+}
+
+async function symbPostFinance(kind, row){
+  const wh = STATE.cfg.webhook;
+  const status = $('finAddStatus');
+  status.textContent = 'Envoi…';
+  // Optimiste : ajoute dans STATE.data (mock-friendly)
+  if (STATE.data) {
+    if (kind === 'wishlist') (STATE.data.wishlist = STATE.data.wishlist || []).unshift(row);
+    else (STATE.data.finance = STATE.data.finance || []).unshift(row);
+  }
+  symbRender();
+
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const r = await fetch(`${wh.baseUrl}/symbalyx-finance`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ kind, row })
+      });
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      status.textContent = '✓ enregistré';
+      toast('Opération ajoutée');
+    } catch(e) {
+      status.textContent = '✗ ' + e.message + ' (gardé en local)';
+      toast('Webhook KO — gardé localement', 'err');
+    }
+  } else {
+    status.textContent = '(local — webhook non configuré)';
+  }
+  // Reset form
+  $('finAmount').value = ''; $('finDesc').value = ''; $('finCategory').value = ''; $('finDueDate').value = '';
+  setTimeout(()=>{ status.textContent = ''; }, 3500);
+}
+
+async function symbMarkFinanceDone(id){
+  if (!STATE.data) return;
+  const row = (STATE.data.finance||[]).find(r => r.id === id); if (!row) return;
+  row.status = 'done'; row.paid_at = new Date().toISOString().slice(0,10);
+  symbRender();
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      await fetch(`${wh.baseUrl}/symbalyx-finance`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ kind:'patch_ledger', id, patch:{ status:'done', paid_at: row.paid_at } })
+      });
+      toast(row.type === 'income' ? 'Encaissement enregistré' : 'Paiement enregistré');
+    } catch (e) { toast('Webhook KO — local seulement', 'err'); }
+  }
+}
+
+async function symbDecideWish(id, decision){
+  if (!STATE.data) return;
+  const me = STATE.cfg.identity;
+  const w = (STATE.data.wishlist||[]).find(x => x.id === id); if (!w) return;
+  w.decided = decision; w.decided_at = new Date().toISOString();
+  symbRender();
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      await fetch(`${wh.baseUrl}/symbalyx-finance`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ kind:'patch_wishlist', id, patch:{ decided: decision, decided_at: w.decided_at, decided_by: me?.name||'', decided_by_id: me?.id||'' } })
+      });
+      toast(decision === 'approved' ? 'Achat approuvé — ajoute la dépense quand payée' : 'Reporté');
+      // Si approved, push immédiatement une dépense pending pour ne pas oublier
+      if (decision === 'approved') {
+        await symbPostFinance('ledger', {
+          id:'fin_'+Date.now(), ts:new Date().toISOString(),
+          type:'expense', amount: Number(w.price_estimate)||0, currency:'EUR',
+          category: w.category||'other', description: '[wishlist] '+w.item,
+          status:'pending', due_date:'', paid_at:'',
+          created_by: me?.name||'', created_by_id: me?.id||''
+        });
+      }
+    } catch (e) { toast('Webhook KO — local seulement', 'err'); }
+  }
 }
 
 /* ---------- DETAIL drawer ---------- */
@@ -1812,6 +2204,7 @@ function symbRender(){
   if (STATE.view === 'prospects') renderProspects(d);
   if (STATE.view === 'projects')  renderProjects(d);
   if (STATE.view === 'decisions') renderDecisions(d);
+  if (STATE.view === 'money')     renderMoney(d);
   if (STATE.view === 'memory')    renderMemory(d);
   if (STATE.view === 'logs')      renderLogs(d);
   if (STATE.view === 'team')      symbRenderTeam(d);
@@ -1850,6 +2243,7 @@ function symbBuildCmdK(q){
     { ic:'◷', label:'Prospects',    meta:'g p', view:'prospects' },
     { ic:'◉', label:'Décisions',    meta:'g d', view:'decisions' },
     { ic:'⊞', label:'Projets',      meta:'g j', view:'projects' },
+    { ic:'€', label:'Argent',       meta:'g a', view:'money' },
     { ic:'✦', label:'Mémoire',      meta:'g m', view:'memory' },
     { ic:'≡', label:'Logs',         meta:'g l', view:'logs' },
     { ic:'⚙', label:'Réglages',     meta:'g s', view:'settings' }
@@ -2066,7 +2460,7 @@ document.addEventListener('keydown', e => {
   // g + lettre = navigation
   if (KEYS.gPrefix) {
     KEYS.gPrefix = false; clearTimeout(KEYS.gTimer);
-    const map = { t:'today', p:'prospects', d:'decisions', j:'projects', m:'memory', l:'logs', e:'team', s:'settings' };
+    const map = { t:'today', p:'prospects', d:'decisions', j:'projects', a:'money', m:'memory', l:'logs', e:'team', s:'settings' };
     const v = map[e.key.toLowerCase()];
     if (v) {
       if (v === 'team' && !(STATE.cfg.identity && isAdminRole(STATE.cfg.identity.role))) return;

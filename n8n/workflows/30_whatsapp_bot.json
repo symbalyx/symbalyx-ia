@@ -1,0 +1,170 @@
+{
+  "name": "Symbalyx — WF30 WhatsApp Bot (skeleton)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "symbalyx-whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "30100001-0000-0000-0000-000000000001",
+      "name": "Webhook /whatsapp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 400],
+      "webhookId": "symbalyx-whatsapp",
+      "notes": "Webhook compatible Twilio (form) ou Meta WhatsApp Cloud API (JSON). Parse les deux formats."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Normalise le payload Twilio (form) ou Meta (JSON) en { from, to, text }.\nconst b = $json.body || {};\n\n// Format Twilio : application/x-www-form-urlencoded\n//   { From: 'whatsapp:+33612...', To: 'whatsapp:+14155...', Body: 'message' }\nif (b.From && b.Body !== undefined) {\n  return [{ json: {\n    provider: 'twilio',\n    from: String(b.From || '').replace(/^whatsapp:/, ''),\n    to:   String(b.To   || '').replace(/^whatsapp:/, ''),\n    text: String(b.Body || ''),\n    msg_id: String(b.MessageSid || ''),\n    raw: b\n  } }];\n}\n\n// Format Meta WhatsApp Cloud API : JSON imbriqué\n//   { entry:[{ changes:[{ value:{ messages:[{ from, text:{body} }], metadata:{display_phone_number} }] }] }] }\ntry {\n  const v = (((b.entry || [])[0] || {}).changes || [])[0]?.value || {};\n  const msg = (v.messages || [])[0];\n  if (msg && msg.from) {\n    return [{ json: {\n      provider: 'meta',\n      from: String(msg.from || ''),\n      to:   String((v.metadata || {}).display_phone_number || ''),\n      text: String((msg.text || {}).body || msg.button?.text || ''),\n      msg_id: String(msg.id || ''),\n      raw: b\n    } }];\n  }\n} catch (e) {}\n\n// Format inconnu — log et acquitte 200 pour ne pas faire échouer le provider\nreturn [{ json: { provider: 'unknown', from: '', to: '', text: '', msg_id: '', raw: b } }];"
+      },
+      "id": "30100002-0000-0000-0000-000000000002",
+      "name": "Normalize payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 400]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "team_members", "mode": "name" },
+        "options": {}
+      },
+      "id": "30100003-0000-0000-0000-000000000003",
+      "name": "Read team_members",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [600, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auth par numéro : whitelist via team_members.whatsapp_number.\nconst inp = $('Normalize payload').first().json;\nconst from = String(inp.from || '').replace(/[^0-9+]/g, '');\nconst rows = $input.all().map(i => i.json).filter(r => r && r.id);\nconst toBool = v => v === true || String(v).toLowerCase() === 'true' || String(v) === '1';\nconst norm = s => String(s||'').replace(/[^0-9+]/g, '');\nconst me = rows.find(r => toBool(r.is_active) && norm(r.whatsapp_number) && norm(r.whatsapp_number) === from);\n\nif (!me) {\n  return [{ json: {\n    _ok: false, _status: 403, _error: 'unauthorized_number',\n    log: { from, intent: 'auth_failed', raw_message: inp.text, response: 'Numéro non autorisé.', status: 'denied' }\n  } }];\n}\n\n// Parse intent : commande commençant par /\nconst text = String(inp.text || '').trim();\nlet intent = 'help', args = {};\nif (text.startsWith('/')) {\n  const parts = text.split(/\\s+/);\n  intent = (parts[0] || '/help').slice(1).toLowerCase();\n  const rest = text.slice(parts[0].length).trim();\n  if (intent === 'decide') {\n    // /decide bcl_42 approve|reject [reason]\n    const m = rest.match(/^(\\S+)\\s+(\\S+)(?:\\s+(.*))?$/);\n    if (m) args = { id: m[1], decision: m[2].toLowerCase(), reason: m[3] || '' };\n  } else if (intent === 'comment') {\n    // /comment bcl_42 message\n    const m = rest.match(/^(\\S+)\\s+(.+)$/s);\n    if (m) args = { id: m[1], body: m[2] };\n  } else if (intent === 'expense' || intent === 'income') {\n    // /expense 25 vercel pro hosting\n    const m = rest.match(/^(\\d+(?:[.,]\\d+)?)\\s+(.+)$/);\n    if (m) args = { amount: Number(m[1].replace(',', '.')), description: m[2] };\n  } else if (intent === 'pending' || intent === 'balance' || intent === 'help' || intent === 'wishlist') {\n    args = {};\n  } else {\n    intent = 'help';\n  }\n} else {\n  intent = 'help';\n}\n\nreturn [{ json: {\n  _ok: true,\n  member: { id: me.id, name: me.name, role: me.role },\n  from, intent, args,\n  raw_message: text,\n  msg_id: inp.msg_id,\n  provider: inp.provider\n} }];"
+      },
+      "id": "30100004-0000-0000-0000-000000000004",
+      "name": "Auth & parse intent",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [800, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{ $json._ok }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }
+          ]
+        }
+      },
+      "id": "30100005-0000-0000-0000-000000000005",
+      "name": "Authorized?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1000, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Routage intent → réponse texte. Lecture seule pour l'instant\n// (les intents qui muteraient appellent les autres workflows par HTTP en V2).\nconst inp = $('Auth & parse intent').first().json;\nconst { intent, args, member } = inp;\n\nlet reply = '';\nlet status = 'replied';\n\nif (intent === 'help') {\n  reply = `Symbalyx Bot — commandes:\\n\\n` +\n          `/balance — solde et runway\\n` +\n          `/pending — décisions à valider\\n` +\n          `/wishlist — achats envisagés\\n` +\n          `/decide ID approve|reject [raison]\\n` +\n          `/comment ID message\\n` +\n          `/expense MONTANT description\\n` +\n          `/income  MONTANT description\\n\\n` +\n          `Ex: /decide bcl_42 approve fit niche`;\n} else if (intent === 'balance') {\n  // En V1 (skeleton), réponse statique.\n  // En V2, appel HTTP vers WF20 GET /symbalyx-finance pour récupérer l'état.\n  reply = `Bonjour ${member.name}.\\n\\n` +\n          `Pour activer cette commande, branche WF30 → WF20 (HTTP Request node \"GET /symbalyx-finance\") et reformate la réponse ici.`;\n  status = 'stub';\n} else if (intent === 'pending') {\n  reply = `Pour activer cette commande, lis business_control où decision_status=pending et liste les 5 plus prioritaires.`;\n  status = 'stub';\n} else if (intent === 'wishlist') {\n  reply = `Pour activer cette commande, lis wishlist où decided=pending et formate par priorité.`;\n  status = 'stub';\n} else if (intent === 'decide') {\n  if (!args.id || !args.decision || !['approve','approved','reject','rejected','escalate'].includes(args.decision)) {\n    reply = `Format: /decide ID approve|reject [raison]`; status = 'invalid';\n  } else {\n    reply = `Pour activer cette commande, fais un HTTP POST vers /webhook/symbalyx-decision avec { bcl_id:\"${args.id}\", decision:\"${args.decision === 'approve' ? 'approved' : args.decision === 'reject' ? 'rejected' : args.decision}\", decided_by:\"${member.name}\", decider_id:\"${member.id}\", reason:\"${(args.reason||'').replace(/\"/g,'\\\\\"')}\" }`;\n    status = 'stub';\n  }\n} else if (intent === 'comment') {\n  if (!args.id || !args.body) { reply = `Format: /comment ID message`; status = 'invalid'; }\n  else {\n    reply = `Pour activer, POST /webhook/symbalyx-comments avec { item_type, item_id:\"${args.id}\", author:\"${member.name}\", author_id:\"${member.id}\", body:\"${args.body.replace(/\"/g,'\\\\\"')}\" }`;\n    status = 'stub';\n  }\n} else if (intent === 'expense' || intent === 'income') {\n  if (!args.amount || !args.description) { reply = `Format: /${intent} MONTANT description`; status = 'invalid'; }\n  else {\n    reply = `Pour activer, POST /webhook/symbalyx-finance avec { kind:\"ledger\", row:{ type:\"${intent}\", amount:${args.amount}, description:\"${args.description.replace(/\"/g,'\\\\\"')}\", status:\"done\", created_by:\"${member.name}\", created_by_id:\"${member.id}\" } }`;\n    status = 'stub';\n  }\n}\n\nreturn [{ json: {\n  ...inp,\n  reply,\n  status,\n  log: {\n    id: 'wa_' + Date.now(),\n    ts: new Date().toISOString(),\n    direction: 'inbound',\n    from_number: inp.from,\n    to_number: '',\n    member_id: member.id,\n    intent,\n    raw_message: inp.raw_message,\n    parsed_args: JSON.stringify(args),\n    response: reply,\n    status,\n    error: '',\n    trace_id: inp.msg_id || ''\n  }\n} }];"
+      },
+      "id": "30100006-0000-0000-0000-000000000006",
+      "name": "Route intent → reply",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 350]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "whatsapp_log", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": "={{ $json.log }}",
+          "matchingColumns": ["id"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "30100007-0000-0000-0000-000000000007",
+      "name": "Log inbound",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1400, 350]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.reply || 'OK' }}",
+        "options": { "responseCode": 200, "responseHeaders": { "entries": [ { "name": "content-type", "value": "text/plain; charset=utf-8" } ] } }
+      },
+      "id": "30100008-0000-0000-0000-000000000008",
+      "name": "Reply (skeleton echo)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1600, 350]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "whatsapp_log", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": "={{ $json.log }}",
+          "matchingColumns": ["id"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "30100009-0000-0000-0000-000000000009",
+      "name": "Log unauthorized",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1200, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Construit le log row pour les unauthorized.\nconst inp = $('Auth & parse intent').first().json;\nreturn [{ json: { log: {\n  id: 'wa_' + Date.now(),\n  ts: new Date().toISOString(),\n  direction: 'inbound',\n  from_number: inp.log?.from || inp.from || '',\n  to_number: '',\n  member_id: '',\n  intent: 'auth_failed',\n  raw_message: inp.log?.raw_message || inp.raw_message || '',\n  parsed_args: '',\n  response: 'Numéro non autorisé.',\n  status: 'denied',\n  error: '',\n  trace_id: ''\n} } }];"
+      },
+      "id": "30100010-0000-0000-0000-000000000010",
+      "name": "Build unauth log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 580]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: 'unauthorized' } }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "30100011-0000-0000-0000-000000000011",
+      "name": "Reply unauthorized (200)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1400, 500]
+    }
+  ],
+  "connections": {
+    "Webhook /whatsapp":   { "main": [[{ "node": "Normalize payload", "type": "main", "index": 0 }]] },
+    "Normalize payload":   { "main": [[{ "node": "Read team_members", "type": "main", "index": 0 }]] },
+    "Read team_members":   { "main": [[{ "node": "Auth & parse intent", "type": "main", "index": 0 }]] },
+    "Auth & parse intent": { "main": [[{ "node": "Authorized?", "type": "main", "index": 0 }]] },
+    "Authorized?": { "main": [
+      [{ "node": "Route intent → reply", "type": "main", "index": 0 }],
+      [{ "node": "Build unauth log", "type": "main", "index": 0 }]
+    ] },
+    "Route intent → reply": { "main": [[{ "node": "Log inbound", "type": "main", "index": 0 }]] },
+    "Log inbound":          { "main": [[{ "node": "Reply (skeleton echo)", "type": "main", "index": 0 }]] },
+    "Build unauth log":     { "main": [[{ "node": "Log unauthorized", "type": "main", "index": 0 }]] },
+    "Log unauthorized":     { "main": [[{ "node": "Reply unauthorized (200)", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

@@ -20,10 +20,10 @@
 
 const TABS = {
   team_members: {
-    headers: ['id','name','email','role','initials','color','is_active','created_at'],
+    headers: ['id','name','email','role','initials','color','is_active','created_at','whatsapp_number'],
     seed: [
-      ['tm_arsene','Arsène','arsene@symbalyx.com','founder','AR','#3a86ff','TRUE', today()],
-      ['tm_kentin','Kentin','kentin@symbalyx.com','admin',  'KE','#ff8c42','TRUE', today()],
+      ['tm_arsene','Arsène','arsene@symbalyx.com','founder','AR','#3a86ff','TRUE', today(), ''],
+      ['tm_kentin','Kentin','kentin@symbalyx.com','admin',  'KE','#ff8c42','TRUE', today(), ''],
     ]
   },
   business_control: {
@@ -106,6 +106,32 @@ const TABS = {
     headers: [
       'id','niche','total_contacted','total_interested','total_converted',
       'avg_response_rate','best_angle','notes','updated_at'
+    ],
+    seed: []
+  },
+  // Finance (V8.3)
+  finance_ledger: {
+    headers: [
+      'id','ts','type','amount','currency','category','description',
+      'status','due_date','paid_at','created_by','created_by_id',
+      'decided_at','vendor','invoice_ref','notes'
+    ],
+    seed: []
+  },
+  wishlist: {
+    headers: [
+      'id','ts','item','category','price_estimate','priority',
+      'justification','recommended_by','recommended_by_id',
+      'decided','decided_at','decided_by','decided_by_id',
+      'linked_ledger_id','notes'
+    ],
+    seed: []
+  },
+  // WhatsApp bot (V8.3, optionnel)
+  whatsapp_log: {
+    headers: [
+      'id','ts','direction','from_number','to_number','member_id',
+      'intent','raw_message','parsed_args','response','status','error','trace_id'
     ],
     seed: []
   },

@@ -38,13 +38,15 @@ if (!SHEET_ID || !WF00_ID) {
 const WORKFLOWS_DIR = path.join(__dirname, '..', 'workflows');
 const BACKUP_DIR    = path.join(WORKFLOWS_DIR, '.backup');
 
-// Seuls les workflows essentiels du smoke test V8
+// Workflows essentiels du smoke test V8 + extensions V8.3 (finance, whatsapp)
 const TARGET_FILES = [
   '00_kill_switch.json',
   '18_decision_executor.json',
   '19_team_sync.json',
+  '20_finance_manager.json',
   '21_team_members.json',
   '22_outcome_reconciliation.json',
+  '30_whatsapp_bot.json',
   '99_error_handler.json',
 ];
 
