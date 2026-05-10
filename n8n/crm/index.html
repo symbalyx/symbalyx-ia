@@ -253,6 +253,33 @@
   main > section{animation:viewIn .18s ease}
   @keyframes viewIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
+  /* --- Argent / Finance --- */
+  .money-spark{height:38px;width:100%;margin-top:6px;display:block}
+  .money-spark .area{fill:rgba(94,234,212,.14)}
+  .money-spark .line{fill:none;stroke:var(--acc);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+  .money-spark .axis{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:2,3}
+  .money-spark .pt{fill:var(--acc)}
+  .kpi.crit{color:#fca5a5}
+  .kpi.warn{color:#fcd34d}
+  .kpi.ok{color:#86efac}
+  .b-overdue{background:rgba(239,68,68,.18);color:#fca5a5;border-color:rgba(239,68,68,.45);font-weight:600}
+  .b-recurring{background:rgba(167,139,250,.14);color:#c4b5fd;border-color:rgba(167,139,250,.4)}
+  .b-afford{background:rgba(34,197,94,.14);color:#86efac;border-color:rgba(34,197,94,.4)}
+  .b-wait{background:rgba(245,158,11,.12);color:#fcd34d;border-color:rgba(245,158,11,.3)}
+  .filter-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .filter-bar select,.filter-bar input{min-height:36px;padding:6px 10px;font-size:13px;width:auto;flex:0 0 auto}
+  .cat-suggest{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .cat-suggest button{font-size:11px;padding:3px 8px;min-height:0;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:999px;cursor:pointer}
+  .cat-suggest button:hover{color:var(--txt);border-color:var(--acc)}
+  .row-actions{display:flex;gap:4px;margin-top:4px}
+  .row-actions button{font-size:11px;padding:3px 7px;min-height:0;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:6px;cursor:pointer}
+  .row-actions button:hover{color:var(--txt);border-color:var(--line2)}
+  .row-actions button.danger{color:var(--crit);border-color:rgba(239,68,68,.3)}
+  details.advice-extra{margin-top:6px;font-size:13px}
+  details.advice-extra summary{cursor:pointer;color:var(--muted);font-size:12px;list-style:none}
+  details.advice-extra summary::before{content:"▸ ";display:inline-block;transition:transform .15s}
+  details.advice-extra[open] summary::before{transform:rotate(90deg)}
+
   /* Misc */
   .muted{color:var(--muted);font-size:12.5px}
   .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -461,40 +488,67 @@
 
     <!-- =================== ARGENT =================== -->
     <section data-view="money" class="hidden">
-      <h1 class="h1">Argent</h1>
-      <p class="lead">Solde, runway, factures à encaisser, dépenses à payer, et la wishlist (achats que l'IA recommande).</p>
+      <div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:8px">
+        <div>
+          <h1 class="h1" style="margin-bottom:0">Argent</h1>
+          <p class="lead" style="margin:0">Solde, runway, encaissements, achats. L'IA suggère catégorie, alerte overdue, projette 30j.</p>
+        </div>
+        <div class="row" style="gap:6px">
+          <button class="btn ghost" onclick="symbExportFinanceCSV()" title="Exporter pour comptable">↓ CSV</button>
+        </div>
+      </div>
 
-      <!-- KPIs financiers -->
+      <!-- Filtres -->
+      <div class="filter-bar">
+        <select id="finFilterMonth" onchange="symbRender()">
+          <option value="all">Tous mois</option>
+        </select>
+        <select id="finFilterCat" onchange="symbRender()">
+          <option value="all">Toutes catégories</option>
+        </select>
+        <select id="finFilterStatus" onchange="symbRender()">
+          <option value="all">Tous statuts</option>
+          <option value="pending">En attente</option>
+          <option value="done">Réalisé</option>
+        </select>
+        <input id="finFilterQ" placeholder="Recherche…" oninput="symbRender()" style="width:180px">
+      </div>
+
+      <!-- KPIs -->
       <div class="grid grid-4" style="margin-bottom:12px">
         <div class="card">
           <div class="card-h"><span class="t">Solde</span></div>
           <div class="kpi" id="kpi_balance">— €</div>
           <small id="kpi_balanceSub">trésorerie nette</small>
+          <svg class="money-spark" id="sparkBalance" viewBox="0 0 200 38" preserveAspectRatio="none"></svg>
         </div>
         <div class="card">
           <div class="card-h"><span class="t">Revenus du mois</span></div>
-          <div class="kpi" id="kpi_revenue">— €</div>
+          <div class="kpi ok" id="kpi_revenue">— €</div>
           <small id="kpi_revenueSub">encaissé ce mois</small>
+          <svg class="money-spark" id="sparkRev" viewBox="0 0 200 38" preserveAspectRatio="none"></svg>
         </div>
         <div class="card">
           <div class="card-h"><span class="t">Dépenses du mois</span></div>
-          <div class="kpi" id="kpi_expense">— €</div>
+          <div class="kpi warn" id="kpi_expense">— €</div>
           <small id="kpi_expenseSub">payé ce mois</small>
+          <svg class="money-spark" id="sparkExp" viewBox="0 0 200 38" preserveAspectRatio="none"></svg>
         </div>
         <div class="card">
           <div class="card-h"><span class="t">Runway</span></div>
           <div class="kpi" id="kpi_runway">—</div>
           <small id="kpi_runwaySub">mois de marge au rythme actuel</small>
+          <small id="kpi_forecast" style="display:block;margin-top:6px;color:var(--muted)">—</small>
         </div>
       </div>
 
-      <!-- Recommandation IA -->
+      <!-- Reco IA -->
       <div class="card" id="moneyAdvice" style="margin-bottom:12px;display:none">
         <div class="card-h"><span class="t">Recommandation IA</span></div>
         <div id="moneyAdviceBody"></div>
       </div>
 
-      <!-- Quick add -->
+      <!-- Add -->
       <div class="card" style="margin-bottom:12px">
         <div class="card-h"><span class="t">Ajouter une opération</span></div>
         <div class="grid grid-2">
@@ -504,14 +558,15 @@
             <option value="wishlist">Wishlist (achat envisagé)</option>
           </select>
           <input id="finAmount" type="number" step="0.01" placeholder="Montant € (HT)">
-          <input id="finDesc" placeholder="Description (ex: Hébergement Vercel, Devis Salon Marie)">
-          <input id="finCategory" placeholder="Catégorie (ex: hosting, materiel, formation)">
-          <input id="finDueDate" type="date" placeholder="Date d'échéance / paiement">
+          <input id="finDesc" placeholder="Description (ex: Hébergement Vercel, Devis Salon Marie)" oninput="symbSuggestCat()">
+          <input id="finCategory" placeholder="Catégorie (auto-suggérée)" oninput="this.dataset.touched='1';symbSuggestCat()">
+          <input id="finDueDate" type="date">
           <select id="finStatus">
-            <option value="pending">En attente (à encaisser / à payer / envisagé)</option>
-            <option value="done">Réalisé (encaissé / payé / acheté)</option>
+            <option value="pending">En attente</option>
+            <option value="done">Réalisé</option>
           </select>
         </div>
+        <div class="cat-suggest" id="catSuggest"></div>
         <div style="height:8px"></div>
         <button class="btn primary" onclick="symbAddFinance()">Ajouter</button>
         <span class="muted" id="finAddStatus" style="margin-left:8px"></span>
@@ -540,7 +595,10 @@
 
       <!-- Historique -->
       <div class="card padless">
-        <div style="padding:14px 14px 6px"><span class="card-h t">Dernières opérations</span></div>
+        <div style="padding:14px 14px 6px;display:flex;align-items:center;gap:8px">
+          <span class="card-h t" style="margin:0">Historique des opérations</span>
+          <span class="right pill" id="histCount">0</span>
+        </div>
         <div class="list" id="listFinHistory"></div>
       </div>
     </section>
@@ -1371,11 +1429,71 @@ const FIN_CAT_LABEL = {
   hosting:'hébergement', tooling:'outils', subscription:'abonnement',
   hardware:'matériel', formation:'formation', legal:'juridique',
   marketing:'marketing', tax:'taxes/charges', salary:'salaire',
-  project:'projet client', refund:'remboursement', other:'autre'
+  project:'projet client', refund:'remboursement', software:'logiciel',
+  travel:'déplacement', other:'autre'
 };
+// Heuristique de catégorisation. Patterns vendeur/keyword → catégorie.
+const FIN_CAT_RULES = [
+  { cat:'hosting',     re:/\b(vercel|netlify|render|railway|aws|ovh|hetzner|cloudflare|digitalocean|hébergement)\b/i },
+  { cat:'subscription',re:/\b(notion|linear|figma|slack|github|gitlab|n8n|stripe|monthly|abonnement)\b/i },
+  { cat:'software',    re:/\b(licence|license|api|openai|anthropic|claude|chatgpt|adobe|jetbrains|vscode)\b/i },
+  { cat:'hardware',    re:/\b(macbook|imac|écran|écouteur|clavier|souris|ssd|disque|laptop|pc|matériel|téléphone|imprimante)\b/i },
+  { cat:'tooling',     re:/\b(domaine|domain|\.com|\.fr|gsuite|workspace|outil)\b/i },
+  { cat:'formation',   re:/\b(formation|cours|udemy|coursera|livre|book|conférence|conference)\b/i },
+  { cat:'legal',       re:/\b(avocat|notaire|kbis|inpi|stripe atlas|incorporation|comptable|expert.?comptable)\b/i },
+  { cat:'marketing',   re:/\b(facebook|instagram|google ads|meta ads|seo|sea|publicité|ad spend)\b/i },
+  { cat:'tax',         re:/\b(urssaf|tva|impôt|impot|taxe|cotisation|prélèvement social)\b/i },
+  { cat:'project',     re:/\b(acompte|solde|facture|devis|projet|client|prestation)\b/i },
+  { cat:'travel',      re:/\b(sncf|train|uber|taxi|hôtel|hotel|airbnb|essence|péage|parking)\b/i }
+];
+function detectCategory(desc){
+  const s = String(desc||'');
+  for (const r of FIN_CAT_RULES) if (r.re.test(s)) return r.cat;
+  return '';
+}
+function symbSuggestCat(){
+  const desc = $('finDesc').value;
+  const guess = detectCategory(desc);
+  const catInput = $('finCategory');
+  // Auto-fill seulement si l'utilisateur n'a rien tapé manuellement.
+  if (!catInput.dataset.touched && guess) catInput.value = guess;
+  // Suggestions cliquables
+  const top = ['hosting','subscription','software','hardware','project','marketing','tax','formation'];
+  $('catSuggest').innerHTML = top.map(c => {
+    const sel = catInput.value === c ? 'style="border-color:var(--acc);color:var(--acc)"' : '';
+    return `<button onclick="symbPickCat('${c}')" ${sel}>${esc(FIN_CAT_LABEL[c]||c)}</button>`;
+  }).join('');
+}
+function symbPickCat(c){ const i = $('finCategory'); i.value = c; i.dataset.touched = '1'; symbSuggestCat(); }
+
 function fmtMoney(n, cur){
   const v = Number(n) || 0;
   return v.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' ' + (cur || '€').replace('EUR','€');
+}
+function symbDaysBetween(d1, d2){ return Math.floor((Date.parse(d2) - Date.parse(d1)) / 86400000); }
+function symbIsOverdue(r){
+  return lower(r.status) === 'pending' && r.due_date && Date.parse(r.due_date) < Date.now();
+}
+// Détection récurrente : >= 2 occurrences même catégorie+description normalisée sur 90j.
+function symbDetectRecurring(ledger){
+  const norm = s => String(s||'').toLowerCase().replace(/[0-9]+|[^\p{L}\s]/gu,'').trim().split(/\s+/).slice(0,3).join(' ');
+  const groups = {};
+  const cutoff = Date.now() - 90*86400e3;
+  for (const r of ledger) {
+    if (lower(r.type) !== 'expense') continue;
+    if (Date.parse(r.ts || r.paid_at || '') < cutoff) continue;
+    const k = (r.category||'') + '|' + norm(r.description);
+    (groups[k] = groups[k] || []).push(r);
+  }
+  const recurring = new Set();
+  for (const k in groups) if (groups[k].length >= 2) groups[k].forEach(r => recurring.add(r.id));
+  return recurring;
+}
+// Permission : un membre ne peut éditer/supprimer que ses propres opérations, sauf admin.
+function symbCanEditFin(row){
+  const me = STATE.cfg.identity; if (!me) return false;
+  if (isAdminRole(me.role)) return true;
+  return row.created_by_id ? row.created_by_id === me.id : (row.created_by === me.name);
 }
 function symbComputeFinance(d){
   const ledger = (d.finance || []).map(r => ({
@@ -1415,20 +1533,54 @@ function symbComputeFinance(d){
 }
 function symbBuildMoneyAdvice(s, d){
   const tips = [];
-  if (s.runway < 1) {
-    tips.push({ kind:'crit', msg:`⚠ Runway < 1 mois (${s.runway.toFixed(1)}). Encaisse les ${fmtMoney(s.pendingIn)} en attente avant tout achat.` });
-  } else if (s.runway < 3) {
+  if (isFinite(s.runway) && s.runway < 1) {
+    tips.push({ kind:'crit', msg:`Runway < 1 mois (${s.runway.toFixed(1)}). Encaisse les ${fmtMoney(s.pendingIn)} en attente avant tout achat.` });
+  } else if (isFinite(s.runway) && s.runway < 3) {
     tips.push({ kind:'warn', msg:`Runway court (${s.runway.toFixed(1)} mois). Reporte les achats wishlist non urgents.` });
-  } else if (s.runway > 12 && s.balance > 5000) {
+  } else if (isFinite(s.runway) && s.runway > 12 && s.balance > 5000) {
     tips.push({ kind:'ok', msg:`Trésorerie confortable (${s.runway.toFixed(0)} mois). Tu peux investir : formation, outil, sous-traitance ponctuelle.` });
   }
-  if (s.pendingIn > 0) {
-    tips.push({ kind:'info', msg:`${fmtMoney(s.pendingIn)} à encaisser. Relance les factures impayées d'abord.` });
+  // Overdue
+  const overdue = s.ledger.filter(symbIsOverdue);
+  if (overdue.length) {
+    const tot = overdue.reduce((sum,r) => sum + (r.type === 'income' ? 1 : -1) * r.amount, 0);
+    const incs = overdue.filter(r => r.type === 'income');
+    const exps = overdue.filter(r => r.type === 'expense');
+    if (incs.length) tips.push({ kind:'crit', msg:`${incs.length} facture(s) client en retard (${fmtMoney(incs.reduce((s,r)=>s+r.amount,0))}). Relance prioritaire.` });
+    if (exps.length) tips.push({ kind:'warn', msg:`${exps.length} dépense(s) à payer en retard (${fmtMoney(exps.reduce((s,r)=>s+r.amount,0))}). Risque de pénalités.` });
   }
+  // Forecast 30j (linéaire à partir du burn + pending échéant à 30j)
+  const horizon30 = (() => {
+    const today = Date.now();
+    const due30 = today + 30*86400e3;
+    let net = s.balance;
+    for (const r of s.ledger) {
+      if (r.status !== 'pending') continue;
+      const d = Date.parse(r.due_date || ''); if (!isFinite(d) || d > due30) continue;
+      net += (r.type === 'income' ? 1 : -1) * r.amount;
+    }
+    // Plus le burn linéaire pour ce qui n'a pas de due
+    net -= s.burn;
+    return net;
+  })();
+  if (isFinite(horizon30)) {
+    const delta = horizon30 - s.balance;
+    const sign = delta >= 0 ? '+' : '';
+    const kind = horizon30 < s.burn ? 'warn' : 'info';
+    tips.push({ kind, msg:`Projection 30j : ${fmtMoney(horizon30)} (${sign}${fmtMoney(delta)} vs aujourd'hui).` });
+  }
+  // Récurrentes détectées
+  if (s.recurring && s.recurring.size > 0) {
+    const monthRecur = s.ledger.filter(r => s.recurring.has(r.id) && r.status === 'done').reduce((sum,r) => sum + r.amount, 0) / Math.max(1, Object.keys(s.monthly).length);
+    if (monthRecur > 0) {
+      tips.push({ kind:'info', msg:`Dépenses récurrentes détectées : ~${fmtMoney(monthRecur)}/mois fixes. Audite-les si runway baisse.` });
+    }
+  }
+  if (s.pendingIn > 0) tips.push({ kind:'info', msg:`${fmtMoney(s.pendingIn)} à encaisser. Relance les factures impayées d'abord.` });
   if (s.monthExp > s.monthRev && s.monthRev > 0) {
     tips.push({ kind:'warn', msg:`Ce mois : dépenses (${fmtMoney(s.monthExp)}) > revenus (${fmtMoney(s.monthRev)}). Vérifie les abonnements.` });
   }
-  // Wishlist priorisée vs trésor
+  // Wishlist affordability
   const wl = (d.wishlist || []).filter(w => lower(w.decided||'pending') === 'pending');
   const totalWish = wl.reduce((s,w) => s + (Number(w.price_estimate)||0), 0);
   if (totalWish > 0) {
@@ -1436,69 +1588,132 @@ function symbBuildMoneyAdvice(s, d){
       tips.push({ kind:'ok', msg:`Wishlist (${fmtMoney(totalWish)}) couverte avec 3 mois de runway après. Tu peux décider sereinement.` });
     } else if (s.balance >= totalWish) {
       tips.push({ kind:'warn', msg:`Wishlist (${fmtMoney(totalWish)}) couverte mais runway descend sous 3 mois après. Priorise l'item "high".` });
+    } else {
+      tips.push({ kind:'warn', msg:`Wishlist (${fmtMoney(totalWish)}) > solde (${fmtMoney(s.balance)}). Encaisse d'abord ou priorise.` });
     }
   }
-  return tips;
+  return { tips, horizon30 };
 }
+
+// Mini-sparkline SVG (200x38). Series = [{label, value}]. Couleur = stroke.
+function symbDrawSpark(svgId, series, stroke){
+  const el = $(svgId); if (!el) return;
+  if (!series.length) { el.innerHTML = ''; return; }
+  const W = 200, H = 38, pad = 3;
+  const xs = series.map((_,i) => i);
+  const ys = series.map(s => s.value);
+  const minY = Math.min(0, ...ys), maxY = Math.max(0, ...ys);
+  const sx = i => pad + (i / Math.max(1, xs.length-1)) * (W - 2*pad);
+  const sy = v => H - pad - ((v - minY) / Math.max(1, maxY - minY)) * (H - 2*pad);
+  const pts = series.map((s,i) => `${sx(i).toFixed(1)},${sy(s.value).toFixed(1)}`).join(' ');
+  const area = `M${sx(0).toFixed(1)},${sy(minY).toFixed(1)} L${pts.split(' ').join(' L')} L${sx(xs.length-1).toFixed(1)},${sy(minY).toFixed(1)} Z`;
+  const zeroY = sy(0).toFixed(1);
+  el.innerHTML = `
+    <line class="axis" x1="0" y1="${zeroY}" x2="${W}" y2="${zeroY}"/>
+    <path class="area" d="${area}" style="fill:${stroke ? stroke + '22' : 'rgba(94,234,212,.14)'}"/>
+    <polyline class="line" points="${pts}" style="stroke:${stroke || 'var(--acc)'}"/>
+    ${series.map((s,i) => `<circle class="pt" cx="${sx(i).toFixed(1)}" cy="${sy(s.value).toFixed(1)}" r="1.5" style="fill:${stroke || 'var(--acc)'}"><title>${esc(s.label)} : ${fmtMoney(s.value)}</title></circle>`).join('')}
+  `;
+}
+function symbBuildMonthSeries(ledger, n){
+  const out = [];
+  const now = new Date();
+  for (let i = n-1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const m = d.toISOString().slice(0,7);
+    let rev = 0, exp = 0, bal = 0;
+    for (const r of ledger) {
+      const ref = String(r.paid_at || r.ts || '').slice(0,7);
+      if (ref > m) continue; // futur — exclu
+      if (ref === m && lower(r.status) === 'done') {
+        if (lower(r.type) === 'income')  rev += r.amount;
+        if (lower(r.type) === 'expense') exp += r.amount;
+      }
+      // Solde cumulé jusqu'à fin de m
+      if (ref <= m && lower(r.status) === 'done') {
+        if (lower(r.type) === 'income')  bal += r.amount;
+        if (lower(r.type) === 'expense') bal -= r.amount;
+      }
+    }
+    out.push({ month: m, label: d.toLocaleDateString('fr-FR', { month:'short' }), rev, exp, bal });
+  }
+  return out;
+}
+
+function symbApplyFinFilters(rows){
+  const m = $('finFilterMonth')?.value || 'all';
+  const c = $('finFilterCat')?.value || 'all';
+  const s = $('finFilterStatus')?.value || 'all';
+  const q = lower(($('finFilterQ')?.value || '').trim());
+  return rows.filter(r => {
+    if (m !== 'all') {
+      const ref = String(r.paid_at || r.ts || '').slice(0,7);
+      if (ref !== m) return false;
+    }
+    if (c !== 'all' && lower(r.category) !== c) return false;
+    if (s !== 'all' && lower(r.status) !== s) return false;
+    if (q && !lower(`${r.description} ${r.category} ${r.created_by} ${r.vendor||''}`).includes(q)) return false;
+    return true;
+  });
+}
+
 function renderMoney(d){
   const s = symbComputeFinance(d);
+  s.recurring = symbDetectRecurring(s.ledger);
+  s.monthly = (function(){ const m={}; for (const r of s.ledger) if (lower(r.type)==='expense' && lower(r.status)==='done') { const k=String(r.paid_at||r.ts||'').slice(0,7); if (k) m[k]=(m[k]||0)+r.amount; } return m; })();
+
+  // KPIs (avec couleur dynamique sur runway)
   $('kpi_balance').textContent = fmtMoney(s.balance);
   $('kpi_revenue').textContent = fmtMoney(s.monthRev);
   $('kpi_expense').textContent = fmtMoney(s.monthExp);
-  $('kpi_runway').textContent = isFinite(s.runway) ? s.runway.toFixed(1) + ' mois' : '∞';
-  $('kpi_balanceSub').textContent = `${(d.finance||[]).length} opération(s)`;
+  const runwayEl = $('kpi_runway');
+  if (isFinite(s.runway)) {
+    runwayEl.textContent = s.runway.toFixed(1) + ' mois';
+    runwayEl.className = 'kpi ' + (s.runway < 1 ? 'crit' : s.runway < 3 ? 'warn' : 'ok');
+  } else {
+    runwayEl.textContent = s.balance > 0 ? '∞' : '—'; runwayEl.className = 'kpi';
+  }
+  $('kpi_balanceSub').textContent = `${(d.finance||[]).length} opération(s) au total`;
   $('kpi_revenueSub').textContent = `+ ${fmtMoney(s.pendingIn)} à encaisser`;
   $('kpi_expenseSub').textContent = `+ ${fmtMoney(s.pendingOut)} à payer`;
   $('kpi_runwaySub').textContent = `burn ${fmtMoney(s.burn)}/mois`;
 
-  // Recommandation IA
-  const tips = symbBuildMoneyAdvice(s, d);
+  // Sparkline 6 derniers mois
+  const series = symbBuildMonthSeries(s.ledger, 6);
+  symbDrawSpark('sparkBalance', series.map(x => ({ label:x.label, value:x.bal })), 'var(--acc)');
+  symbDrawSpark('sparkRev',     series.map(x => ({ label:x.label, value:x.rev })), '#22c55e');
+  symbDrawSpark('sparkExp',     series.map(x => ({ label:x.label, value:x.exp })), '#f59e0b');
+
+  // Reco IA + forecast
+  const adv = symbBuildMoneyAdvice(s, d);
+  $('kpi_forecast').textContent = `→ projection 30j : ${fmtMoney(adv.horizon30)}`;
   const advBox = $('moneyAdvice'); const advBody = $('moneyAdviceBody');
-  if (tips.length) {
+  if (adv.tips.length) {
     advBox.style.display = '';
-    advBody.innerHTML = tips.map(t => {
+    advBody.innerHTML = adv.tips.map(t => {
       const cls = t.kind === 'crit' ? 'b-critical' : t.kind === 'warn' ? 'b-high' : t.kind === 'ok' ? 'b-ok' : 'b-medium';
       return `<div style="margin:6px 0"><span class="badge ${cls}">${t.kind}</span> ${esc(t.msg)}</div>`;
     }).join('');
-  } else {
-    advBox.style.display = 'none';
-  }
+  } else { advBox.style.display = 'none'; }
+
+  // Filtres : peuple les options dynamiquement
+  symbPopulateFinFilters(s.ledger);
+
+  const filtered = symbApplyFinFilters(s.ledger);
 
   // À encaisser
   const incoming = s.ledger.filter(r => r.type === 'income' && r.status === 'pending')
     .sort((a,b) => (a.due_date||'9') > (b.due_date||'9') ? 1 : -1);
   $('incomingCount').textContent = incoming.length;
-  $('listIncoming').innerHTML = incoming.map(r => `
-    <div class="item">
-      <div class="ic ok">+</div>
-      <div class="body">
-        <div class="ttl truncate">${esc(r.description||'(sans description)')}</div>
-        <div class="meta">${esc(FIN_CAT_LABEL[r.category]||r.category||'')} · échéance ${esc(r.due_date||'—')}</div>
-      </div>
-      <div class="right">
-        <strong>${fmtMoney(r.amount, r.currency)}</strong>
-        <button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="symbMarkFinanceDone('${esc(r.id)}')">Encaissé</button>
-      </div>
-    </div>`).join('') || emptyRow('Rien à encaisser. Bravo.');
+  $('listIncoming').innerHTML = incoming.map(r => symbRenderFinRow(r, s, { showActions:true })).join('') || emptyRow('Rien à encaisser. Bravo.');
 
   // À payer
   const outgoing = s.ledger.filter(r => r.type === 'expense' && r.status === 'pending')
     .sort((a,b) => (a.due_date||'9') > (b.due_date||'9') ? 1 : -1);
   $('outgoingCount').textContent = outgoing.length;
-  $('listOutgoing').innerHTML = outgoing.map(r => `
-    <div class="item">
-      <div class="ic warn">−</div>
-      <div class="body">
-        <div class="ttl truncate">${esc(r.description||'(sans description)')}</div>
-        <div class="meta">${esc(FIN_CAT_LABEL[r.category]||r.category||'')} · échéance ${esc(r.due_date||'—')}</div>
-      </div>
-      <div class="right">
-        <strong>${fmtMoney(r.amount, r.currency)}</strong>
-        <button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="symbMarkFinanceDone('${esc(r.id)}')">Payé</button>
-      </div>
-    </div>`).join('') || emptyRow('Aucune dépense en attente.');
+  $('listOutgoing').innerHTML = outgoing.map(r => symbRenderFinRow(r, s, { showActions:true })).join('') || emptyRow('Aucune dépense en attente.');
 
-  // Wishlist
+  // Wishlist avec affordability live
   const wl = (d.wishlist || []).slice().sort((a,b) => {
     const order = { high:0, medium:1, low:2 };
     return (order[lower(a.priority)]??3) - (order[lower(b.priority)]??3);
@@ -1506,7 +1721,16 @@ function renderMoney(d){
   $('wishlistCount').textContent = wl.filter(w=>lower(w.decided||'pending')==='pending').length;
   $('listWishlist').innerHTML = wl.map(w => {
     const decided = lower(w.decided||'pending');
+    const price = Number(w.price_estimate) || 0;
+    const safeBudget = s.balance - (s.burn * 3);  // si on garde 3 mois de runway
+    const canAfford = price <= safeBudget;
+    const tightAfford = price <= s.balance && !canAfford;
     const cls = decided === 'approved' ? 'b-ok' : decided === 'rejected' ? 'b-critical' : 'b-pending';
+    const affordBadge = decided === 'pending'
+      ? (canAfford ? '<span class="badge b-afford" title="Couvert avec 3 mois de runway après">finançable</span>'
+        : tightAfford ? '<span class="badge b-wait" title="Couvert mais réduit le runway sous 3 mois">attendre</span>'
+        : '<span class="badge b-critical" title="Solde insuffisant">trop tôt</span>')
+      : '';
     return `<div class="item">
       <div class="ic ${lower(w.priority)==='high'?'crit':lower(w.priority)==='medium'?'warn':''}">★</div>
       <div class="body">
@@ -1515,8 +1739,9 @@ function renderMoney(d){
         <div class="meta">${esc(w.recommended_by||'IA')} · ${fmtRelative(w.ts)}</div>
       </div>
       <div class="right">
-        <strong>${fmtMoney(w.price_estimate)}</strong>
+        <strong>${fmtMoney(price)}</strong>
         <span class="badge ${cls}">${decided === 'pending' ? esc(w.priority||'?') : esc(decided)}</span>
+        ${affordBadge}
         ${decided === 'pending' ? `
           <div class="actions">
             <button class="btn success" onclick="symbDecideWish('${esc(w.id)}','approved')">Acheter</button>
@@ -1526,39 +1751,101 @@ function renderMoney(d){
     </div>`;
   }).join('') || emptyRow('Wishlist vide. L\'IA proposera des achats utiles ici.');
 
-  // Historique
-  const hist = s.ledger.slice().sort((a,b)=>Date.parse(b.ts)-Date.parse(a.ts)).slice(0, 30);
-  $('listFinHistory').innerHTML = hist.map(r => `
-    <div class="item">
-      <div class="ic ${r.type==='income'?'ok':r.type==='expense'?'warn':''}">${r.type==='income'?'+':r.type==='expense'?'−':'·'}</div>
-      <div class="body">
-        <div class="ttl truncate">${esc(r.description||'')}</div>
-        <div class="meta">${esc(FIN_CAT_LABEL[r.category]||r.category||'')} · ${esc(r.created_by||'')}</div>
-        <div class="meta">${fmtRelative(r.ts)} · ${esc(r.status)}</div>
-      </div>
-      <div class="right">
-        <strong style="color:${r.type==='income'?'var(--ok)':r.type==='expense'?'var(--warn)':'var(--muted)'}">
-          ${r.type==='income'?'+':r.type==='expense'?'−':''} ${fmtMoney(r.amount, r.currency)}
-        </strong>
-      </div>
-    </div>`).join('') || emptyRow('Aucune opération.');
+  // Historique filtré
+  const hist = filtered.slice().sort((a,b)=>Date.parse(b.ts||0)-Date.parse(a.ts||0));
+  $('histCount').textContent = hist.length;
+  $('listFinHistory').innerHTML = hist.slice(0, 100).map(r => symbRenderFinRow(r, s, { showActions:false, showEdit:true })).join('') || emptyRow('Aucune opération.');
+}
+
+function symbRenderFinRow(r, s, opts){
+  const overdue = symbIsOverdue(r);
+  const recur = s.recurring && s.recurring.has(r.id);
+  const sign = r.type === 'income' ? '+' : r.type === 'expense' ? '−' : '';
+  const color = r.type === 'income' ? 'var(--ok)' : r.type === 'expense' ? 'var(--warn)' : 'var(--muted)';
+  const icCls = r.type === 'income' ? 'ok' : r.type === 'expense' ? 'warn' : '';
+  const editable = symbCanEditFin(r);
+  const actionBtn = opts.showActions
+    ? `<button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="symbMarkFinanceDone('${esc(r.id)}')">${r.type==='income'?'Encaissé':'Payé'}</button>`
+    : '';
+  const editBtns = (opts.showEdit && editable)
+    ? `<div class="row-actions">
+         <button onclick="symbEditFinance('${esc(r.id)}')">✎ Éditer</button>
+         <button class="danger" onclick="symbDeleteFinance('${esc(r.id)}')">Supprimer</button>
+       </div>`
+    : '';
+  return `<div class="item">
+    <div class="ic ${icCls}">${sign || '·'}</div>
+    <div class="body">
+      <div class="ttl truncate">${esc(r.description||'(sans description)')}</div>
+      <div class="meta">${esc(FIN_CAT_LABEL[r.category]||r.category||'')}${r.created_by ? ' · ' + esc(r.created_by) : ''}${r.due_date ? ' · échéance ' + esc(r.due_date) : ''}</div>
+      <div class="meta">${fmtRelative(r.ts)}${r.status ? ' · ' + esc(r.status) : ''}</div>
+      ${editBtns}
+    </div>
+    <div class="right">
+      <strong style="color:${color}">${sign} ${fmtMoney(r.amount, r.currency)}</strong>
+      ${overdue ? '<span class="badge b-overdue">en retard</span>' : ''}
+      ${recur ? '<span class="badge b-recurring">récurrent</span>' : ''}
+      ${actionBtn}
+    </div>
+  </div>`;
+}
+
+function symbPopulateFinFilters(ledger){
+  const monthSel = $('finFilterMonth'); const catSel = $('finFilterCat');
+  if (!monthSel || !catSel) return;
+  const months = [...new Set(ledger.map(r => String(r.paid_at || r.ts || '').slice(0,7)).filter(Boolean))].sort().reverse();
+  const cats   = [...new Set(ledger.map(r => lower(r.category)).filter(Boolean))].sort();
+  const curM = monthSel.value, curC = catSel.value;
+  monthSel.innerHTML = '<option value="all">Tous mois</option>' + months.map(m => `<option value="${esc(m)}" ${m===curM?'selected':''}>${esc(m)}</option>`).join('');
+  catSel.innerHTML   = '<option value="all">Toutes catégories</option>' + cats.map(c => `<option value="${esc(c)}" ${c===curC?'selected':''}>${esc(FIN_CAT_LABEL[c]||c)}</option>`).join('');
 }
 
 async function symbAddFinance(){
   const type = $('finType').value;
   const amount = Number($('finAmount').value);
   const desc = $('finDesc').value.trim();
-  const category = $('finCategory').value.trim() || 'other';
+  const category = ($('finCategory').value.trim() || detectCategory(desc) || 'other').toLowerCase();
   const due = $('finDueDate').value;
   const status = $('finStatus').value;
   const me = STATE.cfg.identity;
   if (!amount || amount <= 0) { toast('Montant invalide','err'); return; }
+  if (amount > 1000000) { toast('Montant suspect (> 1M €)','err'); return; }
   if (!desc) { toast('Description manquante','err'); return; }
+  if (desc.length > 280) { toast('Description trop longue (max 280)', 'err'); return; }
   if (!me)   { toast('Identité requise','err'); return; }
+
+  // Mode édition d'une ligne existante
+  if (STATE.editingFinId) {
+    const id = STATE.editingFinId;
+    const wh = STATE.cfg.webhook;
+    const patch = { type, amount, category, description:desc, status, due_date: due || '',
+      paid_at: status === 'done' ? (new Date().toISOString().slice(0,10)) : '' };
+    if (STATE.data) {
+      const r = (STATE.data.finance||[]).find(x => x.id === id);
+      if (r) Object.assign(r, patch);
+    }
+    if (wh.baseUrl && wh.secret) {
+      try {
+        await fetch(`${wh.baseUrl}/symbalyx-finance`, {
+          method:'POST',
+          headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+          body: JSON.stringify({ kind:'patch_ledger', id, patch })
+        });
+        toast('Ligne mise à jour');
+      } catch(e) { toast('Webhook KO — local uniquement', 'err'); }
+    } else {
+      toast('(local uniquement — webhook non configuré)');
+    }
+    STATE.editingFinId = null;
+    $('finAmount').value = ''; $('finDesc').value = ''; $('finCategory').value = ''; $('finDueDate').value = '';
+    delete $('finCategory').dataset.touched;
+    symbRender();
+    return;
+  }
 
   if (type === 'wishlist') {
     const item = { id:'wl_'+Date.now(), ts:new Date().toISOString(), item:desc, category, price_estimate:amount,
-      priority:'medium', justification:desc, recommended_by:me.name, decided:'pending', decided_at:'' };
+      priority:'medium', justification:desc, recommended_by:me.name, recommended_by_id: me.id || '', decided:'pending', decided_at:'' };
     await symbPostFinance('wishlist', item);
     return;
   }
@@ -1571,6 +1858,7 @@ async function symbAddFinance(){
     created_by: me.name, created_by_id: me.id || ''
   };
   await symbPostFinance('ledger', row);
+  delete $('finCategory').dataset.touched;
 }
 
 async function symbPostFinance(kind, row){
@@ -1622,6 +1910,59 @@ async function symbMarkFinanceDone(id){
       toast(row.type === 'income' ? 'Encaissement enregistré' : 'Paiement enregistré');
     } catch (e) { toast('Webhook KO — local seulement', 'err'); }
   }
+}
+
+function symbEditFinance(id){
+  if (!STATE.data) return;
+  const r = (STATE.data.finance||[]).find(x => x.id === id); if (!r) return;
+  if (!symbCanEditFin(r)) { toast('Pas autorisé : tu n\'es pas l\'auteur', 'err'); return; }
+  // Pré-remplit le formulaire et passe en mode édition.
+  $('finType').value = r.type || 'expense';
+  $('finAmount').value = r.amount || '';
+  $('finDesc').value = r.description || '';
+  $('finCategory').value = r.category || '';
+  $('finCategory').dataset.touched = '1';
+  $('finDueDate').value = r.due_date || '';
+  $('finStatus').value = r.status || 'pending';
+  STATE.editingFinId = id;
+  $('finAddStatus').textContent = `Édition de ${id}. Clique Ajouter pour mettre à jour.`;
+  window.scrollTo({ top: 200, behavior: 'smooth' });
+}
+async function symbDeleteFinance(id){
+  if (!STATE.data) return;
+  const r = (STATE.data.finance||[]).find(x => x.id === id); if (!r) return;
+  if (!symbCanEditFin(r)) { toast('Pas autorisé : tu n\'es pas l\'auteur', 'err'); return; }
+  if (!confirm(`Supprimer "${r.description}" (${fmtMoney(r.amount)}) ? Cette action écrase la ligne dans la Sheet.`)) return;
+  // Soft-delete : on marque status=deleted plutôt que supprimer la ligne (audit trail).
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      await fetch(`${wh.baseUrl}/symbalyx-finance`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ kind:'patch_ledger', id, patch:{ status:'deleted', notes:'soft-deleted by ' + (STATE.cfg.identity?.name || 'unknown') } })
+      });
+      toast('Supprimé (soft-delete)');
+    } catch(e) { toast('Webhook KO — local uniquement', 'err'); }
+  }
+  // Local : retire de la liste pour l'UI
+  STATE.data.finance = STATE.data.finance.filter(x => x.id !== id);
+  symbRender();
+}
+
+function symbExportFinanceCSV(){
+  const d = STATE.data || {}; const ledger = d.finance || [];
+  if (!ledger.length) { toast('Rien à exporter', 'err'); return; }
+  const cols = ['id','ts','type','amount','currency','category','description','status','due_date','paid_at','created_by','vendor','invoice_ref','notes'];
+  const escCSV = v => { const s = String(v == null ? '' : v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+  const rows = [cols.join(',')].concat(
+    ledger.map(r => cols.map(c => escCSV(r[c])).join(','))
+  );
+  const blob = new Blob([rows.join('\n')], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = `symbalyx_finance_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  toast(`${ledger.length} ligne(s) exportée(s)`);
 }
 
 async function symbDecideWish(id, decision){

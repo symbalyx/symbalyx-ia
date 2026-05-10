@@ -1,5 +1,5 @@
 // Symbalyx — Service Worker (cache app-shell + network-first webhooks + push)
-const CACHE = 'symbalyx-v2';
+const CACHE = 'symbalyx-v3';
 const SHELL = ['./index.html', './manifest.json'];
 
 self.addEventListener('install', e => {
