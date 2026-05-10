@@ -196,9 +196,62 @@
 
   /* Toasts */
   .toast-wrap{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:92vw}
-  .toast{background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:12px 14px;font-size:13.5px;box-shadow:var(--shadow);min-width:240px}
+  .toast{background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:12px 14px;font-size:13.5px;box-shadow:var(--shadow);min-width:240px;
+    animation:toastIn .22s cubic-bezier(.2,.8,.2,1)}
   .toast.ok{border-color:rgba(34,197,94,.4)}
   .toast.err{border-color:rgba(239,68,68,.4)}
+  @keyframes toastIn{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+  /* Command palette (Cmd+K) */
+  .cmdk-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);z-index:300;display:none;align-items:flex-start;justify-content:center;padding-top:12vh}
+  .cmdk-bg.open{display:flex;animation:fade .18s ease}
+  .cmdk{width:min(640px,92vw);background:var(--panel);border:1px solid var(--line2);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.55);overflow:hidden;
+    animation:cmdkIn .22s cubic-bezier(.2,.8,.2,1)}
+  .cmdk-input{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .cmdk-input::before{content:"⌘";font-size:14px;color:var(--muted);width:22px;text-align:center}
+  .cmdk-input input{border:0;background:transparent;padding:0;min-height:auto;font-size:16px}
+  .cmdk-input input:focus{border:0}
+  .cmdk-input .kbd{font-size:11px;color:var(--muted);background:var(--panel2);padding:2px 6px;border-radius:6px;border:1px solid var(--line)}
+  .cmdk-list{max-height:60vh;overflow:auto;padding:6px}
+  .cmdk-grp{font-size:10.5px;text-transform:uppercase;color:var(--muted);letter-spacing:.7px;padding:8px 10px 4px}
+  .cmdk-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13.5px}
+  .cmdk-row:hover,.cmdk-row.sel{background:var(--panel2)}
+  .cmdk-row .cmdk-ic{width:26px;height:26px;border-radius:7px;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:13px}
+  .cmdk-row.sel .cmdk-ic{background:var(--acc-soft);color:var(--acc)}
+  .cmdk-row .cmdk-meta{margin-left:auto;font-size:11px;color:var(--muted)}
+  .cmdk-empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:13px}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes cmdkIn{from{transform:translateY(-8px) scale(.98);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+
+  /* Keyboard hints */
+  kbd{display:inline-block;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+    background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 6px;line-height:1.4}
+
+  /* Activity feed */
+  .activity-row{display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:flex-start}
+  .activity-row:last-child{border-bottom:0}
+  .activity-row .av{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+  .activity-row .body{flex:1;min-width:0}
+  .activity-row .body strong{font-weight:600}
+  .activity-row .body .meta{color:var(--muted);font-size:11.5px;margin-top:2px}
+  .activity-row .body .quote{margin-top:4px;color:var(--muted);font-size:12.5px;border-left:2px solid var(--line);padding-left:8px;font-style:italic}
+
+  /* Skeleton loaders */
+  .skel{background:linear-gradient(90deg,var(--panel2) 0%,var(--line2) 50%,var(--panel2) 100%);
+    background-size:200% 100%;animation:skel 1.2s infinite;border-radius:8px;display:inline-block}
+  @keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  /* Buttons subtle press */
+  button.btn:active,.iconbtn:active{transform:scale(.97);transition:transform .08s}
+  .item:active{background:var(--panel2)}
+
+  /* Focus visibility */
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.iconbtn:focus-visible{
+    outline:2px solid var(--acc);outline-offset:2px}
+
+  /* View transitions */
+  main > section{animation:viewIn .18s ease}
+  @keyframes viewIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
 
   /* Misc */
   .muted{color:var(--muted);font-size:12.5px}
@@ -258,6 +311,8 @@
     </nav>
     <div class="right">
       <span class="chip" id="meChip" title="Identité courante" onclick="setView('settings')" style="cursor:pointer"></span>
+      <button class="iconbtn" id="btnCmdK" title="Recherche & actions (Cmd+K)" onclick="symbOpenCmdK()">⌘K</button>
+      <button class="iconbtn" id="btnActivity" title="Activité de l'équipe" onclick="symbOpenActivity()">⌃</button>
       <button class="iconbtn" id="btnNotif" title="Notifications" onclick="symbOpenNotif()">
         🔔
         <span id="notifDot" class="dot-badge hidden"></span>
@@ -535,6 +590,29 @@
   <div id="detailSheet" class="sheet">
     <div class="grab"></div>
     <div id="detailContent"></div>
+  </div>
+
+  <!-- Activity drawer -->
+  <div id="activityBg" class="sheet-bg" onclick="symbCloseActivity()"></div>
+  <div id="activitySheet" class="sheet">
+    <div class="grab"></div>
+    <div class="row" style="margin-bottom:10px">
+      <div class="h2">Activité de l'équipe</div>
+      <span class="pill right" id="activityCount">0</span>
+    </div>
+    <p class="muted" style="margin-top:-4px;margin-bottom:10px">Les 30 dernières actions : décisions, commentaires, membres.</p>
+    <div id="listActivity"></div>
+  </div>
+
+  <!-- Command palette -->
+  <div id="cmdkBg" class="cmdk-bg" onclick="symbCloseCmdK(event)">
+    <div class="cmdk" onclick="event.stopPropagation()">
+      <div class="cmdk-input">
+        <input id="cmdkInput" type="text" placeholder="Rechercher ou exécuter une commande…" autocomplete="off" spellcheck="false">
+        <span class="kbd">esc</span>
+      </div>
+      <div class="cmdk-list" id="cmdkList"></div>
+    </div>
   </div>
 
   <div class="toast-wrap" id="toasts"></div>
@@ -1185,6 +1263,7 @@ function renderLogs(d){
 
 /* ---------- DETAIL drawer ---------- */
 function symbOpenDetail(type, id){
+  STATE.detailContext = { type, id };
   const d = STATE.data || {}; let html = '';
   if (type === 'bcl') {
     const b = (d.bcl||[]).find(x => x.id === id) || {};
@@ -1276,7 +1355,7 @@ function symbOpenDetail(type, id){
   $('detailBg').classList.add('open'); $('detailSheet').classList.add('open');
   symbLoadComments(type, id);
 }
-function symbCloseDetail(){ $('detailBg').classList.remove('open'); $('detailSheet').classList.remove('open'); }
+function symbCloseDetail(){ STATE.detailContext = null; $('detailBg').classList.remove('open'); $('detailSheet').classList.remove('open'); }
 
 /* ---------- comments (team sync) ---------- */
 function symbCommentKey(type, id){ return type + ':' + id; }
@@ -1742,6 +1821,276 @@ function symbRender(){
   $('navDecCount').textContent = navCount > 0 ? `Décider · ${navCount}` : 'Décider';
 }
 setInterval(symbRefresh, 5*60*1000);
+
+/* ============================================================
+   PREMIUM — Command palette (Cmd+K), activity feed, shortcuts
+   ============================================================ */
+
+const CMDK = { open:false, sel:0, items:[] };
+
+function symbOpenCmdK(){
+  CMDK.open = true; CMDK.sel = 0;
+  $('cmdkBg').classList.add('open');
+  symbBuildCmdK('');
+  setTimeout(()=>{ const i = $('cmdkInput'); if (i){ i.value = ''; i.focus(); } }, 30);
+}
+function symbCloseCmdK(e){
+  if (e && e.target && e.target.id !== 'cmdkBg') return;
+  CMDK.open = false;
+  $('cmdkBg').classList.remove('open');
+}
+function symbBuildCmdK(q){
+  const d = STATE.data || {};
+  const ql = lower(q).trim();
+  const items = [];
+
+  // Navigation rapide (toujours présent)
+  const navs = [
+    { ic:'⌂', label:"Aujourd'hui",  meta:'g t', view:'today' },
+    { ic:'◷', label:'Prospects',    meta:'g p', view:'prospects' },
+    { ic:'◉', label:'Décisions',    meta:'g d', view:'decisions' },
+    { ic:'⊞', label:'Projets',      meta:'g j', view:'projects' },
+    { ic:'✦', label:'Mémoire',      meta:'g m', view:'memory' },
+    { ic:'≡', label:'Logs',         meta:'g l', view:'logs' },
+    { ic:'⚙', label:'Réglages',     meta:'g s', view:'settings' }
+  ];
+  if (STATE.cfg.identity && isAdminRole(STATE.cfg.identity.role)) {
+    navs.splice(6, 0, { ic:'☰', label:'Équipe', meta:'g e', view:'team' });
+  }
+  for (const n of navs) {
+    if (!ql || lower(n.label).includes(ql)) {
+      items.push({ group:'Aller à', ic:n.ic, label:n.label, meta:n.meta,
+                   action:()=>{ setView(n.view); symbCloseCmdK(); } });
+    }
+  }
+
+  // Actions globales
+  const acts = [
+    { ic:'↻', label:'Rafraîchir les données',  action:()=>{ symbRefresh(); symbCloseCmdK(); toast('Rafraîchi'); } },
+    { ic:'🌓', label:'Basculer le thème',       action:()=>{ symbToggleTheme(); symbCloseCmdK(); } },
+    { ic:'🔔', label:'Ouvrir les notifications', action:()=>{ symbCloseCmdK(); symbOpenNotif(); } },
+    { ic:'⌃', label:"Voir l'activité de l'équipe", action:()=>{ symbCloseCmdK(); symbOpenActivity(); } },
+    { ic:'🧪', label:'Smoke test webhooks',     action:()=>{ symbCloseCmdK(); setView('settings'); setTimeout(symbSmokeTest, 200); } },
+    { ic:'⏏', label:'Logout',                  action:()=>{ symbLogout(); } }
+  ];
+  for (const a of acts) {
+    if (!ql || lower(a.label).includes(ql)) {
+      items.push({ group:'Actions', ic:a.ic, label:a.label, meta:a.meta||'', action:a.action });
+    }
+  }
+
+  // Items recherchables (BCL, prospects, projets, membres)
+  if (ql) {
+    const matchAny = (...fields) => fields.some(f => lower(f||'').includes(ql));
+    for (const r of (d.bcl || []).slice(0, 50)) {
+      if (matchAny(r.title, r.item_id, r.recommended_action, r.assigned_to)) {
+        items.push({ group:'Décisions',
+          ic: lower(r.priority_level)==='critical' ? '!' : '◉',
+          label: r.title || r.item_id,
+          meta: `${r.priority_level||''} · ${r.assigned_to||''}`,
+          action:()=>{ symbCloseCmdK(); setView('decisions'); setTimeout(()=>symbOpenDetail('bcl', r.id), 50); } });
+      }
+    }
+    for (const p of (d.review || []).slice(0, 50)) {
+      if (matchAny(p.company_name, p.id, p.niche, p.city, p.email)) {
+        items.push({ group:'Prospects',
+          ic:'◷', label: p.company_name || p.id,
+          meta: `${p.niche||''} · ${p.city||''}`,
+          action:()=>{ symbCloseCmdK(); setView('prospects'); setTimeout(()=>symbOpenDetail('prospect', p.id), 50); } });
+      }
+    }
+    for (const j of (d.projects || []).slice(0, 50)) {
+      if (matchAny(j.client_name, j.id, j.niche, j.assigned_to)) {
+        items.push({ group:'Projets',
+          ic:'⊞', label: j.client_name || j.id,
+          meta: `${j.status||''} · ${j.assigned_to||''}`,
+          action:()=>{ symbCloseCmdK(); setView('projects'); setTimeout(()=>symbOpenDetail('project', j.id), 50); } });
+      }
+    }
+    for (const m of (d.team_members || []).slice(0, 50)) {
+      if (matchAny(m.name, m.email, m.role, m.id)) {
+        items.push({ group:'Équipe',
+          ic:'☰', label: m.name,
+          meta: `${ROLE_LABEL[m.role]||m.role||''}${m.is_active ? '' : ' · inactif'}`,
+          action:()=>{ symbCloseCmdK(); if (STATE.cfg.identity && isAdminRole(STATE.cfg.identity.role)) setView('team'); } });
+      }
+    }
+  }
+
+  CMDK.items = items;
+  if (CMDK.sel >= items.length) CMDK.sel = Math.max(0, items.length - 1);
+  symbRenderCmdK();
+}
+function symbRenderCmdK(){
+  const list = $('cmdkList');
+  if (!CMDK.items.length) { list.innerHTML = '<div class="cmdk-empty">Aucun résultat. Essaie un nom de prospect, projet, ou tape une commande.</div>'; return; }
+  let html = ''; let lastGrp = null;
+  CMDK.items.forEach((it, i) => {
+    if (it.group !== lastGrp) { html += `<div class="cmdk-grp">${esc(it.group)}</div>`; lastGrp = it.group; }
+    html += `<div class="cmdk-row ${i===CMDK.sel?'sel':''}" data-cmdk-i="${i}">
+      <span class="cmdk-ic">${esc(it.ic||'·')}</span>
+      <span>${esc(it.label)}</span>
+      ${it.meta ? `<span class="cmdk-meta">${esc(it.meta)}</span>` : ''}
+    </div>`;
+  });
+  list.innerHTML = html;
+}
+document.addEventListener('input', e => {
+  if (e.target.id === 'cmdkInput') symbBuildCmdK(e.target.value);
+});
+document.addEventListener('click', e => {
+  const r = e.target.closest('[data-cmdk-i]');
+  if (r) { const i = +r.dataset.cmdkI; const it = CMDK.items[i]; if (it && it.action) it.action(); }
+});
+
+/* ---------- Activity feed (calculée à la volée) ---------- */
+function symbBuildActivity(){
+  const d = STATE.data || {};
+  const events = [];
+  // Décisions humaines (BCL avec decision_status = approved/rejected/escalate)
+  for (const r of (d.bcl || [])) {
+    const st = lower(r.decision_status);
+    if (st && st !== 'pending' && r.decided_at) {
+      events.push({
+        ts: r.decided_at, kind:'decision',
+        who: r.decided_by || '?',
+        color: lower(r.priority_level) === 'critical' ? '#ef4444' : '#5eead4',
+        title: `${r.decided_by || '?'} a ${st === 'approved' ? 'approuvé' : st === 'rejected' ? 'rejeté' : 'escaladé'} <strong>${esc(r.title || r.item_id || '')}</strong>`,
+        quote: r.notes || '',
+        deeplink: { view:'decisions', detail:['bcl', r.id] }
+      });
+    }
+  }
+  // Mémoire de décisions (capture l'historique riche)
+  for (const m of (d.memDec || []).slice(0, 30)) {
+    if (m.decided_by) {
+      events.push({
+        ts: m.ts, kind:'memory',
+        who: m.decided_by,
+        color: '#a78bfa',
+        title: `${m.decided_by} → ${m.decision} sur <strong>${esc(m.item_id || '')}</strong>`,
+        quote: m.reason || ''
+      });
+    }
+  }
+  // Commentaires depuis le cache local
+  for (const key in (STATE.commentsCache || {})) {
+    const arr = STATE.commentsCache[key] || [];
+    for (const c of arr.slice(-5)) {
+      events.push({
+        ts: c.ts, kind:'comment',
+        who: c.author || '?',
+        color: '#60a5fa',
+        title: `${esc(c.author || '?')} a commenté sur <strong>${esc(key.split(':')[1] || '')}</strong>`,
+        quote: c.body || ''
+      });
+    }
+  }
+  // Membres récemment ajoutés
+  for (const m of (d.team_members || [])) {
+    if (m.created_at) {
+      events.push({
+        ts: m.created_at, kind:'member',
+        who: m.name,
+        color: m.color || '#3a86ff',
+        title: `<strong>${esc(m.name)}</strong> a rejoint l'équipe (${esc(ROLE_LABEL[m.role]||m.role||'')})`,
+        quote: ''
+      });
+    }
+  }
+  return events
+    .filter(e => e.ts)
+    .sort((a,b) => Date.parse(b.ts) - Date.parse(a.ts))
+    .slice(0, 30);
+}
+function symbOpenActivity(){
+  const events = symbBuildActivity();
+  $('activityCount').textContent = events.length;
+  const list = $('listActivity');
+  if (!events.length) {
+    list.innerHTML = '<div class="empty">Pas encore d\'activité. Les décisions, commentaires et nouveaux membres apparaîtront ici.</div>';
+  } else {
+    list.innerHTML = events.map(e => {
+      const initials = (e.who || '?').split(/\s+/).slice(0,2).map(s=>s[0]).join('').toUpperCase().slice(0,2);
+      return `<div class="activity-row">
+        <span class="av" style="background:${esc(e.color)}">${esc(initials)}</span>
+        <div class="body">
+          <div>${e.title}</div>
+          ${e.quote ? `<div class="quote">${esc(e.quote)}</div>` : ''}
+          <div class="meta">${esc(fmtRelative(e.ts))}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  $('activityBg').classList.add('open');
+  $('activitySheet').classList.add('open');
+}
+function symbCloseActivity(){
+  $('activityBg').classList.remove('open');
+  $('activitySheet').classList.remove('open');
+}
+
+/* ---------- Keyboard shortcuts ---------- */
+const KEYS = { gPrefix:false, gTimer:null };
+function symbIsTyping(e){
+  const el = e.target;
+  if (!el) return false;
+  const tag = (el.tagName || '').toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+}
+document.addEventListener('keydown', e => {
+  // Cmd+K / Ctrl+K — toujours capté, même dans un input
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault(); CMDK.open ? symbCloseCmdK() : symbOpenCmdK(); return;
+  }
+  // Echap : ferme cmdk, drawers
+  if (e.key === 'Escape') {
+    if (CMDK.open) { symbCloseCmdK(); return; }
+    if ($('detailSheet')?.classList.contains('open')) { symbCloseDetail(); return; }
+    if ($('activitySheet')?.classList.contains('open')) { symbCloseActivity(); return; }
+    if ($('notifSheet')?.classList.contains('open')) { symbCloseNotif(); return; }
+  }
+  // Navigation cmdk
+  if (CMDK.open) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); CMDK.sel = Math.min(CMDK.items.length-1, CMDK.sel+1); symbRenderCmdK(); return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); CMDK.sel = Math.max(0, CMDK.sel-1); symbRenderCmdK(); return; }
+    if (e.key === 'Enter')     { e.preventDefault(); const it = CMDK.items[CMDK.sel]; if (it && it.action) it.action(); return; }
+    return;
+  }
+  // Hors champs de saisie : raccourcis
+  if (symbIsTyping(e)) return;
+  // / = ouvre cmdk
+  if (e.key === '/') { e.preventDefault(); symbOpenCmdK(); return; }
+  // ? = aide
+  if (e.key === '?') { e.preventDefault(); symbShowShortcuts(); return; }
+  // g + lettre = navigation
+  if (KEYS.gPrefix) {
+    KEYS.gPrefix = false; clearTimeout(KEYS.gTimer);
+    const map = { t:'today', p:'prospects', d:'decisions', j:'projects', m:'memory', l:'logs', e:'team', s:'settings' };
+    const v = map[e.key.toLowerCase()];
+    if (v) {
+      if (v === 'team' && !(STATE.cfg.identity && isAdminRole(STATE.cfg.identity.role))) return;
+      setView(v); return;
+    }
+  }
+  if (e.key === 'g') {
+    KEYS.gPrefix = true;
+    KEYS.gTimer = setTimeout(()=>{ KEYS.gPrefix = false; }, 800);
+    return;
+  }
+  // a / r dans le drawer détail BCL
+  if ($('detailSheet')?.classList.contains('open')) {
+    const ctx = STATE.detailContext;
+    if (ctx && ctx.type === 'bcl') {
+      if (e.key === 'a') { e.preventDefault(); symbDecide(ctx.id, 'approved'); return; }
+      if (e.key === 'r') { e.preventDefault(); symbDecide(ctx.id, 'rejected'); return; }
+    }
+  }
+});
+function symbShowShortcuts(){
+  toast('⌘K recherche · / palette · g+t/p/d/j/m/l/e/s nav · a/r approuver/rejeter · ? aide', 'ok');
+}
+
 </script>
 </body>
 </html>
