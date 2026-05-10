@@ -135,6 +135,15 @@ const TABS = {
     ],
     seed: []
   },
+  // Bot-to-bot inter-workflow communication (V8.4)
+  agent_messages: {
+    headers: [
+      'id','ts','from_workflow','to_workflow','level','title','body',
+      'item_type','item_id','escalated_to_human',
+      'acknowledged_by','acknowledged_at','trace_id'
+    ],
+    seed: []
+  },
 };
 
 // ─── MAIN ─────────────────────────────────────────────────────────────────────

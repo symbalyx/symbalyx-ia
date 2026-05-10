@@ -280,6 +280,25 @@
   details.advice-extra summary::before{content:"▸ ";display:inline-block;transition:transform .15s}
   details.advice-extra[open] summary::before{transform:rotate(90deg)}
 
+  /* @mentions */
+  .mention{color:var(--acc);font-weight:600;background:var(--acc-soft);padding:0 4px;border-radius:4px}
+  .mention-pop{position:absolute;background:var(--panel);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow);padding:4px;z-index:250;min-width:200px;max-height:240px;overflow:auto}
+  .mention-pop button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 8px;border:0;background:transparent;color:var(--txt);border-radius:8px;cursor:pointer;font:inherit}
+  .mention-pop button.sel,.mention-pop button:hover{background:var(--panel2)}
+  .mention-pop .av{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;flex-shrink:0}
+
+  /* "Nouveau" indicator */
+  .new-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc);margin-right:4px;animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+  .badge.b-new{background:var(--acc-soft);color:var(--acc);border-color:var(--acc);font-weight:600}
+
+  /* Morning synthesis row */
+  .morning-row{display:flex;gap:10px;padding:10px 12px;border-radius:10px;background:var(--panel2);align-items:flex-start;cursor:pointer}
+  .morning-row:hover{background:color-mix(in srgb, var(--panel2) 80%, var(--acc) 5%)}
+  .morning-row .badge{flex-shrink:0;margin-top:1px}
+  .morning-row .body{flex:1}
+  .morning-row .next{color:var(--acc);font-size:12px;margin-top:3px;font-weight:500}
+
   /* Misc */
   .muted{color:var(--muted);font-size:12.5px}
   .truncate{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -385,6 +404,15 @@
         </div>
       </div>
 
+      <!-- Synthèse du matin (IA) -->
+      <div class="card" id="morningSynth" style="margin-bottom:12px;display:none">
+        <div class="card-h">
+          <span class="t">Synthèse du matin</span>
+          <span class="right muted" id="morningSub" style="font-size:11px"></span>
+        </div>
+        <div id="morningBody" class="stack"></div>
+      </div>
+
       <!-- Top actions -->
       <div class="card padless" style="margin-bottom:12px">
         <div style="padding:14px 14px 6px;display:flex;align-items:center;gap:8px">
@@ -392,6 +420,15 @@
           <span class="right pill" id="topCount">0</span>
         </div>
         <div class="list" id="listToday"></div>
+      </div>
+
+      <!-- Bot inbox (escalades inter-workflows) -->
+      <div class="card padless" id="botInbox" style="margin-bottom:12px;display:none">
+        <div style="padding:14px 14px 6px;display:flex;align-items:center;gap:8px">
+          <span class="card-h t" style="margin:0">Échanges entre bots — escalades</span>
+          <span class="right muted" style="font-size:11px">progress · blocked · escalated_to_human</span>
+        </div>
+        <div class="list" id="listBotInbox"></div>
       </div>
 
       <!-- Urgences groupées -->
@@ -788,7 +825,7 @@ const DEFAULT_CFG = {
     review:'review_queue', projects:'project_queue', logs:'logs',
     memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial',
     invoices:'invoices', notifs:'notifications_inbox', members:'team_members',
-    finance:'finance_ledger', wishlist:'wishlist'
+    finance:'finance_ledger', wishlist:'wishlist', agents:'agent_messages'
   }},
   supabase: { url: '', anonKey: '' },
   webhook: { baseUrl: '', secret: '' },
@@ -1032,6 +1069,11 @@ const MOCK = {
     {id:'wl_2', ts:new Date(Date.now()-3*86400e3).toISOString(), item:'Domaine .com agence',              category:'tooling',      price_estimate:15,   priority:'high',   justification:'Crédibilité commerciale, premier point de contact prospects.',  recommended_by:'IA',     decided:'pending',  decided_at:''},
     {id:'wl_3', ts:new Date(Date.now()-2*86400e3).toISOString(), item:'Formation copywriting (1 jour)',   category:'formation',    price_estimate:450,  priority:'low',    justification:"Améliorer taux de réponse cold email. ROI estimé 3-5x.",         recommended_by:'IA',     decided:'pending',  decided_at:''},
     {id:'wl_4', ts:new Date(Date.now()-1*86400e3).toISOString(), item:'Plan Stripe Atlas (incorporation)', category:'legal',        price_estimate:500,  priority:'medium', justification:"Si on dépasse 30k€ HT, structure plus propre + facturation US.", recommended_by:'IA',     decided:'pending',  decided_at:''}
+  ],
+  agent_messages: [
+    {id:'agt_1', ts:new Date(Date.now()-2*3600e3).toISOString(), from_workflow:'WF1',  to_workflow:'WF7',   level:'progress', title:'12 prospects analysés', body:'Niche plombier · 3 fits forts envoyés en review_queue.', item_type:'', item_id:'', escalated_to_human:'false'},
+    {id:'agt_2', ts:new Date(Date.now()-30*60e3).toISOString(),  from_workflow:'WF2',  to_workflow:'human', level:'blocked',  title:'Quota Gmail dépassé', body:'5 brouillons en file mais quota journalier atteint. Reprise demain 06:00 ou augmenter le quota.', item_type:'', item_id:'', escalated_to_human:'true'},
+    {id:'agt_3', ts:new Date(Date.now()-15*60e3).toISOString(),  from_workflow:'WF22', to_workflow:'WF15',  level:'progress', title:'4 outcomes réconciliés', body:'memory_decisions enrichi : 2 reply_received, 1 delivered, 1 no_reply.', item_type:'', item_id:'', escalated_to_human:'false'}
   ]
 };
 
@@ -1052,16 +1094,17 @@ async function fetchSheets(){
     const j = await r.json(); const [head, ...rows] = j.values || [];
     return rows.map(row => Object.fromEntries(head.map((h,i)=>[h, row[i]])));
   }
-  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs,members,finance,wishlist] = await Promise.all([
+  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs,members,finance,wishlist,agents] = await Promise.all([
     read(c.tabs.bcl).catch(()=>[]), read(c.tabs.kpi).catch(()=>[]), read(c.tabs.team).catch(()=>[]),
     read(c.tabs.review).catch(()=>[]), read(c.tabs.projects).catch(()=>[]), read(c.tabs.logs).catch(()=>[]),
     read(c.tabs.memDec).catch(()=>[]), read(c.tabs.memPat).catch(()=>[]), read(c.tabs.memCom).catch(()=>[]),
     read(c.tabs.invoices).catch(()=>[]), read(c.tabs.notifs).catch(()=>[]),
     read(c.tabs.members || 'team_members').catch(()=>[]),
     read(c.tabs.finance || 'finance_ledger').catch(()=>[]),
-    read(c.tabs.wishlist || 'wishlist').catch(()=>[])
+    read(c.tabs.wishlist || 'wishlist').catch(()=>[]),
+    read(c.tabs.agents || 'agent_messages').catch(()=>[])
   ]);
-  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, team_members: normalizeMembers(members), finance, wishlist, digest: '' };
+  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, team_members: normalizeMembers(members), finance, wishlist, agent_messages: agents, digest: '' };
 }
 async function fetchSupabase(){
   const c = STATE.cfg.supabase;
@@ -1083,6 +1126,7 @@ async function fetchSupabase(){
     team_members: normalizeMembers(await get('team_members','?select=*').catch(()=>[])),
     finance: await get('finance_ledger','?select=*&order=ts.desc&limit=500').catch(()=>[]),
     wishlist: await get('wishlist','?select=*&order=ts.desc&limit=200').catch(()=>[]),
+    agent_messages: await get('agent_messages','?select=*&order=ts.desc&limit=200').catch(()=>[]),
     digest: ''
   };
 }
@@ -2009,10 +2053,14 @@ function symbOpenDetail(type, id){
       ? `<div class="muted" style="margin-top:6px">${esc(status)} par <strong>${esc(b.decided_by||'?')}</strong>${b.decided_at ? ' · ' + esc(fmtRelative(b.decided_at)) : ''}</div>`
       : '';
     const actionRow = decided
-      ? `<div class="row" style="margin-top:10px"><button class="btn ghost right" onclick="symbCloseDetail()">Fermer</button></div>`
+      ? `<div class="row" style="margin-top:10px">
+          <button class="btn" onclick="symbReassign('${b.id}')">↪ Réassigner</button>
+          <button class="btn ghost right" onclick="symbCloseDetail()">Fermer</button>
+         </div>`
       : `<div class="row" style="margin-top:10px">
           <button class="btn success" onclick="symbDecide('${b.id}','approved');symbCloseDetail()">Approuver</button>
           <button class="btn danger" onclick="symbDecide('${b.id}','rejected');symbCloseDetail()">Rejeter</button>
+          <button class="btn" onclick="symbReassign('${b.id}')">↪ Réassigner</button>
           <button class="btn ghost right" onclick="symbCloseDetail()">Fermer</button>
         </div>`;
     html = `
@@ -2557,8 +2605,319 @@ function symbRender(){
 setInterval(symbRefresh, 5*60*1000);
 
 /* ============================================================
-   PREMIUM — Command palette (Cmd+K), activity feed, shortcuts
+   PREMIUM — Morning synthesis, @mentions, "new" badges, bot inbox
    ============================================================ */
+
+/* ---------- Last-seen tracking (badges "Nouveau") ---------- */
+function lsLoad(){ try { return JSON.parse(localStorage.getItem('symbalyx_lastseen') || '{}'); } catch { return {}; } }
+function lsSave(o){ localStorage.setItem('symbalyx_lastseen', JSON.stringify(o)); }
+STATE.lastSeen = lsLoad();
+function symbMarkSeen(view){
+  STATE.lastSeen[view] = new Date().toISOString();
+  lsSave(STATE.lastSeen);
+}
+function symbIsNew(view, ts){
+  const seen = STATE.lastSeen[view]; if (!seen || !ts) return false;
+  return Date.parse(ts) > Date.parse(seen);
+}
+function symbCountNew(d){
+  return {
+    decisions: (d.bcl||[]).filter(b => lower(b.decision_status) === 'pending' && symbIsNew('decisions', b.ts)).length,
+    prospects: (d.review||[]).filter(p => symbIsNew('prospects', p.reply_received_at || p.ts || '')).length,
+    comments:  (function(){
+      let n = 0;
+      for (const k in (STATE.commentsCache || {})) {
+        for (const c of (STATE.commentsCache[k] || [])) {
+          if (symbIsNew('comments', c.ts) && c.author_id !== STATE.cfg.identity?.id) n++;
+        }
+      }
+      return n;
+    })()
+  };
+}
+
+/* ---------- Morning synthesis (heuristique top 5) ---------- */
+function symbBuildMorning(d){
+  const me = STATE.cfg.identity;
+  const items = [];
+  // 1. BCL critical pending assignées à moi
+  for (const b of (d.bcl || [])) {
+    if (lower(b.decision_status) !== 'pending') continue;
+    const assignedToMe = me && (b.assignee_id === me.id || b.assigned_to === me.name);
+    let score = +b.priority_score || 0;
+    if (lower(b.priority_level) === 'critical') score += 5;
+    if (assignedToMe) score += 2;
+    items.push({
+      score, kind:'decision',
+      icon:'!', cls:'b-critical',
+      title: b.title || b.item_id,
+      next: b.recommendation || ('action suggérée : ' + (b.recommended_action||'?')),
+      action: () => { setView('decisions'); setTimeout(()=>symbOpenDetail('bcl', b.id), 60); }
+    });
+  }
+  // 2. Réponses chaudes interested / needs_quote
+  for (const p of (d.review || [])) {
+    const cat = lower(p.reply_category||'');
+    if (!['interested','needs_quote'].includes(cat)) continue;
+    const score = (cat === 'interested' ? 8 : 6) + (Number(p.opportunity_score)||0)/3;
+    items.push({
+      score, kind:'reply',
+      icon:'✉', cls:'b-ok',
+      title: `${p.company_name||p.id} — ${cat}`,
+      next: cat === 'interested' ? 'Relancer sous 48h' : 'Préparer un devis simple',
+      action: () => { setView('prospects'); setTimeout(()=>symbOpenDetail('prospect', p.id), 60); }
+    });
+  }
+  // 3. Projets bloqués > 7j
+  for (const p of (d.projects || [])) {
+    if (lower(p.status) !== 'blocked') continue;
+    items.push({
+      score: 6, kind:'project',
+      icon:'⛔', cls:'b-high',
+      title: `${p.client_name||p.id} bloqué`,
+      next: 'Identifier le bloqueur (input client / dépendance) et débloquer.',
+      action: () => { setView('projects'); setTimeout(()=>symbOpenDetail('project', p.id), 60); }
+    });
+  }
+  // 4. Factures en retard
+  for (const i of (d.invoices || [])) {
+    if (lower(i.status) === 'paid') continue;
+    if (!i.due_date) continue;
+    const days = Math.floor((Date.now() - Date.parse(i.due_date))/86400e3);
+    if (days < 1) continue;
+    items.push({
+      score: 5 + Math.min(days/10, 3), kind:'invoice',
+      icon:'€', cls:'b-critical',
+      title: `Facture ${i.invoice_ref||i.id} — ${i.client_name||''}`,
+      next: `Relance niveau ${days < 15 ? 1 : days < 30 ? 2 : 3} (${days}j de retard).`
+    });
+  }
+  // 5. Wishlist priorité haute non décidée
+  for (const w of (d.wishlist || [])) {
+    if (lower(w.decided||'pending') !== 'pending') continue;
+    if (lower(w.priority) !== 'high') continue;
+    items.push({
+      score: 4, kind:'wishlist',
+      icon:'★', cls:'b-medium',
+      title: `Wishlist : ${w.item}`,
+      next: w.justification || 'Décider acheter / reporter.',
+      action: () => { setView('money'); }
+    });
+  }
+  return items.sort((a,b) => b.score - a.score).slice(0, 5);
+}
+
+function symbRenderMorning(d){
+  const items = symbBuildMorning(d);
+  const box = $('morningSynth'); const body = $('morningBody'); const sub = $('morningSub');
+  if (!box || !body) return;
+  if (!items.length) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  const me = STATE.cfg.identity;
+  const hello = me ? `Bonjour ${me.name.split(/\s+/)[0]}` : 'Bonjour';
+  sub.textContent = `${items.length} priorité(s) — IA`;
+  body.innerHTML = `<div class="muted" style="font-size:13px;margin-bottom:6px">${hello}, voici ce que je te recommande de regarder en premier ce matin :</div>` +
+    items.map((it, i) => `
+      <div class="morning-row" data-morning="${i}">
+        <span class="badge ${it.cls}">${it.icon}</span>
+        <div class="body">
+          <div><strong>${esc(it.title)}</strong></div>
+          <div class="next">→ ${esc(it.next)}</div>
+        </div>
+      </div>
+    `).join('');
+  // Bind clicks
+  body.querySelectorAll('[data-morning]').forEach(el => {
+    el.addEventListener('click', () => {
+      const it = items[+el.dataset.morning];
+      if (it && it.action) it.action();
+    });
+  });
+}
+
+/* ---------- Bot inbox (agent_messages) ---------- */
+function symbRenderBotInbox(d){
+  const msgs = (d.agent_messages || []).filter(m => {
+    const lvl = lower(m.level || '');
+    const esc = String(m.escalated_to_human || '').toLowerCase();
+    return esc === 'true' || esc === '1' || lvl === 'blocked';
+  }).slice(0, 5);
+  const box = $('botInbox'); if (!box) return;
+  if (!msgs.length) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  $('listBotInbox').innerHTML = msgs.map(m => {
+    const lvl = lower(m.level||'info');
+    const cls = lvl === 'blocked' ? 'crit' : lvl === 'progress' ? 'ok' : '';
+    const ic  = lvl === 'blocked' ? '⛔' : lvl === 'progress' ? '✓' : '·';
+    return `<div class="item">
+      <div class="ic ${cls}">${ic}</div>
+      <div class="body">
+        <div class="ttl truncate">${esc(m.title||'')}</div>
+        <div class="meta truncate">${esc(m.body||'')}</div>
+        <div class="meta">${esc(m.from_workflow||'?')} → ${esc(m.to_workflow||'human')} · ${fmtRelative(m.ts)}</div>
+      </div>
+      <div class="right">
+        <span class="badge ${lvl==='blocked'?'b-critical':lvl==='progress'?'b-ok':'b-medium'}">${esc(lvl)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Hooks dans renderToday ---------- */
+const _origRenderToday = renderToday;
+renderToday = function(d){
+  _origRenderToday(d);
+  symbRenderMorning(d);
+  symbRenderBotInbox(d);
+  // Marque la vue comme vue (au prochain refresh, "new" repart à zéro)
+  symbMarkSeen('today');
+};
+
+/* ---------- @mentions ---------- */
+function symbExtractMentions(body){
+  const team = (STATE.data?.team_members || []).filter(m => m.is_active);
+  const found = [];
+  const re = /@([\p{L}][\p{L}\p{N}_-]{0,40})/gu;
+  let m; while ((m = re.exec(body)) !== null) {
+    const name = m[1].toLowerCase();
+    const member = team.find(t => lower(t.name).startsWith(name) || lower((t.name||'').split(/\s+/)[0]) === name);
+    if (member && !found.find(f => f.id === member.id)) found.push({ id: member.id, name: member.name });
+  }
+  return found;
+}
+function symbHighlightMentions(body){
+  return esc(body).replace(/@([\p{L}][\p{L}\p{N}_-]{0,40})/gu, (full, name) => {
+    const team = (STATE.data?.team_members || []).filter(m => m.is_active);
+    const member = team.find(t => lower(t.name).startsWith(name.toLowerCase()) || lower((t.name||'').split(/\s+/)[0]) === name.toLowerCase());
+    return member ? `<span class="mention" title="${esc(member.name)}">@${esc(name)}</span>` : `@${esc(name)}`;
+  });
+}
+
+// Override de symbRenderComments pour highlight @mentions + ts "nouveau"
+const _origRenderComments = symbRenderComments;
+symbRenderComments = function(type, id, comments, source){
+  const list = $('cmtList_' + id);
+  const meta = $('cmtMeta_' + id);
+  if (!list) return;
+  if (!comments || comments.length === 0) {
+    list.innerHTML = '<div class="muted">Aucun commentaire.</div>';
+  } else {
+    const me = STATE.cfg.identity;
+    list.innerHTML = comments.map(c => {
+      const isNew = symbIsNew('comments', c.ts) && c.author_id !== me?.id;
+      return `<div class="item" style="display:block">
+        <div class="row" style="margin-bottom:4px">
+          ${isNew ? '<span class="new-dot" title="Nouveau"></span>' : ''}
+          <strong>${esc(c.author||'?')}</strong>
+          <span class="muted" style="margin-left:8px">${esc(fmtRelative(c.ts))}</span>
+        </div>
+        <div>${symbHighlightMentions(c.body||'')}</div>
+      </div>`;
+    }).join('');
+  }
+  if (meta) meta.textContent = source === 'remote' ? 'sync' : (source === 'cache' ? 'hors-ligne (cache)' : 'local');
+};
+
+/* Mention autocomplete dans le textarea de commentaire */
+let MPOP = null;
+function symbHandleCommentInput(e){
+  const ta = e.target; if (!ta || !ta.id || !ta.id.startsWith('cmtInput_')) return;
+  const cur = ta.value.slice(0, ta.selectionEnd || ta.value.length);
+  const m = cur.match(/@(\w*)$/);
+  if (!m) { symbCloseMentionPop(); return; }
+  const q = m[1].toLowerCase();
+  const team = (STATE.data?.team_members || []).filter(t => t.is_active && (!q || lower(t.name).includes(q)));
+  if (!team.length) { symbCloseMentionPop(); return; }
+  symbOpenMentionPop(ta, team, q.length);
+}
+function symbOpenMentionPop(ta, team, qlen){
+  symbCloseMentionPop();
+  const rect = ta.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = 'mention-pop';
+  pop.style.left = rect.left + window.scrollX + 'px';
+  pop.style.top  = (rect.bottom + window.scrollY + 4) + 'px';
+  pop.innerHTML = team.slice(0, 6).map((t, i) => {
+    const initials = t.initials || initialsFrom(t.name);
+    return `<button class="${i===0?'sel':''}" data-mention="${esc(t.name)}">
+      <span class="av" style="background:${esc(t.color||'#3a86ff')}">${esc(initials)}</span>
+      <span><strong>${esc(t.name)}</strong> <span class="muted" style="font-size:11px">${esc(ROLE_LABEL[t.role]||t.role||'')}</span></span>
+    </button>`;
+  }).join('');
+  document.body.appendChild(pop);
+  MPOP = { pop, ta, team, sel: 0, qlen };
+  pop.addEventListener('click', e => {
+    const b = e.target.closest('[data-mention]'); if (!b) return;
+    symbInsertMention(b.dataset.mention);
+  });
+}
+function symbCloseMentionPop(){ if (MPOP && MPOP.pop) { MPOP.pop.remove(); } MPOP = null; }
+function symbInsertMention(name){
+  if (!MPOP) return;
+  const ta = MPOP.ta; const qlen = MPOP.qlen;
+  const pos = ta.selectionEnd || ta.value.length;
+  const before = ta.value.slice(0, pos - qlen);
+  const after = ta.value.slice(pos);
+  const firstName = name.split(/\s+/)[0];
+  ta.value = before + firstName + ' ' + after;
+  const newPos = (before + firstName + ' ').length;
+  ta.focus(); ta.setSelectionRange(newPos, newPos);
+  symbCloseMentionPop();
+}
+document.addEventListener('input', symbHandleCommentInput);
+document.addEventListener('keydown', e => {
+  if (!MPOP) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); MPOP.sel = Math.min(MPOP.team.length-1, MPOP.sel+1); MPOP.pop.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('sel', i===MPOP.sel)); }
+  else if (e.key === 'ArrowUp')   { e.preventDefault(); MPOP.sel = Math.max(0, MPOP.sel-1); MPOP.pop.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('sel', i===MPOP.sel)); }
+  else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); symbInsertMention(MPOP.team[MPOP.sel].name); }
+  else if (e.key === 'Escape') { symbCloseMentionPop(); }
+});
+document.addEventListener('click', e => { if (MPOP && !e.target.closest('.mention-pop') && e.target !== MPOP.ta) symbCloseMentionPop(); });
+
+/* Override de symbPostComment pour passer mentions[] au webhook */
+const _origPostComment = symbPostComment;
+symbPostComment = async function(type, id){
+  const input = $('cmtInput_' + id); if (!input) return;
+  const body = (input.value || '').trim(); if (!body) { toast('Commentaire vide', 'err'); return; }
+  const mentions = symbExtractMentions(body);
+  // Réutilise le flow d'origine (optimistic + webhook) puis tag mentions dans cache.
+  await _origPostComment(type, id);
+  if (mentions.length) {
+    const key = symbCommentKey(type, id);
+    const arr = STATE.commentsCache[key] || [];
+    if (arr.length) arr[arr.length-1].mentions = mentions;
+    localStorage.setItem('symbalyx_comments_cache', JSON.stringify(STATE.commentsCache));
+  }
+};
+
+/* ---------- Quick reassign sur BCL detail ---------- */
+async function symbReassign(bclId){
+  const me = STATE.cfg.identity; if (!me) { toast('Identité requise', 'err'); return; }
+  const team = (STATE.data?.team_members || []).filter(t => t.is_active);
+  if (!team.length) { toast('Aucun membre actif', 'err'); return; }
+  const list = team.map((t,i) => `${i+1}. ${t.name} (${ROLE_LABEL[t.role]||t.role||''})`).join('\n');
+  const choice = prompt('Réassigner à :\n\n' + list + '\n\nTape le numéro :');
+  const idx = parseInt(choice, 10) - 1;
+  if (!Number.isInteger(idx) || idx < 0 || idx >= team.length) return;
+  const target = team[idx];
+  // Optimistic UI
+  const b = (STATE.data?.bcl || []).find(x => x.id === bclId);
+  if (b) { b.assigned_to = target.name; b.assignee_id = target.id; symbRender(); }
+  // Webhook : utilise WF18 endpoint avec un kind "reassign" — fallback vers symbPostComment si non câblé.
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      await fetch(`${wh.baseUrl}/symbalyx-decision`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ bcl_id: bclId, decision: 'reassign', decided_by: me.name, decider_id: me.id || '', reason: `assignee_id=${target.id}` })
+      });
+      toast(`Réassigné à ${target.name}`);
+    } catch(e) { toast('Webhook KO — local seulement', 'err'); }
+  }
+  symbCloseDetail();
+}
+
 
 const CMDK = { open:false, sel:0, items:[] };
 
