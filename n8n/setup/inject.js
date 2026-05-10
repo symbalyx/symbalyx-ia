@@ -46,6 +46,7 @@ const TARGET_FILES = [
   '20_finance_manager.json',
   '21_team_members.json',
   '22_outcome_reconciliation.json',
+  '23_bcl_reassign.json',
   '30_whatsapp_bot.json',
   '40_agent_relay.json',
   '99_error_handler.json',

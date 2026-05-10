@@ -291,6 +291,9 @@
   .new-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc);margin-right:4px;animation:pulse 1.4s ease-in-out infinite}
   @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
   .badge.b-new{background:var(--acc-soft);color:var(--acc);border-color:var(--acc);font-weight:600}
+  .nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;background:var(--crit);color:#fff;font-size:10.5px;font-weight:700;padding:0 5px;margin-left:4px;vertical-align:middle}
+  .nav-badge.acc{background:var(--acc);color:#001210}
+  nav.bottom button .nav-badge{margin-left:2px}
 
   /* Morning synthesis row */
   .morning-row{display:flex;gap:10px;padding:10px 12px;border-radius:10px;background:var(--panel2);align-items:flex-start;cursor:pointer}
@@ -2067,6 +2070,10 @@ function symbOpenDetail(type, id){
       <div style="margin-bottom:8px">${priorityBadge(b.priority_level)} <span class="pill">${esc(b.item_type||'')}</span> ${statusBadge} <span class="muted">${fmtRelative(b.ts)}</span></div>
       <h2 class="h2">${esc(b.title||b.item_id||'')}</h2>
       ${decidedLine}
+      <div class="card" style="background:var(--panel2);border-color:var(--line);margin:10px 0;padding:10px 12px">
+        <div class="card-h"><span class="t">Résumé IA</span></div>
+        <div style="line-height:1.6">${symbBuildSummary(b, d)}</div>
+      </div>
       <p>${esc(b.recommendation||'')}</p>
       <div class="grid grid-2">
         <div><div class="muted">Action</div><strong>${esc(b.recommended_action||'-')}</strong></div>
@@ -2077,13 +2084,24 @@ function symbOpenDetail(type, id){
         <div><div class="muted">Source</div><strong>${esc(b.source_workflow||'-')}</strong></div>
       </div>
       <div class="sep"></div>
+      <details class="advice-extra" style="margin:6px 0">
+        <summary>Historique d'activité</summary>
+        <div style="margin-top:8px">${symbRenderActivityHTML(symbBuildActivityForBcl(b, d))}</div>
+      </details>
       <p class="muted">${esc(b.notes||'')}</p>
       ${actionRow}`;
   } else if (type === 'prospect') {
     const p = (d.review||[]).find(x => x.id === id) || {};
+    const dups = symbFindDuplicates(p, d);
+    const dupBadge = dups.length
+      ? `<div class="card" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);margin:10px 0;padding:10px 12px">
+           <strong style="color:#fcd34d">⚠ Doublon possible</strong>
+           <div class="muted" style="margin-top:4px">Match sur : ${dups.map(d2 => `${esc(d2.match)} avec <strong>${esc(d2.name||d2.id)}</strong>`).join(' · ')}</div>
+         </div>` : '';
     html = `
       <h2 class="h2">${esc(p.company_name||'')}</h2>
       <div class="muted">${esc(p.city||'-')} · ${esc(p.niche||'-')}</div>
+      ${dupBadge}
       <div class="grid grid-2" style="margin-top:10px">
         <div><div class="muted">Email</div><strong>${esc(p.email||'-')}</strong></div>
         <div><div class="muted">Statut</div><strong>${esc(p.status||'-')}</strong></div>
@@ -2601,6 +2619,8 @@ function symbRender(){
   // Toujours mettre à jour le compteur du nav mobile
   const navCount = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending').length;
   $('navDecCount').textContent = navCount > 0 ? `Décider · ${navCount}` : 'Décider';
+  // Badges "Nouveau" sur les nav buttons (desktop + mobile)
+  if (typeof symbUpdateNavBadges === 'function') symbUpdateNavBadges(d);
 }
 setInterval(symbRefresh, 5*60*1000);
 
@@ -2933,21 +2953,153 @@ async function symbReassign(bclId){
   // Optimistic UI
   const b = (STATE.data?.bcl || []).find(x => x.id === bclId);
   if (b) { b.assigned_to = target.name; b.assignee_id = target.id; symbRender(); }
-  // Webhook : utilise WF18 endpoint avec un kind "reassign" — fallback vers symbPostComment si non câblé.
+  // Webhook : appel à WF23 dédié (Read+Merge anti-wipe sur business_control).
   const wh = STATE.cfg.webhook;
   if (wh.baseUrl && wh.secret) {
     try {
-      await fetch(`${wh.baseUrl}/symbalyx-decision`, {
+      const r = await fetch(`${wh.baseUrl}/symbalyx-reassign`, {
         method:'POST',
         headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
-        body: JSON.stringify({ bcl_id: bclId, decision: 'reassign', decided_by: me.name, decider_id: me.id || '', reason: `assignee_id=${target.id}` })
+        body: JSON.stringify({
+          bcl_id: bclId,
+          new_assignee_id: target.id,
+          new_assigned_to: target.name,
+          decided_by: me.name,
+          decider_id: me.id || '',
+          reason: ''
+        })
       });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
       toast(`Réassigné à ${target.name}`);
-    } catch(e) { toast('Webhook KO — local seulement', 'err'); }
+    } catch(e) { toast('Webhook KO ('+e.message+') — local seulement', 'err'); }
   }
   symbCloseDetail();
 }
 
+/* ---------- Nav badges "Nouveau" ---------- */
+function symbUpdateNavBadges(d){
+  const counts = symbCountNew(d);
+  // Helper qui injecte/maj un badge dans un bouton
+  const setBadge = (btn, n, cls = '') => {
+    if (!btn) return;
+    let bdg = btn.querySelector('.nav-badge');
+    if (!n) { if (bdg) bdg.remove(); return; }
+    if (!bdg) { bdg = document.createElement('span'); bdg.className = 'nav-badge'; btn.appendChild(bdg); }
+    bdg.className = 'nav-badge' + (cls ? ' ' + cls : '');
+    bdg.textContent = n > 99 ? '99+' : String(n);
+  };
+  // Décisions = pending count (toujours affiché)
+  const pending = (d.bcl||[]).filter(r => lower(r.decision_status) === 'pending').length;
+  setBadge(document.querySelector('#navDesktop button[data-view="decisions"]'), pending);
+  // Aujourd'hui = sum nouveautés depuis lastSeen
+  const todayNew = counts.decisions + counts.prospects;
+  setBadge(document.querySelector('#navDesktop button[data-view="today"]'), todayNew, 'acc');
+  // Prospects = leads chauds nouveaux
+  setBadge(document.querySelector('#navDesktop button[data-view="prospects"]'), counts.prospects, 'acc');
+}
+
+/* ---------- Auto-summary 3 lignes (heuristique, no-LLM) ---------- */
+function symbBuildSummary(b, d){
+  if (!b) return '';
+  const lines = [];
+  const me = STATE.cfg.identity;
+  const ageH = b.ts ? Math.max(1, Math.round((Date.now() - Date.parse(b.ts))/3600e3)) : null;
+  const status = lower(b.decision_status||'pending');
+  // Ligne 1 : identité de l'item
+  const subj = `${b.title || b.item_id || '?'}${b.item_type ? ' · ' + b.item_type : ''}`;
+  lines.push(`<strong>${esc(subj)}</strong>`);
+  // Ligne 2 : état + IA
+  const aiPart = b.recommended_action ? `IA : ${esc(b.recommended_action)}` : '';
+  const prio = b.priority_level ? `priorité <strong>${esc(b.priority_level)}</strong>` : '';
+  const assigned = b.assigned_to ? `assigné <strong>${esc(b.assigned_to)}</strong>` : 'non assigné';
+  lines.push([prio, assigned, aiPart].filter(Boolean).join(' · '));
+  // Ligne 3 : âge + commentaires
+  const cmtKey = symbCommentKey('bcl', b.id);
+  const cmts = (STATE.commentsCache?.[cmtKey] || []).length;
+  const ageTxt = ageH ? (ageH < 24 ? `en attente depuis ${ageH}h` : `en attente depuis ${Math.round(ageH/24)}j`) : '';
+  const statusTxt = status === 'pending' ? '' : `· décidé : ${esc(status)}`;
+  lines.push([ageTxt, `${cmts} commentaire${cmts>1?'s':''}`, statusTxt].filter(Boolean).join(' · '));
+  return lines.join('<br>');
+}
+
+/* ---------- Activity log par fiche (BCL) ---------- */
+function symbBuildActivityForBcl(b, d){
+  if (!b) return [];
+  const events = [];
+  // 1. IA proposition (le BCL lui-même)
+  if (b.ts) events.push({
+    ts: b.ts, who: 'IA', color: '#a78bfa',
+    msg: `IA a proposé priorité <strong>${esc(b.priority_level||'?')}</strong> · action : <strong>${esc(b.recommended_action||'?')}</strong>`,
+    quote: b.recommendation || ''
+  });
+  // 2. Assignation initiale
+  if (b.assigned_to) events.push({
+    ts: b.ts, who: 'IA', color: '#a78bfa',
+    msg: `Assignée à <strong>${esc(b.assigned_to)}</strong>`,
+    quote: ''
+  });
+  // 3. Mémoire de décisions liée
+  for (const m of (d.memDec || [])) {
+    if (m.bcl_id === b.id || (m.item_type === b.item_type && m.item_id === b.item_id)) {
+      events.push({
+        ts: m.ts, who: m.decided_by || '?', color: '#5eead4',
+        msg: `<strong>${esc(m.decided_by||'?')}</strong> a ${esc(m.decision)}`,
+        quote: m.reason || ''
+      });
+    }
+  }
+  // 4. Commentaires depuis le cache
+  const cmts = STATE.commentsCache?.[symbCommentKey('bcl', b.id)] || [];
+  for (const c of cmts) {
+    events.push({
+      ts: c.ts, who: c.author || '?', color: '#60a5fa',
+      msg: `<strong>${esc(c.author||'?')}</strong> a commenté`,
+      quote: c.body || ''
+    });
+  }
+  // 5. Réassignation si différente de l'assignée IA
+  if (b.decided_at && b.assigned_to && b.assignee_id) {
+    // Pas de moyen direct de détecter une réassignation depuis le BCL seul.
+  }
+  return events.sort((a,b) => Date.parse(a.ts || 0) - Date.parse(b.ts || 0));
+}
+function symbRenderActivityHTML(events){
+  if (!events.length) return '<div class="muted">Pas encore d\'activité.</div>';
+  return events.map(e => {
+    const initials = (e.who || '?').split(/\s+/).slice(0,2).map(s=>s[0]).join('').toUpperCase().slice(0,2);
+    return `<div class="activity-row">
+      <span class="av" style="background:${esc(e.color)}">${esc(initials)}</span>
+      <div class="body">
+        <div>${e.msg}</div>
+        ${e.quote ? `<div class="quote">${esc(e.quote)}</div>` : ''}
+        <div class="meta">${esc(fmtRelative(e.ts))}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Détection de doublons prospects ---------- */
+function symbNormalize(s){
+  return String(s||'').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function symbFindDuplicates(p, d){
+  if (!p) return [];
+  const targetName = symbNormalize(p.company_name);
+  const targetEmailDomain = (String(p.email||'').split('@')[1] || '').toLowerCase();
+  const dups = [];
+  for (const other of (d.review || [])) {
+    if (other.id === p.id) continue;
+    const n = symbNormalize(other.company_name);
+    const dom = (String(other.email||'').split('@')[1] || '').toLowerCase();
+    let match = '';
+    if (targetName && n && (n === targetName || n.includes(targetName) || targetName.includes(n))) match = 'nom';
+    else if (targetEmailDomain && dom && dom === targetEmailDomain && targetEmailDomain.length > 4) match = 'domaine';
+    if (match) dups.push({ id: other.id, name: other.company_name, match });
+  }
+  return dups;
+}
 
 const CMDK = { open:false, sel:0, items:[] };
 

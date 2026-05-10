@@ -1,0 +1,148 @@
+{
+  "name": "Symbalyx — WF23 BCL Reassign",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "symbalyx-reassign",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "23100001-0000-0000-0000-000000000001",
+      "name": "Webhook POST /reassign",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "symbalyx-reassign",
+      "notes": "POST /webhook/symbalyx-reassign  body: { bcl_id, new_assignee_id, new_assigned_to, decided_by, decider_id, reason? }"
+    },
+    {
+      "parameters": {
+        "jsCode": "const h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) return [{ json: { _ok:false, _status:500, _error:'SYMBALYX_WEBHOOK_SECRET not configured' } }];\nif (token !== expected) return [{ json: { _ok:false, _status:401, _error:'invalid_token' } }];\nconst b = $json.body || {};\nconst bcl_id = String(b.bcl_id || '').trim();\nconst new_assignee_id = String(b.new_assignee_id || '').trim();\nconst new_assigned_to = String(b.new_assigned_to || '').trim();\nconst decided_by = String(b.decided_by || '').trim();\nconst decider_id = String(b.decider_id || '').trim();\nconst reason = String(b.reason || '').trim();\nif (!bcl_id) return [{ json: { _ok:false, _status:400, _error:'missing bcl_id' } }];\nif (!new_assignee_id && !new_assigned_to) return [{ json: { _ok:false, _status:400, _error:'missing new_assignee_id or new_assigned_to' } }];\nif (!decided_by) return [{ json: { _ok:false, _status:400, _error:'missing decided_by' } }];\nreturn [{ json: { _ok:true, bcl_id, new_assignee_id, new_assigned_to, decided_by, decider_id, reason } }];"
+      },
+      "id": "23100002-0000-0000-0000-000000000002",
+      "name": "Auth & validate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{ $json._ok }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }
+          ]
+        }
+      },
+      "id": "23100003-0000-0000-0000-000000000003",
+      "name": "OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "business_control", "mode": "name" },
+        "options": {}
+      },
+      "id": "23100004-0000-0000-0000-000000000004",
+      "name": "Read business_control",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [800, 250]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge nouveau assignee dans la ligne existante (Read+Merge anti-wipe).\nconst inp = $('Auth & validate').first().json;\nconst rows = $input.all().map(i => i.json);\nconst row = rows.find(r => String(r.id) === String(inp.bcl_id));\nif (!row) return [{ json: { _ok:false, _status:404, _error:'bcl_id not found: ' + inp.bcl_id } }];\nconst prev_assigned_to = row.assigned_to || '';\nconst prev_assignee_id = row.assignee_id || '';\nconst merged = {\n  // Toutes les colonnes existantes (préservées)\n  id: row.id,\n  ts: row.ts || '',\n  run_id: row.run_id || '',\n  source_workflow: row.source_workflow || '',\n  item_type: row.item_type || '',\n  item_id: row.item_id || '',\n  title: row.title || '',\n  recommendation: row.recommendation || '',\n  recommended_action: row.recommended_action || '',\n  priority_score: row.priority_score || '',\n  priority_level: row.priority_level || '',\n  expected_impact: row.expected_impact || '',\n  effort_level: row.effort_level || '',\n  // Colonnes mises à jour\n  assigned_to: inp.new_assigned_to || prev_assigned_to,\n  assignee_id: inp.new_assignee_id || prev_assignee_id,\n  requires_human_validation: row.requires_human_validation || '',\n  decision_status: row.decision_status || '',\n  decided_by: row.decided_by || '',\n  decider_id: row.decider_id || '',\n  decided_at: row.decided_at || '',\n  notes: ((row.notes || '') + ` [reassigné de ${prev_assigned_to||'-'} à ${inp.new_assigned_to||inp.new_assignee_id} par ${inp.decided_by} le ${new Date().toISOString().slice(0,10)}${inp.reason ? ' · ' + inp.reason : ''}]`).slice(0, 1000)\n};\nreturn [{ json: { _ok:true, merged, prev_assigned_to, prev_assignee_id } }];"
+      },
+      "id": "23100005-0000-0000-0000-000000000005",
+      "name": "Merge new assignee",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 250]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "business_control", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": "={{ $json.merged }}",
+          "matchingColumns": ["id"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "23100006-0000-0000-0000-000000000006",
+      "name": "Update business_control",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1200, 250]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "agent_messages", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": "={{ {\n  id: 'agt_' + Date.now(),\n  ts: new Date().toISOString(),\n  from_workflow: 'human',\n  to_workflow: 'WF18',\n  level: 'info',\n  title: 'Réassignation BCL ' + $('Auth & validate').first().json.bcl_id,\n  body: $('Auth & validate').first().json.decided_by + ' a réassigné de ' + ($json.prev_assigned_to||'-') + ' à ' + ($('Auth & validate').first().json.new_assigned_to || $('Auth & validate').first().json.new_assignee_id) + ($('Auth & validate').first().json.reason ? ' · ' + $('Auth & validate').first().json.reason : ''),\n  item_type: 'bcl',\n  item_id: $('Auth & validate').first().json.bcl_id,\n  escalated_to_human: 'false',\n  acknowledged_by: '',\n  acknowledged_at: '',\n  trace_id: ''\n} }}",
+          "matchingColumns": ["id"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "23100007-0000-0000-0000-000000000007",
+      "name": "Log to agent_messages",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1400, 250]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, bcl_id: $('Auth & validate').first().json.bcl_id, assigned_to: $('Auth & validate').first().json.new_assigned_to, assignee_id: $('Auth & validate').first().json.new_assignee_id, by: $('Auth & validate').first().json.decided_by } }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "23100008-0000-0000-0000-000000000008",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1600, 250]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: $json._error || 'invalid', status: $json._status || 400 } }}",
+        "options": { "responseCode": "={{ $json._status || 400 }}" }
+      },
+      "id": "23100009-0000-0000-0000-000000000009",
+      "name": "Respond ERR",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 450]
+    }
+  ],
+  "connections": {
+    "Webhook POST /reassign":  { "main": [[{ "node": "Auth & validate", "type": "main", "index": 0 }]] },
+    "Auth & validate":         { "main": [[{ "node": "OK?", "type": "main", "index": 0 }]] },
+    "OK?": { "main": [
+      [{ "node": "Read business_control", "type": "main", "index": 0 }],
+      [{ "node": "Respond ERR", "type": "main", "index": 0 }]
+    ] },
+    "Read business_control":   { "main": [[{ "node": "Merge new assignee", "type": "main", "index": 0 }]] },
+    "Merge new assignee":      { "main": [[{ "node": "Update business_control", "type": "main", "index": 0 }]] },
+    "Update business_control": { "main": [[{ "node": "Log to agent_messages", "type": "main", "index": 0 }]] },
+    "Log to agent_messages":   { "main": [[{ "node": "Respond OK", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}
