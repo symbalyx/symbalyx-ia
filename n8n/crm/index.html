@@ -282,7 +282,7 @@
 
   /* @mentions */
   .mention{color:var(--acc);font-weight:600;background:var(--acc-soft);padding:0 4px;border-radius:4px}
-  .mention-pop{position:absolute;background:var(--panel);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow);padding:4px;z-index:250;min-width:200px;max-height:240px;overflow:auto}
+  .mention-pop{position:absolute;background:var(--panel);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow);padding:4px;z-index:250;min-width:min(200px,90vw);max-width:min(320px,94vw);max-height:240px;overflow:auto}
   .mention-pop button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 8px;border:0;background:transparent;color:var(--txt);border-radius:8px;cursor:pointer;font:inherit}
   .mention-pop button.sel,.mention-pop button:hover{background:var(--panel2)}
   .mention-pop .av{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;flex-shrink:0}
@@ -2740,10 +2740,13 @@ function symbRenderBotInbox(d){
   const msgs = (d.agent_messages || []).filter(m => {
     const lvl = lower(m.level || '');
     const esc = String(m.escalated_to_human || '').toLowerCase();
+    const ack = String(m.acknowledged_by || '').trim();
+    if (ack) return false; // déjà pris en compte → masque
     return esc === 'true' || esc === '1' || lvl === 'blocked';
   }).slice(0, 5);
   const box = $('botInbox'); if (!box) return;
-  if (!msgs.length) { box.style.display = 'none'; return; }
+  const list = $('listBotInbox');
+  if (!msgs.length) { box.style.display = 'none'; if (list) list.innerHTML = ''; return; }
   box.style.display = '';
   $('listBotInbox').innerHTML = msgs.map(m => {
     const lvl = lower(m.level||'info');
@@ -2758,9 +2761,33 @@ function symbRenderBotInbox(d){
       </div>
       <div class="right">
         <span class="badge ${lvl==='blocked'?'b-critical':lvl==='progress'?'b-ok':'b-medium'}">${esc(lvl)}</span>
+        <button class="btn ghost" style="font-size:11px;padding:4px 8px;margin-top:4px" onclick="symbAckAgent('${esc(m.id)}')">✓ Pris en compte</button>
       </div>
     </div>`;
   }).join('');
+}
+
+async function symbAckAgent(id){
+  if (!STATE.data) return;
+  const me = STATE.cfg.identity; if (!me) { toast('Identité requise', 'err'); return; }
+  const m = (STATE.data.agent_messages || []).find(x => x.id === id); if (!m) return;
+  // Optimistic
+  m.acknowledged_by = me.name;
+  m.acknowledged_by_id = me.id || '';
+  m.acknowledged_at = new Date().toISOString();
+  symbRender();
+  // POST vers WF40 (relay) si configuré, sinon vers WF20 finance pattern (pas idéal mais fallback)
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      await fetch(`${wh.baseUrl}/symbalyx-agents`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ kind:'ack', id, acknowledged_by: me.name, acknowledged_by_id: me.id || '' })
+      });
+      toast('Marqué pris en compte');
+    } catch(e) { toast('Webhook KO — local seulement', 'err'); }
+  }
 }
 
 /* ---------- Hooks dans renderToday ---------- */
@@ -2835,7 +2862,10 @@ function symbOpenMentionPop(ta, team, qlen){
   const rect = ta.getBoundingClientRect();
   const pop = document.createElement('div');
   pop.className = 'mention-pop';
-  pop.style.left = rect.left + window.scrollX + 'px';
+  // Clamp horizontal pour ne pas déborder à droite sur mobile
+  const desiredLeft = rect.left + window.scrollX;
+  const maxLeft = window.scrollX + window.innerWidth - 16 - 320;
+  pop.style.left = Math.max(window.scrollX + 8, Math.min(desiredLeft, maxLeft)) + 'px';
   pop.style.top  = (rect.bottom + window.scrollY + 4) + 'px';
   pop.innerHTML = team.slice(0, 6).map((t, i) => {
     const initials = t.initials || initialsFrom(t.name);

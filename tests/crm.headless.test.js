@@ -25,6 +25,12 @@ window.renderDecisions = renderDecisions;
 window.symbRefresh = symbRefresh;
 window.symbBootIdentitySelector = symbBootIdentitySelector;
 window.symbSmokeTest = symbSmokeTest;
+window.symbAckAgent = symbAckAgent;
+window.symbExtractMentions = symbExtractMentions;
+window.symbHighlightMentions = symbHighlightMentions;
+window.symbBuildMorning = symbBuildMorning;
+window.symbRenderMorning = symbRenderMorning;
+window.symbRenderBotInbox = symbRenderBotInbox;
 `;
 html = html.replace(/setInterval\(symbRefresh, 5\*60\*1000\);/, 'setInterval(symbRefresh, 5*60*1000);\n' + exportPatch);
 
@@ -497,6 +503,66 @@ test('Smoke test : secret faux → ✗ 401 explicite sur WF21', async () => {
   assert(/secret invalide/.test(html), 'message explicite "secret invalide"');
   // Remet le bon secret pour ne pas pourrir les tests suivants.
   doc.getElementById('cfgWebhookSecret').value = SECRET;
+});
+
+test('Synthèse du matin : symbBuildMorning produit ≥1 priorité depuis le mock', async () => {
+  const items = win.symbBuildMorning(win.STATE.data || win.MOCK);
+  assert(items.length >= 1, 'morning has at least 1 priority from mock data');
+  // BCL critical "Plomberie Dupont" doit apparaître (priority_level=critical)
+  if (!items.some(i => i.kind === 'decision')) throw new Error('expected at least 1 decision in morning');
+});
+
+test('Synthèse du matin : carte affichée sur Today (display != none)', async () => {
+  win.setView('today');
+  await sleep(20);
+  const synth = doc.getElementById('morningSynth');
+  assert(!!synth, 'morningSynth element exists');
+  if (synth.style.display === 'none') throw new Error('morning card hidden despite mock priorities');
+  if (!doc.getElementById('morningBody').querySelector('[data-morning]'))
+    throw new Error('morningBody has no [data-morning] rows');
+});
+
+test('Bot inbox : carte montre agt_2 (blocked, escalated)', async () => {
+  win.setView('today');
+  await sleep(20);
+  const inbox = doc.getElementById('botInbox');
+  assert(!!inbox, 'botInbox element exists');
+  if (inbox.style.display === 'none') throw new Error('botInbox hidden despite escalated mock');
+  const list = doc.getElementById('listBotInbox');
+  if (!list.innerHTML.includes('Quota Gmail')) throw new Error('expected Quota Gmail in inbox HTML');
+});
+
+test('Ack agent : symbAckAgent marque le message + filtre le sort', async () => {
+  // S'assure d'avoir une identité (un test précédent peut avoir logout)
+  if (!win.STATE.cfg.identity) {
+    win.STATE.cfg.identity = { id: 'tm_arsene', name: 'Arsène', role: 'founder', initials: 'AR', color: '#3a86ff' };
+    win.saveCfg();
+  }
+  // Reset agt_2 au cas où un test précédent l'aurait acké
+  const target = (win.STATE.data.agent_messages || []).find(m => m.id === 'agt_2');
+  if (target) { target.acknowledged_by = ''; target.acknowledged_at = ''; }
+  const expectedName = win.STATE.cfg.identity.name;
+  await win.symbAckAgent('agt_2');
+  const after = (win.STATE.data.agent_messages || []).find(m => m.id === 'agt_2');
+  assertEq(after.acknowledged_by, expectedName);
+  // Vérifie le filtre : l'inbox renderée ne doit plus contenir agt_2 dans le HTML
+  win.symbRenderBotInbox(win.STATE.data);
+  const list = doc.getElementById('listBotInbox');
+  if (list.innerHTML.includes(after.title)) throw new Error('acked message still in inbox HTML');
+});
+
+test('@mentions : symbExtractMentions résout les noms équipe', async () => {
+  const found = win.symbExtractMentions('Hey @Arsène et @Kentin, regardez ça');
+  assertEq(found.length, 2);
+  if (!found.find(f => f.name === 'Arsène')) throw new Error('Arsène not found');
+  if (!found.find(f => f.name === 'Kentin')) throw new Error('Kentin not found');
+});
+
+test('@mentions : highlight wrappe les noms reconnus uniquement', async () => {
+  const html = win.symbHighlightMentions('Hey @Arsène et @Inconnu');
+  if (!html.includes('class="mention"')) throw new Error('mention class missing');
+  const count = (html.match(/class="mention"/g) || []).length;
+  assertEq(count, 1, 'exactly 1 recognized mention');
 });
 
 test('Auth header envoyé sur tous les fetch webhook', async () => {

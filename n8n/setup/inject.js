@@ -47,6 +47,7 @@ const TARGET_FILES = [
   '21_team_members.json',
   '22_outcome_reconciliation.json',
   '30_whatsapp_bot.json',
+  '40_agent_relay.json',
   '99_error_handler.json',
 ];
 
