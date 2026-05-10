@@ -24,6 +24,7 @@ window.setView = setView;
 window.renderDecisions = renderDecisions;
 window.symbRefresh = symbRefresh;
 window.symbBootIdentitySelector = symbBootIdentitySelector;
+window.symbSmokeTest = symbSmokeTest;
 `;
 html = html.replace(/setInterval\(symbRefresh, 5\*60\*1000\);/, 'setInterval(symbRefresh, 5*60*1000);\n' + exportPatch);
 
@@ -453,6 +454,49 @@ test('Membre désactivé n\'apparaît plus dans le sélecteur du login', async (
   const list = (win.STATE.bootMembers || []).map(m => m.name);
   assert(list.includes('Arsène') && list.includes('Kentin'), 'actifs présents');
   assert(!list.includes('Camille Test'), 'désactivé absent');
+});
+
+test('Smoke test : 4 lignes vertes contre faux backend (WF21 GET, WF19 POST/GET, WF18 404)', async () => {
+  // On doit être dans Réglages pour que le bouton existe.
+  win.setView('settings');
+  await sleep(20);
+  // Pré-remplit les champs UI (la fonction lit depuis le DOM).
+  doc.getElementById('cfgWebhookBase').value = 'http://wh.local/webhook';
+  doc.getElementById('cfgWebhookSecret').value = SECRET;
+  await win.symbSmokeTest();
+  await sleep(50);
+  const html = doc.getElementById('smokeReport').innerHTML;
+  // 4 lignes ✓ + 1 ligne bilan = 5 ✓ au total
+  const okCount = (html.match(/✓/g) || []).length;
+  assert(okCount >= 5, 'au moins 5 ✓ (4 webhooks + bilan), trouvé: ' + okCount + '\nhtml: ' + html.slice(0, 600));
+  assert(/WF21 GET/.test(html), 'WF21 GET ligne présente');
+  assert(/WF19 POST/.test(html), 'WF19 POST ligne présente');
+  assert(/WF19 GET/.test(html), 'WF19 GET ligne présente');
+  assert(/WF18 POST/.test(html), 'WF18 POST ligne présente');
+  assert(/Bilan : 4\/4/.test(html), 'bilan 4/4');
+});
+
+test('Smoke test : sans secret → message d\'erreur clair', async () => {
+  doc.getElementById('cfgWebhookSecret').value = '';
+  doc.getElementById('cfgWebhookBase').value = '';
+  doc.getElementById('smokeReport').innerHTML = '';
+  await win.symbSmokeTest();
+  await sleep(20);
+  const html = doc.getElementById('smokeReport').innerHTML;
+  assert(/Renseigne URL et secret/.test(html), 'message manque renseigne');
+});
+
+test('Smoke test : secret faux → ✗ 401 explicite sur WF21', async () => {
+  doc.getElementById('cfgWebhookBase').value = 'http://wh.local/webhook';
+  doc.getElementById('cfgWebhookSecret').value = 'wrong-secret';
+  doc.getElementById('smokeReport').innerHTML = '';
+  await win.symbSmokeTest();
+  await sleep(50);
+  const html = doc.getElementById('smokeReport').innerHTML;
+  assert(/401/.test(html), '401 mentionné');
+  assert(/secret invalide/.test(html), 'message explicite "secret invalide"');
+  // Remet le bon secret pour ne pas pourrir les tests suivants.
+  doc.getElementById('cfgWebhookSecret').value = SECRET;
 });
 
 test('Auth header envoyé sur tous les fetch webhook', async () => {

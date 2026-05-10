@@ -456,7 +456,9 @@
         </div>
         <div style="height:8px"></div>
         <button class="btn ghost" onclick="symbTestWebhook()">Tester la connexion</button>
+        <button class="btn" onclick="symbSmokeTest()" style="margin-left:6px">Smoke test complet</button>
         <span id="webhookStatus" class="muted" style="margin-left:8px"></span>
+        <div id="smokeReport" class="stack" style="margin-top:10px"></div>
       </div>
 
       <div class="card" style="margin-bottom:12px">
@@ -1450,6 +1452,87 @@ async function symbTestWebhook(){
     if (!r.ok) { el.textContent = 'HTTP ' + r.status; return; }
     el.textContent = 'OK · webhook joignable.';
   } catch (e) { el.textContent = 'Erreur réseau : ' + e.message; }
+}
+
+// Smoke test V8.1 : exerce les 3 webhooks (WF21 GET, WF19 POST/GET, WF18 POST 404 attendu)
+// pour valider la chaîne complète depuis Safari iPad sans terminal.
+async function symbSmokeTest(){
+  const report = $('smokeReport');
+  const baseUrl = ($('cfgWebhookBase').value || '').trim().replace(/\/+$/,'');
+  const secret = $('cfgWebhookSecret').value;
+  if (!baseUrl || !secret) { report.innerHTML = '<div class="muted">Renseigne URL et secret avant le smoke test.</div>'; return; }
+  const lines = [];
+  function render() {
+    report.innerHTML = lines.map(l =>
+      `<div class="row" style="gap:8px"><span style="min-width:18px">${l.icon}</span><strong style="min-width:140px">${esc(l.label)}</strong><span class="muted">${esc(l.detail||'')}</span></div>`
+    ).join('');
+  }
+  function add(label, status, detail){
+    lines.push({ icon: status==='ok'?'✓':status==='fail'?'✗':'…', label, detail });
+    render();
+  }
+  async function call(method, pathAndQuery, body){
+    try {
+      const opts = { method, headers: { 'x-symbalyx-token': secret } };
+      if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+      const r = await fetch(baseUrl + pathAndQuery, opts);
+      const j = await r.json().catch(()=>({}));
+      return { status: r.status, json: j, ok: r.ok };
+    } catch (e) { return { status: 0, json: { error: e.message }, ok: false }; }
+  }
+  lines.length = 0; report.innerHTML = '<div class="muted">Smoke test en cours…</div>';
+
+  // 1. WF21 GET /team-members?active_only=1
+  {
+    const r = await call('GET', '/symbalyx-team-members?active_only=1');
+    if (r.status === 200 && r.json.ok) add('WF21 GET /team-members', 'ok', `200 OK · ${r.json.count} membre(s) actif(s)`);
+    else if (r.status === 401) add('WF21 GET /team-members', 'fail', '401 — secret invalide ou différent côté n8n');
+    else if (r.status === 0) add('WF21 GET /team-members', 'fail', 'réseau/CORS — vérifie l\'URL et que le workflow est activé');
+    else add('WF21 GET /team-members', 'fail', `${r.status} — ${r.json.error || 'webhook injoignable ou onglet team_members absent'}`);
+  }
+
+  // 2. WF19 POST /comments (item_id factice)
+  const probeId = '__smoke_' + Date.now();
+  {
+    const r = await call('POST', '/symbalyx-comments', {
+      item_type: 'bcl', item_id: probeId,
+      author: STATE.cfg.identity?.name || 'Smoke',
+      author_id: STATE.cfg.identity?.id || '',
+      body: 'Smoke test depuis CRM (à supprimer)'
+    });
+    if (r.status === 200 && r.json.ok) add('WF19 POST /comments', 'ok', `200 OK · ${r.json.comment?.id || 'créé'}`);
+    else if (r.status === 401) add('WF19 POST /comments', 'fail', '401 — secret invalide');
+    else add('WF19 POST /comments', 'fail', `${r.status} — ${r.json.error || 'check workflow + onglet team_comments'}`);
+  }
+
+  // 3. WF19 GET /comments?item_id=probeId — doit retrouver celui qu'on vient de poster
+  {
+    const r = await call('GET', `/symbalyx-comments?item_type=bcl&item_id=${encodeURIComponent(probeId)}`);
+    if (r.status === 200 && r.json.ok) add('WF19 GET /comments', 'ok', `200 OK · ${r.json.count} récupéré(s)`);
+    else add('WF19 GET /comments', 'fail', `${r.status} — ${r.json.error || 'lecture impossible'}`);
+  }
+
+  // 4. WF18 POST /decision avec un bcl_id factice → on attend 404 "bcl_id not found".
+  // Si on reçoit 404 + ok:false avec ce message, c'est que tout fonctionne (auth OK + workflow lit BCL).
+  {
+    const r = await call('POST', '/symbalyx-decision', {
+      bcl_id: '__smoke_nonexistent__',
+      decision: 'approved',
+      decided_by: STATE.cfg.identity?.name || 'Smoke',
+      decider_id: STATE.cfg.identity?.id || '',
+      reason: 'smoke test'
+    });
+    if (r.status === 404 && r.json && r.json.ok === false) add('WF18 POST /decision', 'ok', '404 attendu · webhook répond et lit business_control');
+    else if (r.status === 200) add('WF18 POST /decision', 'fail', '200 inattendu — un bcl_id "__smoke_nonexistent__" existe vraiment ?');
+    else if (r.status === 401) add('WF18 POST /decision', 'fail', '401 — secret invalide');
+    else if (r.status === 0) add('WF18 POST /decision', 'fail', 'réseau/CORS — vérifie l\'URL et que WF18 est activé');
+    else add('WF18 POST /decision', 'fail', `${r.status} — ${r.json.error || 'workflow inactif ou onglet business_control absent'}`);
+  }
+
+  // Résumé
+  const okCount = lines.filter(l => l.icon === '✓').length;
+  const total = lines.length;
+  add(`Bilan : ${okCount}/${total}`, okCount === total ? 'ok' : 'fail', okCount === total ? 'tu es en prod' : 'voir détails ci-dessus');
 }
 function symbExportCSV(){
   const d = STATE.data || {}; const rows = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending');
