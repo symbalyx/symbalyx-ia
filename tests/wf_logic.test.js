@@ -274,6 +274,47 @@ test('WF21 PATCH: id manquant → 400', () => {
   assertEq(out[0].json._ok, false);
 });
 
+test('WF21 PATCH merge: PATCH partiel { is_active:false } préserve name/email/role', () => {
+  // Régression du bug critique : avant ce fix, defineBelow + expressions sur des champs
+  // absents écrivait "" et effaçait les autres colonnes.
+  const node = nodeByName(wf21, 'Merge patch with existing');
+  const existing = { id: 'tm_arsene', name: 'Arsène', email: 'a@s.local', role: 'founder', initials: 'AR', color: '#3a86ff', is_active: 'TRUE', created_at: '2026-01-01T00:00:00Z' };
+  const out = runCodeNode(node.parameters.jsCode, {
+    items: [{ json: existing }],
+    upstream: { 'Auth & build PATCH': { id: 'tm_arsene', patch: { is_active: false } } }
+  });
+  const m = out[0].json;
+  assertEq(m.name, 'Arsène', 'name preserved');
+  assertEq(m.email, 'a@s.local', 'email preserved');
+  assertEq(m.role, 'founder', 'role preserved');
+  assertEq(m.initials, 'AR', 'initials preserved');
+  assertEq(m.color, '#3a86ff', 'color preserved');
+  assertEq(m.is_active, false, 'is_active applied from patch');
+});
+
+test('WF21 PATCH merge: PATCH { role:\"admin\" } change le rôle, garde le reste', () => {
+  const node = nodeByName(wf21, 'Merge patch with existing');
+  const existing = { id: 'tm_kentin', name: 'Kentin', email: 'k@s.local', role: 'admin', initials: 'KE', color: '#ff8c42', is_active: 'TRUE' };
+  const out = runCodeNode(node.parameters.jsCode, {
+    items: [{ json: existing }],
+    upstream: { 'Auth & build PATCH': { id: 'tm_kentin', patch: { role: 'sales' } } }
+  });
+  const m = out[0].json;
+  assertEq(m.role, 'sales');
+  assertEq(m.name, 'Kentin');
+  assertEq(m.is_active, true, 'is_active normalized from TRUE string');
+});
+
+test('WF21 PATCH merge: id introuvable → _ok=false 404', () => {
+  const node = nodeByName(wf21, 'Merge patch with existing');
+  const out = runCodeNode(node.parameters.jsCode, {
+    items: [{ json: { id: 'tm_other' } }],
+    upstream: { 'Auth & build PATCH': { id: 'tm_unknown', patch: { is_active: false } } }
+  });
+  assertEq(out[0].json._ok, false);
+  assertEq(out[0].json._status, 404);
+});
+
 test('WF21 GET active_only filtre les inactifs', () => {
   const auth = nodeByName(wf21, 'Auth GET');
   const filt = nodeByName(wf21, 'Filter active');
@@ -292,6 +333,123 @@ test('WF21 GET active_only filtre les inactifs', () => {
   assertEq(out[0].json.count, 1);
   assertEq(out[0].json.members[0].name, 'Arsène');
   assertEq(out[0].json.members[0].is_active, true, 'normalized to bool');
+});
+
+// ==================== WF22 outcome reconciliation ====================
+const wf22 = loadWf('22_outcome_reconciliation.json');
+
+function runWf22Compute(memDec, review, projects) {
+  const node = nodeByName(wf22, 'Compute outcomes');
+  // WF22 utilise $('NodeName').all() — adaptons le runner.
+  // On bricole un wrapper qui expose .all() en plus de .first().
+  const fn = new Function('items', '$json', '$env', '$', `${node.parameters.jsCode}`);
+  const $json = (memDec[0] || {}).json || {};
+  const $env = {};
+  function $(name){
+    const map = { 'Read memory_decisions': memDec, 'Read review_queue': review, 'Read project_queue': projects };
+    if (!(name in map)) throw new Error('upstream not provided: ' + name);
+    return { all: () => map[name], first: () => map[name][0] };
+  }
+  return fn(memDec, $json, $env, $);
+}
+
+test('WF22: skip décisions < 7 jours (too_recent)', () => {
+  const recent = { id: 'dec_1', ts: new Date(Date.now() - 3*86400e3).toISOString(), decision: 'approved', item_type: 'prospect', item_id: 'p_1', outcome: '' };
+  const out = runWf22Compute([{ json: recent }], [{ json: { id: 'p_1', reply_category: 'interested' } }], []);
+  const stats = out.find(x => x.json._stats).json;
+  assertEq(stats.too_recent, 1);
+  assertEq(stats.computed, 0, 'aucun calcul');
+});
+
+test('WF22: prospect interested après 8j → reply_received', () => {
+  const old = { id: 'dec_2', ts: new Date(Date.now() - 8*86400e3).toISOString(), decision: 'approved', item_type: 'prospect', item_id: 'p_2', outcome: '' };
+  const out = runWf22Compute([{ json: old }], [{ json: { id: 'p_2', reply_category: 'interested' } }], []);
+  const upd = out.filter(x => !x.json._stats);
+  assertEq(upd.length, 1);
+  assertEq(upd[0].json.id, 'dec_2');
+  assertEq(upd[0].json.outcome, 'reply_received');
+  assert(/T\d/.test(upd[0].json.outcome_observed_at), 'iso ts');
+});
+
+test('WF22: prospect not_interested → rejected_by_prospect', () => {
+  const d = { id: 'dec_3', ts: new Date(Date.now() - 10*86400e3).toISOString(), decision: 'approved', item_type: 'prospect', item_id: 'p_3', outcome: '' };
+  const out = runWf22Compute([{ json: d }], [{ json: { id: 'p_3', reply_category: 'not_interested' } }], []);
+  const upd = out.filter(x => !x.json._stats);
+  assertEq(upd[0].json.outcome, 'rejected_by_prospect');
+});
+
+test('WF22: prospect sans reply après 30j → no_reply', () => {
+  const d = { id: 'dec_4', ts: new Date(Date.now() - 35*86400e3).toISOString(), decision: 'approved', item_type: 'prospect', item_id: 'p_4', outcome: '' };
+  const out = runWf22Compute([{ json: d }], [{ json: { id: 'p_4', reply_category: '' } }], []);
+  const upd = out.filter(x => !x.json._stats);
+  assertEq(upd[0].json.outcome, 'no_reply');
+});
+
+test('WF22: prospect sans reply à 10j → undecided_yet (skip)', () => {
+  const d = { id: 'dec_5', ts: new Date(Date.now() - 10*86400e3).toISOString(), decision: 'approved', item_type: 'prospect', item_id: 'p_5', outcome: '' };
+  const out = runWf22Compute([{ json: d }], [{ json: { id: 'p_5', reply_category: '' } }], []);
+  const upd = out.filter(x => !x.json._stats);
+  assertEq(upd.length, 0);
+  const stats = out.find(x => x.json._stats).json;
+  assertEq(stats.undecided_yet, 1);
+});
+
+test('WF22: project delivered → delivered', () => {
+  const d = { id: 'dec_6', ts: new Date(Date.now() - 15*86400e3).toISOString(), decision: 'approved', item_type: 'project', item_id: 'pr_1', outcome: '' };
+  const out = runWf22Compute([{ json: d }], [], [{ json: { id: 'pr_1', status: 'delivered' } }]);
+  const upd = out.filter(x => !x.json._stats);
+  assertEq(upd[0].json.outcome, 'delivered');
+});
+
+test('WF22: project blocked > 30j → stuck', () => {
+  const d = { id: 'dec_7', ts: new Date(Date.now() - 40*86400e3).toISOString(), decision: 'approved', item_type: 'project', item_id: 'pr_2', outcome: '' };
+  const out = runWf22Compute([{ json: d }], [], [{ json: { id: 'pr_2', status: 'blocked' } }]);
+  const upd = out.filter(x => !x.json._stats);
+  assertEq(upd[0].json.outcome, 'stuck');
+});
+
+test('WF22: décision rejected → not_approved skip (pas observée)', () => {
+  const d = { id: 'dec_8', ts: new Date(Date.now() - 30*86400e3).toISOString(), decision: 'rejected', item_type: 'prospect', item_id: 'p_8', outcome: '' };
+  const out = runWf22Compute([{ json: d }], [{ json: { id: 'p_8', reply_category: 'interested' } }], []);
+  const upd = out.filter(x => !x.json._stats);
+  assertEq(upd.length, 0);
+  const stats = out.find(x => x.json._stats).json;
+  assertEq(stats.not_approved, 1);
+});
+
+test('WF22: outcome déjà rempli → already_set skip (idempotent)', () => {
+  const d = { id: 'dec_9', ts: new Date(Date.now() - 30*86400e3).toISOString(), decision: 'approved', item_type: 'prospect', item_id: 'p_9', outcome: 'reply_received' };
+  const out = runWf22Compute([{ json: d }], [{ json: { id: 'p_9', reply_category: 'interested' } }], []);
+  const upd = out.filter(x => !x.json._stats);
+  assertEq(upd.length, 0);
+  const stats = out.find(x => x.json._stats).json;
+  assertEq(stats.already_set, 1);
+});
+
+test('WF22: item_id absent dans review_queue → no_match', () => {
+  const d = { id: 'dec_10', ts: new Date(Date.now() - 30*86400e3).toISOString(), decision: 'approved', item_type: 'prospect', item_id: 'p_unknown', outcome: '' };
+  const out = runWf22Compute([{ json: d }], [{ json: { id: 'p_other', reply_category: 'interested' } }], []);
+  const stats = out.find(x => x.json._stats).json;
+  assertEq(stats.no_match, 1);
+});
+
+test('WF22: item_type non supporté (finance_light) → unsupported_type', () => {
+  const d = { id: 'dec_11', ts: new Date(Date.now() - 30*86400e3).toISOString(), decision: 'approved', item_type: 'finance_light', item_id: 'INV_1', outcome: '' };
+  const out = runWf22Compute([{ json: d }], [], []);
+  const stats = out.find(x => x.json._stats).json;
+  assertEq(stats.unsupported_type, 1);
+});
+
+test('WF22: cap 50 outcomes par run', () => {
+  // 60 prospects all interested, tous > 7j
+  const memDec = Array.from({length: 60}, (_, i) => ({ json: {
+    id: 'dec_x' + i, ts: new Date(Date.now() - 8*86400e3).toISOString(),
+    decision: 'approved', item_type: 'prospect', item_id: 'p_x' + i, outcome: ''
+  }}));
+  const review = Array.from({length: 60}, (_, i) => ({ json: { id: 'p_x' + i, reply_category: 'interested' } }));
+  const out = runWf22Compute(memDec, review, []);
+  const upd = out.filter(x => !x.json._stats);
+  assertEq(upd.length, 50, 'cappé à 50');
 });
 
 // ==================== Run ====================

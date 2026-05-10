@@ -405,6 +405,21 @@ test('Logout + login en tant que Kentin → identité change, payloads aussi', a
   assertEq(cmt.body.author_id, 'tm_kentin');
 });
 
+test('Modale détail BCL post-décision : affiche decided_by + decided_at, masque Approuver/Rejeter', async () => {
+  // bcl_42 a été approuvée par Arsène plus tôt (test précédent), bcl_99 rejetée par Kentin.
+  win.symbOpenDetail('bcl', 'bcl_42');
+  await sleep(20);
+  const html42 = doc.getElementById('detailContent').innerHTML;
+  assert(/approved/i.test(html42), 'badge "approved" présent');
+  assert(/par <strong>Arsène<\/strong>/.test(html42), 'decided_by Arsène affiché');
+  assert(!/Approuver<\/button>/.test(html42), 'bouton Approuver absent');
+  assert(!/>Rejeter</.test(html42), 'bouton Rejeter absent');
+  win.symbOpenDetail('bcl', 'bcl_99');
+  await sleep(20);
+  const html99 = doc.getElementById('detailContent').innerHTML;
+  assert(/par <strong>Kentin<\/strong>/.test(html99), 'decided_by Kentin affiché');
+});
+
 test('Filtre "À moi" dans Décisions matche par identité courante', async () => {
   // Kentin courant. Le mock contient bcl_3 assigné à Kentin (pending), les autres BCL
   // pending sont assignés à Arsène. "À moi" doit garder Kentin et exclure Arsène.

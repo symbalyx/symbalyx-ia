@@ -215,49 +215,76 @@
       "parameters": {
         "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
         "sheetName": {"__rl": true, "value": "team_members", "mode": "name"},
+        "options": {}
+      },
+      "id": "21100014-0000-0000-0000-000000000014",
+      "name": "Read team_members (PATCH)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [840, 700],
+      "notes": "Lit l'état actuel pour merger avec le patch — évite d'écraser les colonnes non renseignées."
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge patch + ligne existante. Sans ça, defineBelow + expressions sur des champs\n// absents écrirait '' dans Sheets et effacerait les colonnes.\nconst inp = $('Auth & build PATCH').first().json;\nconst rows = items.map(i => i.json);\nconst row = rows.find(r => String(r.id) === String(inp.id));\nif (!row) {\n  return [{ json: { _ok: false, _status: 404, _error: 'team_member not found: ' + inp.id } }];\n}\nconst toBool = v => v === true || String(v).toLowerCase() === 'true' || String(v) === '1';\nconst merged = {\n  id: row.id,\n  name: inp.patch.name !== undefined ? inp.patch.name : (row.name || ''),\n  email: inp.patch.email !== undefined ? inp.patch.email : (row.email || ''),\n  role: inp.patch.role !== undefined ? inp.patch.role : (row.role || 'member'),\n  initials: inp.patch.initials !== undefined ? inp.patch.initials : (row.initials || ''),\n  color: inp.patch.color !== undefined ? inp.patch.color : (row.color || ''),\n  is_active: inp.patch.is_active !== undefined ? !!inp.patch.is_active : toBool(row.is_active),\n  created_at: row.created_at || ''\n};\nreturn [{ json: merged }];"
+      },
+      "id": "21100015-0000-0000-0000-000000000015",
+      "name": "Merge patch with existing",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1060, 700]
+    },
+    {
+      "parameters": {
+        "conditions": {"options": {"caseSensitive": false, "typeValidation": "loose"}, "conditions": [
+          {"id": "found", "leftValue": "={{ $json._ok }}", "rightValue": false, "operator": {"type": "boolean", "operation": "notEquals"}}
+        ], "combinator": "and"},
+        "options": {}
+      },
+      "id": "21100016-0000-0000-0000-000000000016",
+      "name": "If row found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1280, 700]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json._error || 'not found' }) }}",
+        "options": {"responseCode": "={{ $json._status || 404 }}"}
+      },
+      "id": "21100017-0000-0000-0000-000000000017",
+      "name": "Respond 404 (PATCH)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1500, 880]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "team_members", "mode": "name"},
         "operation": "update",
-        "columns": {
-          "mappingMode": "defineBelow",
-          "value": {
-            "id": "={{ $json.id }}",
-            "name": "={{ $json.patch.name }}",
-            "email": "={{ $json.patch.email }}",
-            "role": "={{ $json.patch.role }}",
-            "initials": "={{ $json.patch.initials }}",
-            "color": "={{ $json.patch.color }}",
-            "is_active": "={{ $json.patch.is_active }}"
-          },
-          "matchingColumns": ["id"],
-          "schema": [
-            {"id": "id", "displayName": "id", "required": true, "defaultMatch": true, "display": true, "canBeUsedToMatch": true, "type": "string"},
-            {"id": "name", "displayName": "name", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
-            {"id": "email", "displayName": "email", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
-            {"id": "role", "displayName": "role", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
-            {"id": "initials", "displayName": "initials", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
-            {"id": "color", "displayName": "color", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"},
-            {"id": "is_active", "displayName": "is_active", "required": false, "defaultMatch": false, "display": true, "canBeUsedToMatch": false, "type": "string"}
-          ]
-        },
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": ["id"], "schema": []},
         "options": {}
       },
       "id": "21100012-0000-0000-0000-000000000012",
       "name": "Update team_members",
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4,
-      "position": [840, 800],
-      "notes": "Les colonnes du patch absentes sont ignorées par n8n quand la valeur est undefined."
+      "position": [1500, 700],
+      "notes": "autoMapInputData : l'objet mergé (Code 'Merge patch with existing') porte toutes les colonnes."
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ ok: true, id: $('Auth & build PATCH').first().json.id, patch: $('Auth & build PATCH').first().json.patch }) }}",
+        "responseBody": "={{ JSON.stringify({ ok: true, id: $('Auth & build PATCH').first().json.id, member: $json }) }}",
         "options": {"responseCode": 200}
       },
       "id": "21100013-0000-0000-0000-000000000013",
       "name": "Respond 200 (PATCH)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
-      "position": [1060, 800]
+      "position": [1720, 700]
     }
   ],
   "connections": {
@@ -281,8 +308,16 @@
     },
     "If PATCH ok?": {
       "main": [
-        [{"node": "Update team_members", "type": "main", "index": 0}],
+        [{"node": "Read team_members (PATCH)", "type": "main", "index": 0}],
         [{"node": "Respond 4xx (PATCH)", "type": "main", "index": 0}]
+      ]
+    },
+    "Read team_members (PATCH)": { "main": [[{"node": "Merge patch with existing", "type": "main", "index": 0}]] },
+    "Merge patch with existing": { "main": [[{"node": "If row found?", "type": "main", "index": 0}]] },
+    "If row found?": {
+      "main": [
+        [{"node": "Update team_members", "type": "main", "index": 0}],
+        [{"node": "Respond 404 (PATCH)", "type": "main", "index": 0}]
       ]
     },
     "Read team_members (GET)": { "main": [[{"node": "Filter active", "type": "main", "index": 0}]] },

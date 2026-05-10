@@ -18,6 +18,11 @@
   - **WF18 Decision Executor** : webhook `POST /webhook/symbalyx-decision`. Reçoit `{bcl_id, decision, decided_by, decider_id?, reason?}`, met à jour `business_control` (decision_status, decided_by, decider_id, decided_at), écrit dans `memory_decisions` (avec `ai_initial_priority` capturée + decider_id), route l'action approuvée (`follow_up_24h` → flag `human_decision=approved` dans review_queue pour que WF2 crée le draft Gmail ; `quote` → log pour WF5 ; `reminder_*` → log pour WF14 ; rejected/snoozed/abandoned → noop).
   - **WF19 Team Sync** : 2 webhooks (`POST /webhook/symbalyx-comments`, `GET /webhook/symbalyx-comments?item_type=…&item_id=…`). Permet à l'équipe de partager des commentaires sur n'importe quel item BCL/prospect/projet/facture, persistés dans la sheet `team_comments` (avec `author_id` lié à `team_members`).
   - **Auth** : header `x-symbalyx-token`, secret `SYMBALYX_WEBHOOK_SECRET` (env n8n) à recopier dans le CRM (Réglages).
+- **Boucle d'apprentissage (V8.1)** :
+  - **WF22 Outcome Reconciliation** : cron quotidien (3h matin) qui rapproche `memory_decisions` (decision=approved) avec `review_queue` / `project_queue` pour remplir `outcome` + `outcome_observed_at`. Mappings : prospect interested/needs_quote → `reply_received` ; not_interested/opt_out → `rejected_by_prospect` ; pas de reply après 30j → `no_reply` ; project delivered → `delivered` ; abandoned → `abandoned` ; blocked >30j → `stuck`. Idempotent (skip outcome déjà rempli), capé à 50 par run, kill switch + log.
+  - **Fix critique WF21 PATCH** : ajout d'un node `Read team_members (PATCH)` + `Merge patch with existing` avant `Update`. Évite l'effacement des colonnes non renseignées lors d'un PATCH partiel (cas du bouton Désactiver qui n'envoie que `{id, is_active:false}`).
+  - **CRM** : la modale détail BCL affiche désormais `decided_by` + `decided_at` quand la décision est prise, et masque les boutons Approuver/Rejeter pour éviter une double action.
+
 - **Multi-utilisateurs / équipe (V8)** :
   - **Référentiel `team_members`** (sheet + Supabase) : id, name, email, role (founder/admin/sales/dev/viewer/member), initials, color, is_active, created_at.
   - **WF21 Team Members CRUD** : webhooks `GET/POST/PATCH /webhook/symbalyx-team-members` avec auth header. Liste, ajout, activation/désactivation. Validation : nom requis, email format, rôle dans l'enum, color hex.
@@ -43,6 +48,7 @@
    - `04_reply_classifier.json` → `REPLACE_WITH_WF5_ID`
    - `09_weekly_summary.json` → `REPLACE_WITH_WF7_ID`, `REPLACE_WITH_WF8_ID`
    - `18_decision_executor.json` → `REPLACE_WITH_WF00_ID` (sub-workflow kill switch)
+   - `22_outcome_reconciliation.json` → `REPLACE_WITH_WF00_ID` (kill switch)
 4. **Onglets Google Sheets** à créer — headers dans `n8n/schemas/`. **Nouveaux V7/V8** :
    - `team_comments` (id, ts, item_type, item_id, author, author_id, body, resolved, parent_id)
    - `team_members` (id, name, email, role, initials, color, is_active, created_at)
