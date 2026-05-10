@@ -1,0 +1,354 @@
+{
+  "name": "Symbalyx — WF20 Finance Manager",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "symbalyx-finance",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "20100001-0000-0000-0000-000000000001",
+      "name": "Webhook POST /finance",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 200],
+      "webhookId": "symbalyx-finance-post",
+      "notes": "POST /webhook/symbalyx-finance  body: { kind, row | (id+patch) }  kind ∈ ledger | wishlist | patch_ledger | patch_wishlist  header: x-symbalyx-token"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "symbalyx-finance",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "20100002-0000-0000-0000-000000000002",
+      "name": "Webhook GET /finance",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 700],
+      "webhookId": "symbalyx-finance-get",
+      "notes": "GET /webhook/symbalyx-finance?month=YYYY-MM  Renvoie l'état financier calculé (balance, runway, ...)"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auth POST + validation par kind.\nconst h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) return [{ json: { _ok:false, _status:500, _error:'SYMBALYX_WEBHOOK_SECRET not configured' } }];\nif (token !== expected) return [{ json: { _ok:false, _status:401, _error:'invalid_token' } }];\nconst b = $json.body || {};\nconst kind = String(b.kind || '').trim().toLowerCase();\nconst KINDS = ['ledger','wishlist','patch_ledger','patch_wishlist'];\nif (!KINDS.includes(kind)) return [{ json: { _ok:false, _status:400, _error:'invalid kind' } }];\n\nif (kind === 'ledger') {\n  const r = b.row || {};\n  const TYPES = ['income','expense'];\n  const STATUSES = ['pending','done'];\n  if (!TYPES.includes(String(r.type||'').toLowerCase())) return [{ json: { _ok:false, _status:400, _error:'invalid type' } }];\n  const amt = Number(r.amount); if (!isFinite(amt) || amt <= 0) return [{ json: { _ok:false, _status:400, _error:'invalid amount' } }];\n  if (!STATUSES.includes(String(r.status||'pending').toLowerCase())) return [{ json: { _ok:false, _status:400, _error:'invalid status' } }];\n  if (!String(r.description||'').trim()) return [{ json: { _ok:false, _status:400, _error:'missing description' } }];\n  return [{ json: { _ok:true, kind, row: {\n    id: String(r.id || ('fin_'+Date.now())),\n    ts: String(r.ts || new Date().toISOString()),\n    type: String(r.type).toLowerCase(),\n    amount: amt,\n    currency: String(r.currency || 'EUR'),\n    category: String(r.category || 'other').toLowerCase(),\n    description: String(r.description),\n    status: String(r.status || 'pending').toLowerCase(),\n    due_date: String(r.due_date || ''),\n    paid_at: String(r.paid_at || ''),\n    created_by: String(r.created_by || ''),\n    created_by_id: String(r.created_by_id || ''),\n    decided_at: String(r.decided_at || ''),\n    vendor: String(r.vendor || ''),\n    invoice_ref: String(r.invoice_ref || ''),\n    notes: String(r.notes || '')\n  } } }];\n}\n\nif (kind === 'wishlist') {\n  const r = b.row || {};\n  if (!String(r.item || '').trim()) return [{ json: { _ok:false, _status:400, _error:'missing item' } }];\n  const price = Number(r.price_estimate); if (!isFinite(price) || price < 0) return [{ json: { _ok:false, _status:400, _error:'invalid price' } }];\n  return [{ json: { _ok:true, kind, row: {\n    id: String(r.id || ('wl_'+Date.now())),\n    ts: String(r.ts || new Date().toISOString()),\n    item: String(r.item),\n    category: String(r.category || 'other').toLowerCase(),\n    price_estimate: price,\n    priority: String(r.priority || 'medium').toLowerCase(),\n    justification: String(r.justification || ''),\n    recommended_by: String(r.recommended_by || ''),\n    recommended_by_id: String(r.recommended_by_id || ''),\n    decided: String(r.decided || 'pending').toLowerCase(),\n    decided_at: String(r.decided_at || ''),\n    decided_by: String(r.decided_by || ''),\n    decided_by_id: String(r.decided_by_id || ''),\n    linked_ledger_id: String(r.linked_ledger_id || ''),\n    notes: String(r.notes || '')\n  } } }];\n}\n\n// patch_ledger / patch_wishlist\nconst id = String(b.id || '').trim();\nif (!id) return [{ json: { _ok:false, _status:400, _error:'missing id' } }];\nconst patch = b.patch || {};\nreturn [{ json: { _ok:true, kind, id, patch } }];"
+      },
+      "id": "20100003-0000-0000-0000-000000000003",
+      "name": "Auth & validate POST",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{ $json._ok }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }
+          ]
+        }
+      },
+      "id": "20100004-0000-0000-0000-000000000004",
+      "name": "POST OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [600, 200]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            { "outputKey": "ledger",         "conditions": { "options": { "caseSensitive": false, "typeValidation": "loose" }, "conditions": [ { "leftValue": "={{ $json.kind }}", "rightValue": "ledger",         "operator": { "type": "string", "operation": "equals" } } ] } },
+            { "outputKey": "wishlist",       "conditions": { "options": { "caseSensitive": false, "typeValidation": "loose" }, "conditions": [ { "leftValue": "={{ $json.kind }}", "rightValue": "wishlist",       "operator": { "type": "string", "operation": "equals" } } ] } },
+            { "outputKey": "patch_ledger",   "conditions": { "options": { "caseSensitive": false, "typeValidation": "loose" }, "conditions": [ { "leftValue": "={{ $json.kind }}", "rightValue": "patch_ledger",   "operator": { "type": "string", "operation": "equals" } } ] } },
+            { "outputKey": "patch_wishlist", "conditions": { "options": { "caseSensitive": false, "typeValidation": "loose" }, "conditions": [ { "leftValue": "={{ $json.kind }}", "rightValue": "patch_wishlist", "operator": { "type": "string", "operation": "equals" } } ] } }
+          ]
+        },
+        "options": {}
+      },
+      "id": "20100005-0000-0000-0000-000000000005",
+      "name": "Switch by kind",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [800, 100]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "finance_ledger", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": "={{ $json.row }}",
+          "matchingColumns": ["id"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "20100006-0000-0000-0000-000000000006",
+      "name": "Append finance_ledger",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "wishlist", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": "={{ $json.row }}",
+          "matchingColumns": ["id"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "20100007-0000-0000-0000-000000000007",
+      "name": "Append wishlist",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1100, 130]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "finance_ledger", "mode": "name" },
+        "options": {}
+      },
+      "id": "20100008-0000-0000-0000-000000000008",
+      "name": "Read finance_ledger (PATCH)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1100, 260]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Merge patch into existing row, return one item (full row) for Update.\nconst inp = $('Auth & validate POST').first().json;\nconst rows = $input.all().map(i => i.json);\nconst row = rows.find(r => String(r.id) === String(inp.id));\nif (!row) return [{ json: { _ok:false, _status:404, _error:'ledger row not found' } }];\nconst p = inp.patch || {};\nconst merged = {\n  id: row.id,\n  ts: row.ts || '',\n  type: p.type !== undefined ? p.type : (row.type || ''),\n  amount: p.amount !== undefined ? p.amount : (row.amount || 0),\n  currency: p.currency !== undefined ? p.currency : (row.currency || 'EUR'),\n  category: p.category !== undefined ? p.category : (row.category || ''),\n  description: p.description !== undefined ? p.description : (row.description || ''),\n  status: p.status !== undefined ? p.status : (row.status || 'pending'),\n  due_date: p.due_date !== undefined ? p.due_date : (row.due_date || ''),\n  paid_at: p.paid_at !== undefined ? p.paid_at : (row.paid_at || ''),\n  created_by: row.created_by || '',\n  created_by_id: row.created_by_id || '',\n  decided_at: p.decided_at !== undefined ? p.decided_at : (row.decided_at || ''),\n  vendor: p.vendor !== undefined ? p.vendor : (row.vendor || ''),\n  invoice_ref: p.invoice_ref !== undefined ? p.invoice_ref : (row.invoice_ref || ''),\n  notes: p.notes !== undefined ? p.notes : (row.notes || '')\n};\nreturn [{ json: { _ok:true, merged } }];"
+      },
+      "id": "20100009-0000-0000-0000-000000000009",
+      "name": "Merge ledger patch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 260]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "finance_ledger", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": "={{ $json.merged }}",
+          "matchingColumns": ["id"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "20100010-0000-0000-0000-000000000010",
+      "name": "Update finance_ledger",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1500, 260]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "wishlist", "mode": "name" },
+        "options": {}
+      },
+      "id": "20100011-0000-0000-0000-000000000011",
+      "name": "Read wishlist (PATCH)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1100, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $('Auth & validate POST').first().json;\nconst rows = $input.all().map(i => i.json);\nconst row = rows.find(r => String(r.id) === String(inp.id));\nif (!row) return [{ json: { _ok:false, _status:404, _error:'wishlist row not found' } }];\nconst p = inp.patch || {};\nconst merged = {\n  id: row.id,\n  ts: row.ts || '',\n  item: p.item !== undefined ? p.item : (row.item || ''),\n  category: p.category !== undefined ? p.category : (row.category || ''),\n  price_estimate: p.price_estimate !== undefined ? p.price_estimate : (row.price_estimate || 0),\n  priority: p.priority !== undefined ? p.priority : (row.priority || 'medium'),\n  justification: p.justification !== undefined ? p.justification : (row.justification || ''),\n  recommended_by: row.recommended_by || '',\n  recommended_by_id: row.recommended_by_id || '',\n  decided: p.decided !== undefined ? p.decided : (row.decided || 'pending'),\n  decided_at: p.decided_at !== undefined ? p.decided_at : (row.decided_at || ''),\n  decided_by: p.decided_by !== undefined ? p.decided_by : (row.decided_by || ''),\n  decided_by_id: p.decided_by_id !== undefined ? p.decided_by_id : (row.decided_by_id || ''),\n  linked_ledger_id: p.linked_ledger_id !== undefined ? p.linked_ledger_id : (row.linked_ledger_id || ''),\n  notes: p.notes !== undefined ? p.notes : (row.notes || '')\n};\nreturn [{ json: { _ok:true, merged } }];"
+      },
+      "id": "20100012-0000-0000-0000-000000000012",
+      "name": "Merge wishlist patch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 400]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "wishlist", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": "={{ $json.merged }}",
+          "matchingColumns": ["id"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "20100013-0000-0000-0000-000000000013",
+      "name": "Update wishlist",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1500, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: true, kind: $json.kind || $('Auth & validate POST').first().json.kind, id: ($json.row && $json.row.id) || $json.id || $('Auth & validate POST').first().json.id || '' } }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "20100014-0000-0000-0000-000000000014",
+      "name": "Respond OK (POST)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1750, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: $json._error || 'invalid', status: $json._status || 400 } }}",
+        "options": { "responseCode": "={{ $json._status || 400 }}" }
+      },
+      "id": "20100015-0000-0000-0000-000000000015",
+      "name": "Respond ERR (POST)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 350]
+    },
+    {
+      "parameters": {
+        "jsCode": "const h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) return [{ json: { _ok:false, _status:500, _error:'SYMBALYX_WEBHOOK_SECRET not configured' } }];\nif (token !== expected) return [{ json: { _ok:false, _status:401, _error:'invalid_token' } }];\nconst q = $json.query || {};\nconst month = String(q.month || new Date().toISOString().slice(0,7));\nreturn [{ json: { _ok:true, month } }];"
+      },
+      "id": "20100016-0000-0000-0000-000000000016",
+      "name": "Auth GET",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 700]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{ $json._ok }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }
+          ]
+        }
+      },
+      "id": "20100017-0000-0000-0000-000000000017",
+      "name": "GET OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [600, 700]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "finance_ledger", "mode": "name" },
+        "options": {}
+      },
+      "id": "20100018-0000-0000-0000-000000000018",
+      "name": "Read finance_ledger (GET)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [800, 650]
+    },
+    {
+      "parameters": {
+        "operation": "read",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "wishlist", "mode": "name" },
+        "options": {}
+      },
+      "id": "20100019-0000-0000-0000-000000000019",
+      "name": "Read wishlist (GET)",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [800, 800]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Calcule l'état financier (balance, runway, recommandation IA) depuis le ledger.\nconst month = $('Auth GET').first().json.month;\nconst ledger = ($('Read finance_ledger (GET)').all() || []).map(i => i.json).filter(r => r && r.id);\nconst wishlist = ($('Read wishlist (GET)').all() || []).map(i => i.json).filter(r => r && r.id);\n\nconst toNum = v => { const n = Number(v); return isFinite(n) ? n : 0; };\nconst lower = s => String(s||'').toLowerCase();\n\nlet balance = 0, monthRev = 0, monthExp = 0, pendingIn = 0, pendingOut = 0;\nconst monthly = {};\nfor (const r of ledger) {\n  const type = lower(r.type), status = lower(r.status), amt = toNum(r.amount);\n  if (status === 'done') {\n    if (type === 'income')  balance += amt; \n    if (type === 'expense') balance -= amt;\n    const ref = String(r.paid_at || r.ts || '').slice(0,7);\n    if (ref === month) {\n      if (type === 'income')  monthRev += amt;\n      if (type === 'expense') monthExp += amt;\n    }\n    if (type === 'expense' && ref) {\n      monthly[ref] = (monthly[ref] || 0) + amt;\n    }\n  } else if (status === 'pending') {\n    if (type === 'income')  pendingIn  += amt;\n    if (type === 'expense') pendingOut += amt;\n  }\n}\nconst recent = Object.keys(monthly).sort().slice(-3);\nconst burn = recent.length ? recent.reduce((s,m) => s + monthly[m], 0) / recent.length : (monthExp || 0);\nconst runway = burn > 0 ? balance / burn : null;\n\n// Recommandation IA simple\nconst tips = [];\nif (runway !== null && runway < 1) tips.push({ kind:'crit', msg:`Runway < 1 mois (${runway.toFixed(1)}). Encaisse ${pendingIn.toFixed(0)}€ en attente avant tout achat.` });\nelse if (runway !== null && runway < 3) tips.push({ kind:'warn', msg:`Runway court (${runway.toFixed(1)} mois). Reporte les achats wishlist non urgents.` });\nelse if (runway !== null && runway > 12 && balance > 5000) tips.push({ kind:'ok', msg:`Trésorerie confortable (${runway.toFixed(0)} mois). Tu peux investir.` });\nif (pendingIn > 0) tips.push({ kind:'info', msg:`${pendingIn.toFixed(0)}€ à encaisser. Relance les factures impayées.` });\nif (monthExp > monthRev && monthRev > 0) tips.push({ kind:'warn', msg:`Ce mois : dépenses (${monthExp.toFixed(0)}€) > revenus (${monthRev.toFixed(0)}€).` });\n\nconst wishPending = wishlist.filter(w => lower(w.decided||'pending') === 'pending');\n\nreturn [{ json: {\n  ok: true,\n  month,\n  balance: Math.round(balance * 100) / 100,\n  monthly_revenue: Math.round(monthRev * 100) / 100,\n  monthly_expense: Math.round(monthExp * 100) / 100,\n  pending_in: Math.round(pendingIn * 100) / 100,\n  pending_out: Math.round(pendingOut * 100) / 100,\n  burn_rate_eur_per_month: Math.round(burn * 100) / 100,\n  runway_months: runway === null ? null : Math.round(runway * 10) / 10,\n  ledger_size: ledger.length,\n  wishlist_pending_count: wishPending.length,\n  wishlist_pending_total: Math.round(wishPending.reduce((s,w) => s + toNum(w.price_estimate), 0) * 100) / 100,\n  recommendations: tips,\n  generated_at: new Date().toISOString()\n} }];"
+      },
+      "id": "20100020-0000-0000-0000-000000000020",
+      "name": "Compute state",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 700]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": { "responseCode": 200 }
+      },
+      "id": "20100021-0000-0000-0000-000000000021",
+      "name": "Respond OK (GET)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1350, 700]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: $json._error || 'invalid', status: $json._status || 400 } }}",
+        "options": { "responseCode": "={{ $json._status || 400 }}" }
+      },
+      "id": "20100022-0000-0000-0000-000000000022",
+      "name": "Respond ERR (GET)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 850]
+    }
+  ],
+  "connections": {
+    "Webhook POST /finance":   { "main": [[{ "node": "Auth & validate POST", "type": "main", "index": 0 }]] },
+    "Auth & validate POST":    { "main": [[{ "node": "POST OK?", "type": "main", "index": 0 }]] },
+    "POST OK?":                { "main": [
+      [{ "node": "Switch by kind", "type": "main", "index": 0 }],
+      [{ "node": "Respond ERR (POST)", "type": "main", "index": 0 }]
+    ] },
+    "Switch by kind": { "main": [
+      [{ "node": "Append finance_ledger", "type": "main", "index": 0 }],
+      [{ "node": "Append wishlist",       "type": "main", "index": 0 }],
+      [{ "node": "Read finance_ledger (PATCH)", "type": "main", "index": 0 }],
+      [{ "node": "Read wishlist (PATCH)",       "type": "main", "index": 0 }]
+    ] },
+    "Append finance_ledger": { "main": [[{ "node": "Respond OK (POST)", "type": "main", "index": 0 }]] },
+    "Append wishlist":       { "main": [[{ "node": "Respond OK (POST)", "type": "main", "index": 0 }]] },
+    "Read finance_ledger (PATCH)": { "main": [[{ "node": "Merge ledger patch", "type": "main", "index": 0 }]] },
+    "Merge ledger patch":          { "main": [[{ "node": "Update finance_ledger", "type": "main", "index": 0 }]] },
+    "Update finance_ledger":       { "main": [[{ "node": "Respond OK (POST)", "type": "main", "index": 0 }]] },
+    "Read wishlist (PATCH)":       { "main": [[{ "node": "Merge wishlist patch", "type": "main", "index": 0 }]] },
+    "Merge wishlist patch":        { "main": [[{ "node": "Update wishlist", "type": "main", "index": 0 }]] },
+    "Update wishlist":             { "main": [[{ "node": "Respond OK (POST)", "type": "main", "index": 0 }]] },
+
+    "Webhook GET /finance": { "main": [[{ "node": "Auth GET", "type": "main", "index": 0 }]] },
+    "Auth GET":             { "main": [[{ "node": "GET OK?", "type": "main", "index": 0 }]] },
+    "GET OK?": { "main": [
+      [
+        { "node": "Read finance_ledger (GET)", "type": "main", "index": 0 },
+        { "node": "Read wishlist (GET)",       "type": "main", "index": 0 }
+      ],
+      [{ "node": "Respond ERR (GET)", "type": "main", "index": 0 }]
+    ] },
+    "Read finance_ledger (GET)": { "main": [[{ "node": "Compute state", "type": "main", "index": 0 }]] },
+    "Read wishlist (GET)":       { "main": [[{ "node": "Compute state", "type": "main", "index": 0 }]] },
+    "Compute state":             { "main": [[{ "node": "Respond OK (GET)", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

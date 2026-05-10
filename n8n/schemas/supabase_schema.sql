@@ -24,6 +24,23 @@ create table if not exists users (
   created_at  timestamptz default now()
 );
 
+-- ----------------- Team members (V8 — référentiel équipe agence) -----------------
+-- Source de vérité pour les identités utilisées dans le CRM (login step 2)
+-- et dans tous les workflows (decider_id, author_id, assignee_id).
+-- Note : distinct de `users` (users = comptes auth/RBAC potentiels) pour rester
+-- découplé d'une éventuelle bascule d'auth.
+create table if not exists team_members (
+  id          text primary key,                           -- ex: tm_arsene
+  name        text not null,
+  email       text,
+  role        text not null default 'member',             -- founder | admin | sales | dev | viewer | member
+  initials    text,
+  color       text,                                       -- hex CSS, ex: #3a86ff
+  is_active   boolean not null default true,
+  created_at  timestamptz default now()
+);
+create index if not exists idx_tm_active on team_members(is_active);
+
 -- ----------------- Prospects in -----------------
 create table if not exists prospects_in (
   id            text primary key,
@@ -126,16 +143,19 @@ create table if not exists business_control (
   priority_level              text,         -- low|medium|high|critical
   expected_impact             text,
   effort_level                text,
-  assigned_to                 text,
+  assigned_to                 text,                                          -- nom display (rétro-compat)
+  assignee_id                 text references team_members(id) on delete set null,
   requires_human_validation   boolean default true,
   decision_status             text default 'pending',  -- pending|approved|rejected|done|snoozed
-  decided_by                  text,
+  decided_by                  text,                                          -- nom display (rétro-compat)
+  decider_id                  text references team_members(id) on delete set null,
   decided_at                  timestamptz,
   notes                       text
 );
 create index if not exists idx_bcl_decision_status on business_control(decision_status);
 create index if not exists idx_bcl_priority_level on business_control(priority_level);
 create index if not exists idx_bcl_ts on business_control(ts desc);
+create index if not exists idx_bcl_assignee on business_control(assignee_id);
 
 -- ----------------- KPI snapshots -----------------
 create table if not exists kpi_snapshots (
@@ -239,6 +259,42 @@ create table if not exists invoices (
   paid_at         date,
   notes           text
 );
+
+-- ----------------- Memory: decisions (V7+ — ferme la boucle d'apprentissage) -----------------
+create table if not exists memory_decisions (
+  id                    text primary key,
+  ts                    timestamptz default now(),
+  bcl_id                text,
+  item_type             text,
+  item_id               text,
+  recommended_action    text,
+  ai_initial_priority   text,         -- priority_level capturé au moment de la reco
+  decision              text,         -- approved|rejected|snoozed|abandoned
+  decided_by            text,         -- nom display (rétro-compat)
+  decider_id            text references team_members(id) on delete set null,
+  reason                text,
+  outcome               text,         -- rempli a posteriori (reply_received|no_reply|delivered|...)
+  outcome_observed_at   timestamptz
+);
+create index if not exists idx_memdec_bcl on memory_decisions(bcl_id);
+create index if not exists idx_memdec_item on memory_decisions(item_type, item_id);
+create index if not exists idx_memdec_decider on memory_decisions(decider_id);
+
+-- ----------------- Team comments (V7+ — synchro équipe) -----------------
+create table if not exists team_comments (
+  id          text primary key,
+  ts          timestamptz default now(),
+  item_type   text not null,                    -- bcl|prospect|project|invoice
+  item_id     text not null,
+  author      text not null,                    -- nom display (rétro-compat)
+  author_id   text references team_members(id) on delete set null,
+  body        text not null,
+  resolved    boolean default false,
+  parent_id   text                              -- pour threads (optionnel)
+);
+create index if not exists idx_tc_item on team_comments(item_type, item_id);
+create index if not exists idx_tc_ts on team_comments(ts desc);
+create index if not exists idx_tc_author on team_comments(author_id);
 
 -- ----------------- Vue agrégée pour le dashboard -----------------
 create or replace view v_dashboard_summary as

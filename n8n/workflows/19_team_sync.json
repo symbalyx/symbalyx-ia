@@ -1,0 +1,216 @@
+{
+  "name": "Symbalyx — WF19 Team Sync (comments)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "symbalyx-comments",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "19100001-0000-0000-0000-000000000001",
+      "name": "Webhook POST /comments",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 200],
+      "webhookId": "symbalyx-comments-post",
+      "notes": "POST /webhook/symbalyx-comments  body: { item_type, item_id, author, body, parent_id? }  header: x-symbalyx-token"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "symbalyx-comments",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "19100002-0000-0000-0000-000000000002",
+      "name": "Webhook GET /comments",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 600],
+      "webhookId": "symbalyx-comments-get",
+      "notes": "GET /webhook/symbalyx-comments?item_type=bcl&item_id=bcl_1  header: x-symbalyx-token"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auth + validation POST\nconst h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) return [{ json: { _ok: false, _status: 500, _error: 'SYMBALYX_WEBHOOK_SECRET not configured' } }];\nif (token !== expected) return [{ json: { _ok: false, _status: 401, _error: 'invalid_token' } }];\nconst b = $json.body || {};\nconst item_type = String(b.item_type || '').trim().toLowerCase();\nconst item_id = String(b.item_id || '').trim();\nconst author = String(b.author || '').trim();\nconst author_id = String(b.author_id || '').trim();\nconst body = String(b.body || '').trim();\nconst parent_id = String(b.parent_id || '').trim();\nconst ALLOWED = ['bcl','prospect','project','invoice'];\nif (!ALLOWED.includes(item_type)) return [{ json: { _ok: false, _status: 400, _error: 'invalid item_type' } }];\nif (!item_id) return [{ json: { _ok: false, _status: 400, _error: 'missing item_id' } }];\nif (!author) return [{ json: { _ok: false, _status: 400, _error: 'missing author' } }];\nif (!body) return [{ json: { _ok: false, _status: 400, _error: 'empty body' } }];\nif (body.length > 2000) return [{ json: { _ok: false, _status: 400, _error: 'body too long (max 2000)' } }];\nreturn [{ json: { _ok: true, item_type, item_id, author, author_id, body, parent_id } }];"
+      },
+      "id": "19100003-0000-0000-0000-000000000003",
+      "name": "Auth & validate POST",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auth GET (header) + extract query\nconst h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) return [{ json: { _ok: false, _status: 500, _error: 'SYMBALYX_WEBHOOK_SECRET not configured' } }];\nif (token !== expected) return [{ json: { _ok: false, _status: 401, _error: 'invalid_token' } }];\nconst q = $json.query || {};\nconst item_type = String(q.item_type || '').trim().toLowerCase();\nconst item_id = String(q.item_id || '').trim();\nconst limit = Math.min(Math.max(Number(q.limit) || 50, 1), 200);\nif (!item_type || !item_id) return [{ json: { _ok: false, _status: 400, _error: 'missing item_type or item_id' } }];\nreturn [{ json: { _ok: true, item_type, item_id, limit } }];"
+      },
+      "id": "19100004-0000-0000-0000-000000000004",
+      "name": "Auth & validate GET",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": false, "typeValidation": "loose"},
+          "conditions": [
+            {"id": "ok-post", "leftValue": "={{ $json._ok }}", "rightValue": true, "operator": {"type": "boolean", "operation": "equals"}}
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "19100005-0000-0000-0000-000000000005",
+      "name": "If POST ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [620, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {"caseSensitive": false, "typeValidation": "loose"},
+          "conditions": [
+            {"id": "ok-get", "leftValue": "={{ $json._ok }}", "rightValue": true, "operator": {"type": "boolean", "operation": "equals"}}
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "19100006-0000-0000-0000-000000000006",
+      "name": "If GET ok?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [620, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json._error }) }}",
+        "options": {"responseCode": "={{ $json._status || 400 }}"}
+      },
+      "id": "19100007-0000-0000-0000-000000000007",
+      "name": "Respond 4xx (POST)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [820, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $json._error }) }}",
+        "options": {"responseCode": "={{ $json._status || 400 }}"}
+      },
+      "id": "19100008-0000-0000-0000-000000000008",
+      "name": "Respond 4xx (GET)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [820, 780]
+    },
+    {
+      "parameters": {
+        "jsCode": "const r = $json;\nreturn [{ json: {\n  id: 'cmt_' + Date.now() + '_' + Math.random().toString(36).slice(2,7),\n  ts: new Date().toISOString(),\n  item_type: r.item_type,\n  item_id: r.item_id,\n  author: r.author,\n  author_id: r.author_id || '',\n  body: r.body,\n  resolved: false,\n  parent_id: r.parent_id || ''\n}}];"
+      },
+      "id": "19100009-0000-0000-0000-000000000009",
+      "name": "Build comment row",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [820, 100]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "team_comments", "mode": "name"},
+        "operation": "append",
+        "columns": {"mappingMode": "autoMapInputData", "matchingColumns": [], "schema": []},
+        "options": {}
+      },
+      "id": "1910000a-0000-0000-0000-00000000000a",
+      "name": "Append team_comments",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [1040, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, comment: $json }) }}",
+        "options": {"responseCode": 200}
+      },
+      "id": "1910000b-0000-0000-0000-00000000000b",
+      "name": "Respond 200 (POST)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1260, 100]
+    },
+    {
+      "parameters": {
+        "documentId": {"__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id"},
+        "sheetName": {"__rl": true, "value": "team_comments", "mode": "name"},
+        "options": {}
+      },
+      "id": "1910000c-0000-0000-0000-00000000000c",
+      "name": "Read team_comments",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4,
+      "position": [820, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "const inp = $('Auth & validate GET').first().json;\nconst all = items.map(i => i.json);\nconst filtered = all.filter(c => String(c.item_type||'').toLowerCase() === inp.item_type && String(c.item_id||'') === inp.item_id);\nfiltered.sort((a,b) => String(a.ts||'').localeCompare(String(b.ts||'')));\nconst capped = filtered.slice(-inp.limit);\nreturn [{ json: { ok: true, item_type: inp.item_type, item_id: inp.item_id, count: capped.length, comments: capped } }];"
+      },
+      "id": "1910000d-0000-0000-0000-00000000000d",
+      "name": "Filter & sort",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1040, 600]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {"responseCode": 200}
+      },
+      "id": "1910000e-0000-0000-0000-00000000000e",
+      "name": "Respond 200 (GET)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1260, 600]
+    }
+  ],
+  "connections": {
+    "Webhook POST /comments": { "main": [[{"node": "Auth & validate POST", "type": "main", "index": 0}]] },
+    "Webhook GET /comments": { "main": [[{"node": "Auth & validate GET", "type": "main", "index": 0}]] },
+    "Auth & validate POST": { "main": [[{"node": "If POST ok?", "type": "main", "index": 0}]] },
+    "Auth & validate GET": { "main": [[{"node": "If GET ok?", "type": "main", "index": 0}]] },
+    "If POST ok?": {
+      "main": [
+        [{"node": "Build comment row", "type": "main", "index": 0}],
+        [{"node": "Respond 4xx (POST)", "type": "main", "index": 0}]
+      ]
+    },
+    "If GET ok?": {
+      "main": [
+        [{"node": "Read team_comments", "type": "main", "index": 0}],
+        [{"node": "Respond 4xx (GET)", "type": "main", "index": 0}]
+      ]
+    },
+    "Build comment row": { "main": [[{"node": "Append team_comments", "type": "main", "index": 0}]] },
+    "Append team_comments": { "main": [[{"node": "Respond 200 (POST)", "type": "main", "index": 0}]] },
+    "Read team_comments": { "main": [[{"node": "Filter & sort", "type": "main", "index": 0}]] },
+    "Filter & sort": { "main": [[{"node": "Respond 200 (GET)", "type": "main", "index": 0}]] }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all"
+  },
+  "staticData": null,
+  "tags": [{"name": "symbalyx"}, {"name": "team"}, {"name": "wf19"}],
+  "triggerCount": 0,
+  "versionId": "00000000-0000-0000-0000-000000000019",
+  "meta": {"instanceId": "symbalyx-wf19"}
+}

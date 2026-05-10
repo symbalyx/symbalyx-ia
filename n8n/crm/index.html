@@ -196,9 +196,111 @@
 
   /* Toasts */
   .toast-wrap{position:fixed;left:50%;transform:translateX(-50%);bottom:90px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:92vw}
-  .toast{background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:12px 14px;font-size:13.5px;box-shadow:var(--shadow);min-width:240px}
+  .toast{background:var(--panel);border:1px solid var(--line2);border-radius:12px;padding:12px 14px;font-size:13.5px;box-shadow:var(--shadow);min-width:240px;
+    animation:toastIn .22s cubic-bezier(.2,.8,.2,1)}
   .toast.ok{border-color:rgba(34,197,94,.4)}
   .toast.err{border-color:rgba(239,68,68,.4)}
+  @keyframes toastIn{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+  /* Command palette (Cmd+K) */
+  .cmdk-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);z-index:300;display:none;align-items:flex-start;justify-content:center;padding-top:12vh}
+  .cmdk-bg.open{display:flex;animation:fade .18s ease}
+  .cmdk{width:min(640px,92vw);background:var(--panel);border:1px solid var(--line2);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.55);overflow:hidden;
+    animation:cmdkIn .22s cubic-bezier(.2,.8,.2,1)}
+  .cmdk-input{display:flex;align-items:center;gap:10px;padding:14px 16px;border-bottom:1px solid var(--line)}
+  .cmdk-input::before{content:"⌘";font-size:14px;color:var(--muted);width:22px;text-align:center}
+  .cmdk-input input{border:0;background:transparent;padding:0;min-height:auto;font-size:16px}
+  .cmdk-input input:focus{border:0}
+  .cmdk-input .kbd{font-size:11px;color:var(--muted);background:var(--panel2);padding:2px 6px;border-radius:6px;border:1px solid var(--line)}
+  .cmdk-list{max-height:60vh;overflow:auto;padding:6px}
+  .cmdk-grp{font-size:10.5px;text-transform:uppercase;color:var(--muted);letter-spacing:.7px;padding:8px 10px 4px}
+  .cmdk-row{display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:10px;cursor:pointer;font-size:13.5px}
+  .cmdk-row:hover,.cmdk-row.sel{background:var(--panel2)}
+  .cmdk-row .cmdk-ic{width:26px;height:26px;border-radius:7px;background:var(--panel2);display:flex;align-items:center;justify-content:center;font-size:13px}
+  .cmdk-row.sel .cmdk-ic{background:var(--acc-soft);color:var(--acc)}
+  .cmdk-row .cmdk-meta{margin-left:auto;font-size:11px;color:var(--muted)}
+  .cmdk-empty{padding:32px 16px;text-align:center;color:var(--muted);font-size:13px}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  @keyframes cmdkIn{from{transform:translateY(-8px) scale(.98);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+
+  /* Keyboard hints */
+  kbd{display:inline-block;font:11px ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--muted);
+    background:var(--panel2);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:1px 6px;line-height:1.4}
+
+  /* Activity feed */
+  .activity-row{display:flex;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line);align-items:flex-start}
+  .activity-row:last-child{border-bottom:0}
+  .activity-row .av{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+  .activity-row .body{flex:1;min-width:0}
+  .activity-row .body strong{font-weight:600}
+  .activity-row .body .meta{color:var(--muted);font-size:11.5px;margin-top:2px}
+  .activity-row .body .quote{margin-top:4px;color:var(--muted);font-size:12.5px;border-left:2px solid var(--line);padding-left:8px;font-style:italic}
+
+  /* Skeleton loaders */
+  .skel{background:linear-gradient(90deg,var(--panel2) 0%,var(--line2) 50%,var(--panel2) 100%);
+    background-size:200% 100%;animation:skel 1.2s infinite;border-radius:8px;display:inline-block}
+  @keyframes skel{0%{background-position:200% 0}100%{background-position:-200% 0}}
+
+  /* Buttons subtle press */
+  button.btn:active,.iconbtn:active{transform:scale(.97);transition:transform .08s}
+  .item:active{background:var(--panel2)}
+
+  /* Focus visibility */
+  button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,.iconbtn:focus-visible{
+    outline:2px solid var(--acc);outline-offset:2px}
+
+  /* View transitions */
+  main > section{animation:viewIn .18s ease}
+  @keyframes viewIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+  /* --- Argent / Finance --- */
+  .money-spark{height:38px;width:100%;margin-top:6px;display:block}
+  .money-spark .area{fill:rgba(94,234,212,.14)}
+  .money-spark .line{fill:none;stroke:var(--acc);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+  .money-spark .axis{fill:none;stroke:var(--line);stroke-width:1;stroke-dasharray:2,3}
+  .money-spark .pt{fill:var(--acc)}
+  .kpi.crit{color:#fca5a5}
+  .kpi.warn{color:#fcd34d}
+  .kpi.ok{color:#86efac}
+  .b-overdue{background:rgba(239,68,68,.18);color:#fca5a5;border-color:rgba(239,68,68,.45);font-weight:600}
+  .b-recurring{background:rgba(167,139,250,.14);color:#c4b5fd;border-color:rgba(167,139,250,.4)}
+  .b-afford{background:rgba(34,197,94,.14);color:#86efac;border-color:rgba(34,197,94,.4)}
+  .b-wait{background:rgba(245,158,11,.12);color:#fcd34d;border-color:rgba(245,158,11,.3)}
+  .filter-bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+  .filter-bar select,.filter-bar input{min-height:36px;padding:6px 10px;font-size:13px;width:auto;flex:0 0 auto}
+  .cat-suggest{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+  .cat-suggest button{font-size:11px;padding:3px 8px;min-height:0;background:var(--panel2);color:var(--muted);border:1px solid var(--line);border-radius:999px;cursor:pointer}
+  .cat-suggest button:hover{color:var(--txt);border-color:var(--acc)}
+  .row-actions{display:flex;gap:4px;margin-top:4px}
+  .row-actions button{font-size:11px;padding:3px 7px;min-height:0;background:transparent;color:var(--muted);border:1px solid var(--line);border-radius:6px;cursor:pointer}
+  .row-actions button:hover{color:var(--txt);border-color:var(--line2)}
+  .row-actions button.danger{color:var(--crit);border-color:rgba(239,68,68,.3)}
+  details.advice-extra{margin-top:6px;font-size:13px}
+  details.advice-extra summary{cursor:pointer;color:var(--muted);font-size:12px;list-style:none}
+  details.advice-extra summary::before{content:"▸ ";display:inline-block;transition:transform .15s}
+  details.advice-extra[open] summary::before{transform:rotate(90deg)}
+
+  /* @mentions */
+  .mention{color:var(--acc);font-weight:600;background:var(--acc-soft);padding:0 4px;border-radius:4px}
+  .mention-pop{position:absolute;background:var(--panel);border:1px solid var(--line2);border-radius:10px;box-shadow:var(--shadow);padding:4px;z-index:250;min-width:min(200px,90vw);max-width:min(320px,94vw);max-height:240px;overflow:auto}
+  .mention-pop button{display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:7px 8px;border:0;background:transparent;color:var(--txt);border-radius:8px;cursor:pointer;font:inherit}
+  .mention-pop button.sel,.mention-pop button:hover{background:var(--panel2)}
+  .mention-pop .av{width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:10px;font-weight:700;flex-shrink:0}
+
+  /* "Nouveau" indicator */
+  .new-dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--acc);box-shadow:0 0 8px var(--acc);margin-right:4px;animation:pulse 1.4s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+  .badge.b-new{background:var(--acc-soft);color:var(--acc);border-color:var(--acc);font-weight:600}
+  .nav-badge{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;border-radius:9px;background:var(--crit);color:#fff;font-size:10.5px;font-weight:700;padding:0 5px;margin-left:4px;vertical-align:middle}
+  .nav-badge.acc{background:var(--acc);color:#001210}
+  nav.bottom button .nav-badge{margin-left:2px}
+
+  /* Morning synthesis row */
+  .morning-row{display:flex;gap:10px;padding:10px 12px;border-radius:10px;background:var(--panel2);align-items:flex-start;cursor:pointer}
+  .morning-row:hover{background:color-mix(in srgb, var(--panel2) 80%, var(--acc) 5%)}
+  .morning-row .badge{flex-shrink:0;margin-top:1px}
+  .morning-row .body{flex:1}
+  .morning-row .next{color:var(--acc);font-size:12px;margin-top:3px;font-weight:500}
 
   /* Misc */
   .muted{color:var(--muted);font-size:12.5px}
@@ -223,10 +325,22 @@
   <div class="login">
     <h1>Symbalyx</h1>
     <p class="lead">Mot de passe local. Premier accès = tu choisis.</p>
-    <input id="pwd" type="password" placeholder="••••••••" autofocus>
+    <input id="pwd" type="password" placeholder="••••••••" autofocus onkeydown="if(event.key==='Enter')symbLogin()">
     <div style="height:8px"></div>
     <button class="btn primary" style="width:100%" onclick="symbLogin()">Entrer</button>
     <p class="muted" style="margin-top:10px">Le hash est stocké dans ce navigateur uniquement, jamais envoyé.</p>
+  </div>
+</div>
+
+<!-- ============== CHOIX D'IDENTITÉ (étape 2) ============== -->
+<div id="identityPick" class="login-wrap hidden">
+  <div class="login" style="max-width:480px">
+    <h1>Qui es-tu ?</h1>
+    <p class="lead">Choisis ton identité pour signer décisions et commentaires.</p>
+    <div id="identityList" class="stack"></div>
+    <p class="muted" id="identityHint" style="margin-top:10px"></p>
+    <div class="sep"></div>
+    <button class="btn ghost" onclick="symbBackToLogin()">← Mot de passe</button>
   </div>
 </div>
 
@@ -239,11 +353,16 @@
       <button data-view="prospects">Prospects</button>
       <button data-view="projects">Projets</button>
       <button data-view="decisions">Décisions</button>
+      <button data-view="money">Argent</button>
       <button data-view="memory">Mémoire</button>
       <button data-view="logs">Logs</button>
+      <button data-view="team" class="hidden" id="navTeam">Équipe</button>
       <button data-view="settings">Réglages</button>
     </nav>
     <div class="right">
+      <span class="chip" id="meChip" title="Identité courante" onclick="setView('settings')" style="cursor:pointer"></span>
+      <button class="iconbtn" id="btnCmdK" title="Recherche & actions (Cmd+K)" onclick="symbOpenCmdK()">⌘K</button>
+      <button class="iconbtn" id="btnActivity" title="Activité de l'équipe" onclick="symbOpenActivity()">⌃</button>
       <button class="iconbtn" id="btnNotif" title="Notifications" onclick="symbOpenNotif()">
         🔔
         <span id="notifDot" class="dot-badge hidden"></span>
@@ -288,6 +407,15 @@
         </div>
       </div>
 
+      <!-- Synthèse du matin (IA) -->
+      <div class="card" id="morningSynth" style="margin-bottom:12px;display:none">
+        <div class="card-h">
+          <span class="t">Synthèse du matin</span>
+          <span class="right muted" id="morningSub" style="font-size:11px"></span>
+        </div>
+        <div id="morningBody" class="stack"></div>
+      </div>
+
       <!-- Top actions -->
       <div class="card padless" style="margin-bottom:12px">
         <div style="padding:14px 14px 6px;display:flex;align-items:center;gap:8px">
@@ -295,6 +423,15 @@
           <span class="right pill" id="topCount">0</span>
         </div>
         <div class="list" id="listToday"></div>
+      </div>
+
+      <!-- Bot inbox (escalades inter-workflows) -->
+      <div class="card padless" id="botInbox" style="margin-bottom:12px;display:none">
+        <div style="padding:14px 14px 6px;display:flex;align-items:center;gap:8px">
+          <span class="card-h t" style="margin:0">Échanges entre bots — escalades</span>
+          <span class="right muted" style="font-size:11px">progress · blocked · escalated_to_human</span>
+        </div>
+        <div class="list" id="listBotInbox"></div>
       </div>
 
       <!-- Urgences groupées -->
@@ -357,7 +494,7 @@
       <h1 class="h1">Décisions</h1>
       <p class="lead">Recommandations IA en attente de validation humaine.</p>
       <div class="row" style="margin-bottom:10px">
-        <select id="filterPerson"><option value="all">Toute l'équipe</option><option>Arsène</option><option>Kentin</option><option>Arsène+Kentin</option></select>
+        <select id="filterPerson"><option value="all">Toute l'équipe</option><option value="me">À moi</option></select>
         <select id="filterPriority"><option value="all">Toutes priorités</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select>
         <button class="btn ghost right" onclick="symbExportCSV()">Export CSV</button>
       </div>
@@ -389,9 +526,181 @@
       <div class="card padless"><div class="list" id="listLogs"></div></div>
     </section>
 
+    <!-- =================== ARGENT =================== -->
+    <section data-view="money" class="hidden">
+      <div class="row" style="justify-content:space-between;align-items:flex-end;margin-bottom:8px">
+        <div>
+          <h1 class="h1" style="margin-bottom:0">Argent</h1>
+          <p class="lead" style="margin:0">Solde, runway, encaissements, achats. L'IA suggère catégorie, alerte overdue, projette 30j.</p>
+        </div>
+        <div class="row" style="gap:6px">
+          <button class="btn ghost" onclick="symbExportFinanceCSV()" title="Exporter pour comptable">↓ CSV</button>
+        </div>
+      </div>
+
+      <!-- Filtres -->
+      <div class="filter-bar">
+        <select id="finFilterMonth" onchange="symbRender()">
+          <option value="all">Tous mois</option>
+        </select>
+        <select id="finFilterCat" onchange="symbRender()">
+          <option value="all">Toutes catégories</option>
+        </select>
+        <select id="finFilterStatus" onchange="symbRender()">
+          <option value="all">Tous statuts</option>
+          <option value="pending">En attente</option>
+          <option value="done">Réalisé</option>
+        </select>
+        <input id="finFilterQ" placeholder="Recherche…" oninput="symbRender()" style="width:180px">
+      </div>
+
+      <!-- KPIs -->
+      <div class="grid grid-4" style="margin-bottom:12px">
+        <div class="card">
+          <div class="card-h"><span class="t">Solde</span></div>
+          <div class="kpi" id="kpi_balance">— €</div>
+          <small id="kpi_balanceSub">trésorerie nette</small>
+          <svg class="money-spark" id="sparkBalance" viewBox="0 0 200 38" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="t">Revenus du mois</span></div>
+          <div class="kpi ok" id="kpi_revenue">— €</div>
+          <small id="kpi_revenueSub">encaissé ce mois</small>
+          <svg class="money-spark" id="sparkRev" viewBox="0 0 200 38" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="t">Dépenses du mois</span></div>
+          <div class="kpi warn" id="kpi_expense">— €</div>
+          <small id="kpi_expenseSub">payé ce mois</small>
+          <svg class="money-spark" id="sparkExp" viewBox="0 0 200 38" preserveAspectRatio="none"></svg>
+        </div>
+        <div class="card">
+          <div class="card-h"><span class="t">Runway</span></div>
+          <div class="kpi" id="kpi_runway">—</div>
+          <small id="kpi_runwaySub">mois de marge au rythme actuel</small>
+          <small id="kpi_forecast" style="display:block;margin-top:6px;color:var(--muted)">—</small>
+        </div>
+      </div>
+
+      <!-- Reco IA -->
+      <div class="card" id="moneyAdvice" style="margin-bottom:12px;display:none">
+        <div class="card-h"><span class="t">Recommandation IA</span></div>
+        <div id="moneyAdviceBody"></div>
+      </div>
+
+      <!-- Add -->
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Ajouter une opération</span></div>
+        <div class="grid grid-2">
+          <select id="finType">
+            <option value="income">Recette (encaissée ou facture envoyée)</option>
+            <option value="expense">Dépense (payée ou à payer)</option>
+            <option value="wishlist">Wishlist (achat envisagé)</option>
+          </select>
+          <input id="finAmount" type="number" step="0.01" placeholder="Montant € (HT)">
+          <input id="finDesc" placeholder="Description (ex: Hébergement Vercel, Devis Salon Marie)" oninput="symbSuggestCat()">
+          <input id="finCategory" placeholder="Catégorie (auto-suggérée)" oninput="this.dataset.touched='1';symbSuggestCat()">
+          <input id="finDueDate" type="date">
+          <select id="finStatus">
+            <option value="pending">En attente</option>
+            <option value="done">Réalisé</option>
+          </select>
+        </div>
+        <div class="cat-suggest" id="catSuggest"></div>
+        <div style="height:8px"></div>
+        <button class="btn primary" onclick="symbAddFinance()">Ajouter</button>
+        <span class="muted" id="finAddStatus" style="margin-left:8px"></span>
+      </div>
+
+      <!-- À encaisser + à payer -->
+      <div class="grid grid-2" style="margin-bottom:12px">
+        <div class="card padless">
+          <div style="padding:14px 14px 6px"><span class="card-h t">À encaisser</span> <span class="right pill" id="incomingCount">0</span></div>
+          <div class="list" id="listIncoming"></div>
+        </div>
+        <div class="card padless">
+          <div style="padding:14px 14px 6px"><span class="card-h t">À payer</span> <span class="right pill" id="outgoingCount">0</span></div>
+          <div class="list" id="listOutgoing"></div>
+        </div>
+      </div>
+
+      <!-- Wishlist -->
+      <div class="card padless" style="margin-bottom:12px">
+        <div style="padding:14px 14px 6px;display:flex;align-items:center;gap:8px">
+          <span class="card-h t" style="margin:0">Wishlist — Achats envisagés</span>
+          <span class="right pill" id="wishlistCount">0</span>
+        </div>
+        <div class="list" id="listWishlist"></div>
+      </div>
+
+      <!-- Historique -->
+      <div class="card padless">
+        <div style="padding:14px 14px 6px;display:flex;align-items:center;gap:8px">
+          <span class="card-h t" style="margin:0">Historique des opérations</span>
+          <span class="right pill" id="histCount">0</span>
+        </div>
+        <div class="list" id="listFinHistory"></div>
+      </div>
+    </section>
+
+    <!-- =================== ÉQUIPE (admin) =================== -->
+    <section data-view="team" class="hidden">
+      <h1 class="h1">Équipe</h1>
+      <p class="lead" id="teamLead">Membres de l'agence. Source de vérité pour les identités, décisions et commentaires.</p>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Ajouter un membre</span></div>
+        <div class="grid grid-2">
+          <input id="tmName" placeholder="Nom (ex: Camille Dubois)">
+          <input id="tmEmail" placeholder="Email (optionnel)">
+          <select id="tmRole"></select>
+          <input id="tmInitials" placeholder="Initiales (auto si vide)" maxlength="4">
+          <input id="tmColor" type="color" value="#3a86ff" style="height:42px;padding:4px">
+        </div>
+        <div style="height:8px"></div>
+        <button class="btn primary" onclick="symbAddMember()">Ajouter</button>
+        <span class="muted" id="tmAddStatus" style="margin-left:8px"></span>
+      </div>
+
+      <div class="card padless">
+        <div class="list" id="listTeam"></div>
+      </div>
+
+      <p class="muted" style="margin-top:12px">Les modifications sont propagées aux décisions et commentaires en cours. Désactiver un membre l'enlève des sélecteurs sans effacer son historique.</p>
+    </section>
+
     <!-- =================== RÉGLAGES =================== -->
     <section data-view="settings" class="hidden">
       <h1 class="h1">Réglages</h1>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Identité courante</span></div>
+        <p class="muted">Qui utilise ce navigateur ? Toutes les décisions et commentaires seront signés avec cet ID. Liste alimentée par <code>team_members</code>.</p>
+        <div class="row">
+          <label class="muted" style="min-width:60px">Moi</label>
+          <select id="cfgIdentity" style="max-width:280px"></select>
+          <button class="btn ghost" onclick="symbBackToLogin()">Changer d'utilisateur</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:12px">
+        <div class="card-h"><span class="t">Webhook n8n (boucle décision + équipe)</span></div>
+        <p class="muted">URL de base des webhooks (sans le suffixe). Ex : <code>https://n8n.example.com/webhook</code>. Le secret est envoyé en header <code>x-symbalyx-token</code>.</p>
+        <div class="grid grid-2">
+          <div>
+            <input id="cfgWebhookBase" placeholder="https://n8n.example.com/webhook">
+          </div>
+          <div>
+            <input id="cfgWebhookSecret" type="password" placeholder="secret partagé (SYMBALYX_WEBHOOK_SECRET)">
+          </div>
+        </div>
+        <div style="height:8px"></div>
+        <button class="btn ghost" onclick="symbTestWebhook()">Tester la connexion</button>
+        <button class="btn" onclick="symbSmokeTest()" style="margin-left:6px">Smoke test complet</button>
+        <span id="webhookStatus" class="muted" style="margin-left:8px"></span>
+        <div id="smokeReport" class="stack" style="margin-top:10px"></div>
+      </div>
+
       <div class="card" style="margin-bottom:12px">
         <div class="card-h"><span class="t">Source de données</span></div>
         <div class="row">
@@ -468,6 +777,29 @@
     <div id="detailContent"></div>
   </div>
 
+  <!-- Activity drawer -->
+  <div id="activityBg" class="sheet-bg" onclick="symbCloseActivity()"></div>
+  <div id="activitySheet" class="sheet">
+    <div class="grab"></div>
+    <div class="row" style="margin-bottom:10px">
+      <div class="h2">Activité de l'équipe</div>
+      <span class="pill right" id="activityCount">0</span>
+    </div>
+    <p class="muted" style="margin-top:-4px;margin-bottom:10px">Les 30 dernières actions : décisions, commentaires, membres.</p>
+    <div id="listActivity"></div>
+  </div>
+
+  <!-- Command palette -->
+  <div id="cmdkBg" class="cmdk-bg" onclick="symbCloseCmdK(event)">
+    <div class="cmdk" onclick="event.stopPropagation()">
+      <div class="cmdk-input">
+        <input id="cmdkInput" type="text" placeholder="Rechercher ou exécuter une commande…" autocomplete="off" spellcheck="false">
+        <span class="kbd">esc</span>
+      </div>
+      <div class="cmdk-list" id="cmdkList"></div>
+    </div>
+  </div>
+
   <div class="toast-wrap" id="toasts"></div>
 </div>
 
@@ -477,23 +809,67 @@
    ============================================================ */
 
 const PWD_KEY = 'symbalyx_pwd_hash_v3';
+// Rôles centralisés (V8). Pas d'enforcement RBAC pour l'instant — juste la
+// sémantique pour l'UI et les filtres. À étendre quand on ajoutera les droits.
+const ROLES = [
+  { id: 'founder', label: 'Fondateur',   admin: true  },
+  { id: 'admin',   label: 'Admin',       admin: true  },
+  { id: 'sales',   label: 'Sales',       admin: false },
+  { id: 'dev',     label: 'Dev',         admin: false },
+  { id: 'viewer',  label: 'Viewer',      admin: false },
+  { id: 'member',  label: 'Membre',      admin: false }
+];
+const ROLE_LABEL = Object.fromEntries(ROLES.map(r => [r.id, r.label]));
+function isAdminRole(r){ const x = ROLES.find(x => x.id === r); return !!(x && x.admin); }
+const DEFAULT_CFG = {
+  source: 'mock',
+  sheets: { apiKey: '', sheetId: '{{GOOGLE_SHEET_ID}}', tabs: {
+    bcl:'business_control', kpi:'kpi_snapshots', team:'team_state',
+    review:'review_queue', projects:'project_queue', logs:'logs',
+    memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial',
+    invoices:'invoices', notifs:'notifications_inbox', members:'team_members',
+    finance:'finance_ledger', wishlist:'wishlist', agents:'agent_messages',
+    deliverables:'project_deliverables'
+  }},
+  supabase: { url: '', anonKey: '' },
+  webhook: { baseUrl: '', secret: '' },
+  // V8 : identité = objet riche. null = pas encore choisi (login étape 2).
+  identity: null,
+  prefs: { critical:true, hotReply:true, projectRisk:true, invoiceOverdue:true, morningDigest:true }
+};
+function loadCfg(){
+  let c; try { c = JSON.parse(localStorage.getItem('symbalyx_cfg_v2') || 'null') || {}; } catch { c = {}; }
+  // Migration : ancien format identity = string ('Arsène'/'Kentin'/'Équipe') → objet minimal.
+  let identity = c.identity;
+  if (typeof identity === 'string') {
+    identity = identity ? { id: '', name: identity, role: 'member', initials: '', color: '' } : null;
+  } else if (identity && typeof identity === 'object') {
+    identity = { id: identity.id || '', name: identity.name || '', role: identity.role || 'member', initials: identity.initials || '', color: identity.color || '' };
+    if (!identity.name) identity = null;
+  } else {
+    identity = null;
+  }
+  return {
+    source: c.source || DEFAULT_CFG.source,
+    sheets: { ...DEFAULT_CFG.sheets, ...(c.sheets || {}), tabs: { ...DEFAULT_CFG.sheets.tabs, ...((c.sheets||{}).tabs || {}) } },
+    supabase: { ...DEFAULT_CFG.supabase, ...(c.supabase || {}) },
+    webhook: { ...DEFAULT_CFG.webhook, ...(c.webhook || {}) },
+    identity,
+    prefs: { ...DEFAULT_CFG.prefs, ...(c.prefs || {}) }
+  };
+}
+function saveCfg(){ localStorage.setItem('symbalyx_cfg_v2', JSON.stringify(STATE.cfg)); }
 const STATE = {
-  cfg: JSON.parse(localStorage.getItem('symbalyx_cfg_v2') || JSON.stringify({
-    source: 'mock',
-    sheets: { apiKey: '', sheetId: '{{GOOGLE_SHEET_ID}}', tabs: {
-      bcl:'business_control', kpi:'kpi_snapshots', team:'team_state',
-      review:'review_queue', projects:'project_queue', logs:'logs',
-      memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial',
-      invoices:'invoices', notifs:'notifications_inbox'
-    }},
-    supabase: { url: '', anonKey: '' },
-    prefs: { critical:true, hotReply:true, projectRisk:true, invoiceOverdue:true, morningDigest:true }
-  })),
+  cfg: loadCfg(),
   data: null,
   view: 'today',
   filters: { person:'all', priority:'all', prospects:'all', projects:'all', memory:'patterns', logs:'all' },
   notifs: [],
-  notifsRead: JSON.parse(localStorage.getItem('symbalyx_notifs_read') || '[]')
+  notifsRead: JSON.parse(localStorage.getItem('symbalyx_notifs_read') || '[]'),
+  // Cache local des commentaires par item, fallback hors-ligne / si webhook KO.
+  commentsCache: JSON.parse(localStorage.getItem('symbalyx_comments_cache') || '{}'),
+  // Décisions en attente de propagation (si webhook absent ou échec).
+  pendingDecisions: JSON.parse(localStorage.getItem('symbalyx_decisions') || '[]')
 };
 
 /* ---------- helpers ---------- */
@@ -516,7 +892,7 @@ function toast(msg, type='ok'){
   w.appendChild(t); setTimeout(()=>t.remove(), 3500);
 }
 
-/* ---------- auth ---------- */
+/* ---------- auth + identité (login en 2 étapes) ---------- */
 async function sha256(s){ const b = new TextEncoder().encode(s); const h = await crypto.subtle.digest('SHA-256', b);
   return [...new Uint8Array(h)].map(x=>x.toString(16).padStart(2,'0')).join(''); }
 async function symbLogin(){
@@ -524,8 +900,87 @@ async function symbLogin(){
   const h = await sha256(pwd); const stored = localStorage.getItem(PWD_KEY);
   if (!stored) localStorage.setItem(PWD_KEY, h);
   if (localStorage.getItem(PWD_KEY) !== h) { toast('Mot de passe incorrect','err'); return; }
-  $('login').classList.add('hidden'); $('app').classList.remove('hidden');
+  $('login').classList.add('hidden');
+  // Si identité courante encore valide dans la liste actuelle, on skip l'étape 2.
+  const members = await symbLoadTeamMembersForLogin();
+  STATE.bootMembers = members;
+  const cur = STATE.cfg.identity;
+  const stillValid = cur && members.some(m => (cur.id && m.id === cur.id) || (!cur.id && m.name === cur.name));
+  if (stillValid) { symbEnterApp(); return; }
+  symbBootIdentitySelector(members);
+}
+async function symbLoadTeamMembersForLogin(){
+  // Tente le webhook (la source de vérité côté équipe).
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const r = await fetch(`${wh.baseUrl}/symbalyx-team-members?active_only=1`, { headers: { 'x-symbalyx-token': wh.secret } });
+      if (r.ok) {
+        const j = await r.json();
+        const list = (j && j.members) || [];
+        if (list.length) return list;
+      }
+    } catch {}
+  }
+  // Fallback : mock embarqué (dev) ou cache local.
+  if (STATE.cfg.source === 'mock') return MOCK.team_members.filter(m => m.is_active);
+  // Dernier recours : mock.
+  return MOCK.team_members.filter(m => m.is_active);
+}
+function symbBootIdentitySelector(members){
+  $('identityPick').classList.remove('hidden');
+  const list = $('identityList');
+  if (!members || !members.length) {
+    list.innerHTML = '<div class="muted">Aucun membre actif. Ajoute-toi via le mode admin (mock).</div>';
+    $('identityHint').textContent = '';
+    return;
+  }
+  list.innerHTML = members.map(m => `
+    <button class="btn" style="width:100%;text-align:left;display:flex;align-items:center;gap:10px"
+            onclick="symbPickIdentity('${esc(m.id||'')}','${esc(m.name)}')">
+      <span class="chip" style="background:${esc(m.color||'#3a86ff')};color:#fff;min-width:36px;text-align:center">${esc(m.initials||initialsFrom(m.name))}</span>
+      <span style="flex:1">
+        <strong>${esc(m.name)}</strong>
+        <span class="muted" style="margin-left:6px">${esc(ROLE_LABEL[m.role]||m.role||'')}</span>
+      </span>
+    </button>`).join('');
+  $('identityHint').textContent = `${members.length} membre${members.length>1?'s':''} actif${members.length>1?'s':''}.`;
+}
+function initialsFrom(name){
+  return String(name||'').split(/\s+/).filter(Boolean).slice(0,2).map(s=>s[0]).join('').toUpperCase().slice(0,4) || '?';
+}
+function symbPickIdentity(id, name){
+  const list = STATE.bootMembers || [];
+  const m = list.find(x => (id && x.id === id) || (!id && x.name === name)) || { id, name, role:'member', initials:initialsFrom(name), color:'#3a86ff' };
+  STATE.cfg.identity = { id: m.id||'', name: m.name, role: m.role||'member', initials: m.initials||initialsFrom(m.name), color: m.color||'#3a86ff' };
+  saveCfg();
+  $('identityPick').classList.add('hidden');
+  symbEnterApp();
+}
+function symbBackToLogin(){
+  $('app').classList.add('hidden');
+  $('identityPick').classList.add('hidden');
+  $('login').classList.remove('hidden');
+  $('pwd').value = ''; $('pwd').focus();
+}
+function symbEnterApp(){
+  $('app').classList.remove('hidden');
+  symbApplyIdentityUI();
   symbLoadCfgUI(); symbInitNotifPrefs(); symbRegisterSW(); symbRefresh();
+}
+function symbApplyIdentityUI(){
+  const me = STATE.cfg.identity;
+  const chip = $('meChip');
+  if (chip) {
+    if (me) {
+      chip.innerHTML = `<span style="background:${esc(me.color||'#3a86ff')};color:#fff;padding:2px 6px;border-radius:6px;margin-right:6px">${esc(me.initials||initialsFrom(me.name))}</span>${esc(me.name)}`;
+    } else {
+      chip.textContent = '— pas d\'identité —';
+    }
+  }
+  // Onglet "Équipe" visible aux admins.
+  const navTeam = $('navTeam');
+  if (navTeam) navTeam.classList.toggle('hidden', !(me && isAdminRole(me.role)));
 }
 function symbLogout(){ sessionStorage.clear(); location.reload(); }
 function symbToggleTheme(){
@@ -562,6 +1017,11 @@ const MOCK = {
   team: [
     {name:'Arsène',role:'sites/design/commercial',current_load_pct:72,weekly_capacity_hours:35},
     {name:'Kentin',role:'recherche/n8n/QA',current_load_pct:88,weekly_capacity_hours:35}
+  ],
+  // Référentiel équipe (V8). Source de vérité pour les identités.
+  team_members: [
+    {id:'tm_arsene',name:'Arsène',email:'arsene@symbalyx.local',role:'founder',initials:'AR',color:'#3a86ff',is_active:true,created_at:new Date(Date.now()-90*86400e3).toISOString()},
+    {id:'tm_kentin',name:'Kentin',email:'kentin@symbalyx.local',role:'admin', initials:'KE',color:'#ff8c42',is_active:true,created_at:new Date(Date.now()-90*86400e3).toISOString()}
   ],
   digest:"**Top priorités**\n- 3 réponses 'interested' à traiter sous 48h\n- Maquette V1 Salon Élégance avant vendredi\n- 5 nouveaux brouillons à préparer\n\n**Risques**\n- Kentin à 88%\n- proj_0011 bloqué 14j",
   review: [
@@ -600,6 +1060,28 @@ const MOCK = {
     {id:'notif_1',ts:new Date(Date.now()-30*60e3).toISOString(),kind:'reply_hot',severity:'high',title:'Réponse interested : Plomberie Dupont',body:'« Bonjour, votre proposition m\'intéresse, dispo jeudi 14h ? »',deeplink:'#prospects/p_0042',item_id:'p_0042',read:'false'},
     {id:'notif_2',ts:new Date(Date.now()-2*3600e3).toISOString(),kind:'bcl_critical',severity:'critical',title:'Critical à valider : Plomberie Dupont',body:'Relancer sous 48h, projet vitrine simple, fit niche.',deeplink:'#decisions/bcl_1',item_id:'bcl_1',read:'false'},
     {id:'notif_3',ts:new Date(Date.now()-26*3600e3).toISOString(),kind:'project_blocked',severity:'high',title:'Projet bloqué : Atelier Marc',body:'Bloqué depuis 14 jours, attente photos client.',deeplink:'#projects/proj_0011',item_id:'proj_0011',read:'true'}
+  ],
+  finance: [
+    {id:'fin_1', ts:new Date(Date.now()-12*86400e3).toISOString(), type:'income',  amount:1200, currency:'EUR', category:'project', description:'Acompte Salon Élégance',           status:'done',    due_date:'',                                                                  paid_at:new Date(Date.now()-12*86400e3).toISOString().slice(0,10), created_by:'Arsène'},
+    {id:'fin_2', ts:new Date(Date.now()-8*86400e3).toISOString(),  type:'expense', amount:25,   currency:'EUR', category:'hosting', description:'Vercel Pro',                          status:'done',    due_date:'',                                                                  paid_at:new Date(Date.now()-8*86400e3).toISOString().slice(0,10),  created_by:'Kentin'},
+    {id:'fin_3', ts:new Date(Date.now()-3*86400e3).toISOString(),  type:'expense', amount:20,   currency:'EUR', category:'tooling', description:'n8n Cloud Starter',                    status:'done',    due_date:'',                                                                  paid_at:new Date(Date.now()-3*86400e3).toISOString().slice(0,10),  created_by:'Kentin'},
+    {id:'fin_4', ts:new Date(Date.now()-1*86400e3).toISOString(),  type:'income',  amount:850,  currency:'EUR', category:'project', description:'Solde Salon Élégance (envoyée)',     status:'pending', due_date:new Date(Date.now()+15*86400e3).toISOString().slice(0,10),           paid_at:'',                                                                       created_by:'Arsène'},
+    {id:'fin_5', ts:new Date(Date.now()-1*86400e3).toISOString(),  type:'expense', amount:99,   currency:'EUR', category:'subscription', description:'Anthropic API (estimation mois)', status:'pending', due_date:new Date(Date.now()+10*86400e3).toISOString().slice(0,10),           paid_at:'',                                                                       created_by:'Kentin'}
+  ],
+  wishlist: [
+    {id:'wl_1', ts:new Date(Date.now()-5*86400e3).toISOString(), item:'Macbook Air M4 (Kentin)',         category:'hardware',     price_estimate:1399, priority:'medium', justification:'Kentin tourne sur un PC vieillissant, ralenti dev/QA.',           recommended_by:'IA',     decided:'pending',  decided_at:''},
+    {id:'wl_2', ts:new Date(Date.now()-3*86400e3).toISOString(), item:'Domaine .com agence',              category:'tooling',      price_estimate:15,   priority:'high',   justification:'Crédibilité commerciale, premier point de contact prospects.',  recommended_by:'IA',     decided:'pending',  decided_at:''},
+    {id:'wl_3', ts:new Date(Date.now()-2*86400e3).toISOString(), item:'Formation copywriting (1 jour)',   category:'formation',    price_estimate:450,  priority:'low',    justification:"Améliorer taux de réponse cold email. ROI estimé 3-5x.",         recommended_by:'IA',     decided:'pending',  decided_at:''},
+    {id:'wl_4', ts:new Date(Date.now()-1*86400e3).toISOString(), item:'Plan Stripe Atlas (incorporation)', category:'legal',        price_estimate:500,  priority:'medium', justification:"Si on dépasse 30k€ HT, structure plus propre + facturation US.", recommended_by:'IA',     decided:'pending',  decided_at:''}
+  ],
+  agent_messages: [
+    {id:'agt_1', ts:new Date(Date.now()-2*3600e3).toISOString(), from_workflow:'WF1',  to_workflow:'WF7',   level:'progress', title:'12 prospects analysés', body:'Niche plombier · 3 fits forts envoyés en review_queue.', item_type:'', item_id:'', escalated_to_human:'false'},
+    {id:'agt_2', ts:new Date(Date.now()-30*60e3).toISOString(),  from_workflow:'WF2',  to_workflow:'human', level:'blocked',  title:'Quota Gmail dépassé', body:'5 brouillons en file mais quota journalier atteint. Reprise demain 06:00 ou augmenter le quota.', item_type:'', item_id:'', escalated_to_human:'true'},
+    {id:'agt_3', ts:new Date(Date.now()-15*60e3).toISOString(),  from_workflow:'WF22', to_workflow:'WF15',  level:'progress', title:'4 outcomes réconciliés', body:'memory_decisions enrichi : 2 reply_received, 1 delivered, 1 no_reply.', item_type:'', item_id:'', escalated_to_human:'false'}
+  ],
+  project_deliverables: [
+    {id:'del_1', ts:new Date(Date.now()-2*86400e3).toISOString(), project_id:'proj_0007', client_id:'', type:'site_html', version:'v1', file_url:'', generated_by:'WF50 / claude-opus-4-7', status:'reviewed', reviewed_by:'Arsène', reviewed_at:new Date(Date.now()-1*86400e3).toISOString(), cost_eur:'0.18', html_size:'12450', notes:''},
+    {id:'del_2', ts:new Date(Date.now()-1*86400e3).toISOString(), project_id:'proj_0007', client_id:'', type:'site_html', version:'v2', file_url:'', generated_by:'WF50 / claude-opus-4-7', status:'draft',    reviewed_by:'',       reviewed_at:'',                                                              cost_eur:'0.04', html_size:'13100', notes:'Itération hero plus contrasté'}
   ]
 };
 
@@ -620,13 +1102,18 @@ async function fetchSheets(){
     const j = await r.json(); const [head, ...rows] = j.values || [];
     return rows.map(row => Object.fromEntries(head.map((h,i)=>[h, row[i]])));
   }
-  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs] = await Promise.all([
+  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs,members,finance,wishlist,agents,deliverables] = await Promise.all([
     read(c.tabs.bcl).catch(()=>[]), read(c.tabs.kpi).catch(()=>[]), read(c.tabs.team).catch(()=>[]),
     read(c.tabs.review).catch(()=>[]), read(c.tabs.projects).catch(()=>[]), read(c.tabs.logs).catch(()=>[]),
     read(c.tabs.memDec).catch(()=>[]), read(c.tabs.memPat).catch(()=>[]), read(c.tabs.memCom).catch(()=>[]),
-    read(c.tabs.invoices).catch(()=>[]), read(c.tabs.notifs).catch(()=>[])
+    read(c.tabs.invoices).catch(()=>[]), read(c.tabs.notifs).catch(()=>[]),
+    read(c.tabs.members || 'team_members').catch(()=>[]),
+    read(c.tabs.finance || 'finance_ledger').catch(()=>[]),
+    read(c.tabs.wishlist || 'wishlist').catch(()=>[]),
+    read(c.tabs.agents || 'agent_messages').catch(()=>[]),
+    read(c.tabs.deliverables || 'project_deliverables').catch(()=>[])
   ]);
-  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, digest: '' };
+  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, team_members: normalizeMembers(members), finance, wishlist, agent_messages: agents, project_deliverables: deliverables, digest: '' };
 }
 async function fetchSupabase(){
   const c = STATE.cfg.supabase;
@@ -645,8 +1132,27 @@ async function fetchSupabase(){
     memCom: await get('memory_commercial','?select=*&order=ts.desc&limit=200'),
     invoices: await get('invoices','?select=*'),
     notifs: await get('notifications_inbox','?select=*&order=ts.desc&limit=100'),
+    team_members: normalizeMembers(await get('team_members','?select=*').catch(()=>[])),
+    finance: await get('finance_ledger','?select=*&order=ts.desc&limit=500').catch(()=>[]),
+    wishlist: await get('wishlist','?select=*&order=ts.desc&limit=200').catch(()=>[]),
+    agent_messages: await get('agent_messages','?select=*&order=ts.desc&limit=200').catch(()=>[]),
+    project_deliverables: await get('project_deliverables','?select=*&order=ts.desc&limit=200').catch(()=>[]),
     digest: ''
   };
+}
+// Normalise les bool venus de Sheets (string 'TRUE'/'FALSE') ou Supabase (bool natif).
+function normalizeMembers(rows){
+  const toBool = v => v === true || String(v).toLowerCase() === 'true' || String(v) === '1';
+  return (rows || []).map(m => ({
+    id: m.id || '',
+    name: m.name || '',
+    email: m.email || '',
+    role: (m.role || 'member').toLowerCase(),
+    initials: m.initials || '',
+    color: m.color || '',
+    is_active: toBool(m.is_active),
+    created_at: m.created_at || ''
+  })).filter(m => m.name);
 }
 
 /* ---------- routing ---------- */
@@ -852,11 +1358,32 @@ function renderProjects(d){
 }
 
 /* ---------- DECISIONS ---------- */
+function symbPopulatePersonFilter(d){
+  const sel = $('filterPerson'); if (!sel) return;
+  const cur = sel.value;
+  const members = (d.team_members || MOCK.team_members).filter(m => m.is_active !== false);
+  const opts = ['<option value="all">Toute l\'équipe</option>', '<option value="me">À moi</option>']
+    .concat(members.map(m => `<option value="${esc(m.name)}">${esc(m.name)}</option>`));
+  sel.innerHTML = opts.join('');
+  // Restaure la sélection si toujours présente.
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
 function renderDecisions(d){
+  symbPopulatePersonFilter(d);
   const fp = $('filterPerson')?.value || 'all';
   const fpr = $('filterPriority')?.value || 'all';
+  const me = STATE.cfg.identity;
+  const matchesPerson = (r) => {
+    if (fp === 'all') return true;
+    if (fp === 'me') return me && (
+      (r.assignee_id && me.id && r.assignee_id === me.id) ||
+      (r.assigned_to && me.name && String(r.assigned_to).toLowerCase().includes(me.name.toLowerCase()))
+    );
+    // Sinon = nom exact (ou inclusion pour gérer "Arsène+Kentin").
+    return String(r.assigned_to||'').toLowerCase().includes(String(fp).toLowerCase());
+  };
   const rows = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending')
-    .filter(r => fp==='all' || r.assigned_to === fp)
+    .filter(matchesPerson)
     .filter(r => fpr==='all' || lower(r.priority_level) === fpr)
     .sort((a,b)=>(+b.priority_score||0)-(+a.priority_score||0));
   $('listDecisions').innerHTML = rows.map(b => itemRow(b, true)).join('') || emptyRow('Aucune décision en attente.');
@@ -951,14 +1478,609 @@ function renderLogs(d){
     </div>`).join('') || emptyRow('Aucun log.');
 }
 
+/* ---------- ARGENT (finance) ---------- */
+const FIN_CAT_LABEL = {
+  hosting:'hébergement', tooling:'outils', subscription:'abonnement',
+  hardware:'matériel', formation:'formation', legal:'juridique',
+  marketing:'marketing', tax:'taxes/charges', salary:'salaire',
+  project:'projet client', refund:'remboursement', software:'logiciel',
+  travel:'déplacement', other:'autre'
+};
+// Heuristique de catégorisation. Patterns vendeur/keyword → catégorie.
+const FIN_CAT_RULES = [
+  { cat:'hosting',     re:/\b(vercel|netlify|render|railway|aws|ovh|hetzner|cloudflare|digitalocean|hébergement)\b/i },
+  { cat:'subscription',re:/\b(notion|linear|figma|slack|github|gitlab|n8n|stripe|monthly|abonnement)\b/i },
+  { cat:'software',    re:/\b(licence|license|api|openai|anthropic|claude|chatgpt|adobe|jetbrains|vscode)\b/i },
+  { cat:'hardware',    re:/\b(macbook|imac|écran|écouteur|clavier|souris|ssd|disque|laptop|pc|matériel|téléphone|imprimante)\b/i },
+  { cat:'tooling',     re:/\b(domaine|domain|\.com|\.fr|gsuite|workspace|outil)\b/i },
+  { cat:'formation',   re:/\b(formation|cours|udemy|coursera|livre|book|conférence|conference)\b/i },
+  { cat:'legal',       re:/\b(avocat|notaire|kbis|inpi|stripe atlas|incorporation|comptable|expert.?comptable)\b/i },
+  { cat:'marketing',   re:/\b(facebook|instagram|google ads|meta ads|seo|sea|publicité|ad spend)\b/i },
+  { cat:'tax',         re:/\b(urssaf|tva|impôt|impot|taxe|cotisation|prélèvement social)\b/i },
+  { cat:'project',     re:/\b(acompte|solde|facture|devis|projet|client|prestation)\b/i },
+  { cat:'travel',      re:/\b(sncf|train|uber|taxi|hôtel|hotel|airbnb|essence|péage|parking)\b/i }
+];
+function detectCategory(desc){
+  const s = String(desc||'');
+  for (const r of FIN_CAT_RULES) if (r.re.test(s)) return r.cat;
+  return '';
+}
+function symbSuggestCat(){
+  const desc = $('finDesc').value;
+  const guess = detectCategory(desc);
+  const catInput = $('finCategory');
+  // Auto-fill seulement si l'utilisateur n'a rien tapé manuellement.
+  if (!catInput.dataset.touched && guess) catInput.value = guess;
+  // Suggestions cliquables
+  const top = ['hosting','subscription','software','hardware','project','marketing','tax','formation'];
+  $('catSuggest').innerHTML = top.map(c => {
+    const sel = catInput.value === c ? 'style="border-color:var(--acc);color:var(--acc)"' : '';
+    return `<button onclick="symbPickCat('${c}')" ${sel}>${esc(FIN_CAT_LABEL[c]||c)}</button>`;
+  }).join('');
+}
+function symbPickCat(c){ const i = $('finCategory'); i.value = c; i.dataset.touched = '1'; symbSuggestCat(); }
+
+function fmtMoney(n, cur){
+  const v = Number(n) || 0;
+  return v.toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + ' ' + (cur || '€').replace('EUR','€');
+}
+function symbDaysBetween(d1, d2){ return Math.floor((Date.parse(d2) - Date.parse(d1)) / 86400000); }
+function symbIsOverdue(r){
+  return lower(r.status) === 'pending' && r.due_date && Date.parse(r.due_date) < Date.now();
+}
+// Détection récurrente : >= 2 occurrences même catégorie+description normalisée sur 90j.
+function symbDetectRecurring(ledger){
+  const norm = s => String(s||'').toLowerCase().replace(/[0-9]+|[^\p{L}\s]/gu,'').trim().split(/\s+/).slice(0,3).join(' ');
+  const groups = {};
+  const cutoff = Date.now() - 90*86400e3;
+  for (const r of ledger) {
+    if (lower(r.type) !== 'expense') continue;
+    if (Date.parse(r.ts || r.paid_at || '') < cutoff) continue;
+    const k = (r.category||'') + '|' + norm(r.description);
+    (groups[k] = groups[k] || []).push(r);
+  }
+  const recurring = new Set();
+  for (const k in groups) if (groups[k].length >= 2) groups[k].forEach(r => recurring.add(r.id));
+  return recurring;
+}
+// Permission : un membre ne peut éditer/supprimer que ses propres opérations, sauf admin.
+function symbCanEditFin(row){
+  const me = STATE.cfg.identity; if (!me) return false;
+  if (isAdminRole(me.role)) return true;
+  return row.created_by_id ? row.created_by_id === me.id : (row.created_by === me.name);
+}
+function symbComputeFinance(d){
+  const ledger = (d.finance || []).map(r => ({
+    ...r,
+    amount: Number(r.amount) || 0,
+    type: lower(r.type),
+    status: lower(r.status || 'pending')
+  }));
+  const now = new Date(); const yyyymm = now.toISOString().slice(0,7);
+  let balance = 0, monthRev = 0, monthExp = 0;
+  let pendingIn = 0, pendingOut = 0;
+  for (const r of ledger) {
+    if (r.status === 'done') {
+      const sign = r.type === 'income' ? 1 : (r.type === 'expense' ? -1 : 0);
+      balance += sign * r.amount;
+      const ref = (r.paid_at || r.ts || '').slice(0,7);
+      if (ref === yyyymm) {
+        if (r.type === 'income')  monthRev += r.amount;
+        if (r.type === 'expense') monthExp += r.amount;
+      }
+    } else if (r.status === 'pending') {
+      if (r.type === 'income')  pendingIn  += r.amount;
+      if (r.type === 'expense') pendingOut += r.amount;
+    }
+  }
+  // Rythme mensuel = moyenne des 3 derniers mois de dépenses réalisées (ou ce mois si pas d'historique).
+  const months = {};
+  for (const r of ledger) {
+    if (r.type !== 'expense' || r.status !== 'done') continue;
+    const m = (r.paid_at || r.ts || '').slice(0,7); if (!m) continue;
+    months[m] = (months[m] || 0) + r.amount;
+  }
+  const recent = Object.keys(months).sort().slice(-3);
+  const burn = recent.length ? recent.reduce((s,m)=>s+months[m],0) / recent.length : monthExp || 1;
+  const runway = burn > 0 ? balance / burn : Infinity;
+  return { balance, monthRev, monthExp, pendingIn, pendingOut, burn, runway, ledger };
+}
+function symbBuildMoneyAdvice(s, d){
+  const tips = [];
+  if (isFinite(s.runway) && s.runway < 1) {
+    tips.push({ kind:'crit', msg:`Runway < 1 mois (${s.runway.toFixed(1)}). Encaisse les ${fmtMoney(s.pendingIn)} en attente avant tout achat.` });
+  } else if (isFinite(s.runway) && s.runway < 3) {
+    tips.push({ kind:'warn', msg:`Runway court (${s.runway.toFixed(1)} mois). Reporte les achats wishlist non urgents.` });
+  } else if (isFinite(s.runway) && s.runway > 12 && s.balance > 5000) {
+    tips.push({ kind:'ok', msg:`Trésorerie confortable (${s.runway.toFixed(0)} mois). Tu peux investir : formation, outil, sous-traitance ponctuelle.` });
+  }
+  // Overdue
+  const overdue = s.ledger.filter(symbIsOverdue);
+  if (overdue.length) {
+    const tot = overdue.reduce((sum,r) => sum + (r.type === 'income' ? 1 : -1) * r.amount, 0);
+    const incs = overdue.filter(r => r.type === 'income');
+    const exps = overdue.filter(r => r.type === 'expense');
+    if (incs.length) tips.push({ kind:'crit', msg:`${incs.length} facture(s) client en retard (${fmtMoney(incs.reduce((s,r)=>s+r.amount,0))}). Relance prioritaire.` });
+    if (exps.length) tips.push({ kind:'warn', msg:`${exps.length} dépense(s) à payer en retard (${fmtMoney(exps.reduce((s,r)=>s+r.amount,0))}). Risque de pénalités.` });
+  }
+  // Forecast 30j (linéaire à partir du burn + pending échéant à 30j)
+  const horizon30 = (() => {
+    const today = Date.now();
+    const due30 = today + 30*86400e3;
+    let net = s.balance;
+    for (const r of s.ledger) {
+      if (r.status !== 'pending') continue;
+      const d = Date.parse(r.due_date || ''); if (!isFinite(d) || d > due30) continue;
+      net += (r.type === 'income' ? 1 : -1) * r.amount;
+    }
+    // Plus le burn linéaire pour ce qui n'a pas de due
+    net -= s.burn;
+    return net;
+  })();
+  if (isFinite(horizon30)) {
+    const delta = horizon30 - s.balance;
+    const sign = delta >= 0 ? '+' : '';
+    const kind = horizon30 < s.burn ? 'warn' : 'info';
+    tips.push({ kind, msg:`Projection 30j : ${fmtMoney(horizon30)} (${sign}${fmtMoney(delta)} vs aujourd'hui).` });
+  }
+  // Récurrentes détectées
+  if (s.recurring && s.recurring.size > 0) {
+    const monthRecur = s.ledger.filter(r => s.recurring.has(r.id) && r.status === 'done').reduce((sum,r) => sum + r.amount, 0) / Math.max(1, Object.keys(s.monthly).length);
+    if (monthRecur > 0) {
+      tips.push({ kind:'info', msg:`Dépenses récurrentes détectées : ~${fmtMoney(monthRecur)}/mois fixes. Audite-les si runway baisse.` });
+    }
+  }
+  if (s.pendingIn > 0) tips.push({ kind:'info', msg:`${fmtMoney(s.pendingIn)} à encaisser. Relance les factures impayées d'abord.` });
+  if (s.monthExp > s.monthRev && s.monthRev > 0) {
+    tips.push({ kind:'warn', msg:`Ce mois : dépenses (${fmtMoney(s.monthExp)}) > revenus (${fmtMoney(s.monthRev)}). Vérifie les abonnements.` });
+  }
+  // Wishlist affordability
+  const wl = (d.wishlist || []).filter(w => lower(w.decided||'pending') === 'pending');
+  const totalWish = wl.reduce((s,w) => s + (Number(w.price_estimate)||0), 0);
+  if (totalWish > 0) {
+    if (s.balance >= totalWish + (s.burn * 3)) {
+      tips.push({ kind:'ok', msg:`Wishlist (${fmtMoney(totalWish)}) couverte avec 3 mois de runway après. Tu peux décider sereinement.` });
+    } else if (s.balance >= totalWish) {
+      tips.push({ kind:'warn', msg:`Wishlist (${fmtMoney(totalWish)}) couverte mais runway descend sous 3 mois après. Priorise l'item "high".` });
+    } else {
+      tips.push({ kind:'warn', msg:`Wishlist (${fmtMoney(totalWish)}) > solde (${fmtMoney(s.balance)}). Encaisse d'abord ou priorise.` });
+    }
+  }
+  return { tips, horizon30 };
+}
+
+// Mini-sparkline SVG (200x38). Series = [{label, value}]. Couleur = stroke.
+function symbDrawSpark(svgId, series, stroke){
+  const el = $(svgId); if (!el) return;
+  if (!series.length) { el.innerHTML = ''; return; }
+  const W = 200, H = 38, pad = 3;
+  const xs = series.map((_,i) => i);
+  const ys = series.map(s => s.value);
+  const minY = Math.min(0, ...ys), maxY = Math.max(0, ...ys);
+  const sx = i => pad + (i / Math.max(1, xs.length-1)) * (W - 2*pad);
+  const sy = v => H - pad - ((v - minY) / Math.max(1, maxY - minY)) * (H - 2*pad);
+  const pts = series.map((s,i) => `${sx(i).toFixed(1)},${sy(s.value).toFixed(1)}`).join(' ');
+  const area = `M${sx(0).toFixed(1)},${sy(minY).toFixed(1)} L${pts.split(' ').join(' L')} L${sx(xs.length-1).toFixed(1)},${sy(minY).toFixed(1)} Z`;
+  const zeroY = sy(0).toFixed(1);
+  el.innerHTML = `
+    <line class="axis" x1="0" y1="${zeroY}" x2="${W}" y2="${zeroY}"/>
+    <path class="area" d="${area}" style="fill:${stroke ? stroke + '22' : 'rgba(94,234,212,.14)'}"/>
+    <polyline class="line" points="${pts}" style="stroke:${stroke || 'var(--acc)'}"/>
+    ${series.map((s,i) => `<circle class="pt" cx="${sx(i).toFixed(1)}" cy="${sy(s.value).toFixed(1)}" r="1.5" style="fill:${stroke || 'var(--acc)'}"><title>${esc(s.label)} : ${fmtMoney(s.value)}</title></circle>`).join('')}
+  `;
+}
+function symbBuildMonthSeries(ledger, n){
+  const out = [];
+  const now = new Date();
+  for (let i = n-1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const m = d.toISOString().slice(0,7);
+    let rev = 0, exp = 0, bal = 0;
+    for (const r of ledger) {
+      const ref = String(r.paid_at || r.ts || '').slice(0,7);
+      if (ref > m) continue; // futur — exclu
+      if (ref === m && lower(r.status) === 'done') {
+        if (lower(r.type) === 'income')  rev += r.amount;
+        if (lower(r.type) === 'expense') exp += r.amount;
+      }
+      // Solde cumulé jusqu'à fin de m
+      if (ref <= m && lower(r.status) === 'done') {
+        if (lower(r.type) === 'income')  bal += r.amount;
+        if (lower(r.type) === 'expense') bal -= r.amount;
+      }
+    }
+    out.push({ month: m, label: d.toLocaleDateString('fr-FR', { month:'short' }), rev, exp, bal });
+  }
+  return out;
+}
+
+function symbApplyFinFilters(rows){
+  const m = $('finFilterMonth')?.value || 'all';
+  const c = $('finFilterCat')?.value || 'all';
+  const s = $('finFilterStatus')?.value || 'all';
+  const q = lower(($('finFilterQ')?.value || '').trim());
+  return rows.filter(r => {
+    if (m !== 'all') {
+      const ref = String(r.paid_at || r.ts || '').slice(0,7);
+      if (ref !== m) return false;
+    }
+    if (c !== 'all' && lower(r.category) !== c) return false;
+    if (s !== 'all' && lower(r.status) !== s) return false;
+    if (q && !lower(`${r.description} ${r.category} ${r.created_by} ${r.vendor||''}`).includes(q)) return false;
+    return true;
+  });
+}
+
+function renderMoney(d){
+  const s = symbComputeFinance(d);
+  s.recurring = symbDetectRecurring(s.ledger);
+  s.monthly = (function(){ const m={}; for (const r of s.ledger) if (lower(r.type)==='expense' && lower(r.status)==='done') { const k=String(r.paid_at||r.ts||'').slice(0,7); if (k) m[k]=(m[k]||0)+r.amount; } return m; })();
+
+  // KPIs (avec couleur dynamique sur runway)
+  $('kpi_balance').textContent = fmtMoney(s.balance);
+  $('kpi_revenue').textContent = fmtMoney(s.monthRev);
+  $('kpi_expense').textContent = fmtMoney(s.monthExp);
+  const runwayEl = $('kpi_runway');
+  if (isFinite(s.runway)) {
+    runwayEl.textContent = s.runway.toFixed(1) + ' mois';
+    runwayEl.className = 'kpi ' + (s.runway < 1 ? 'crit' : s.runway < 3 ? 'warn' : 'ok');
+  } else {
+    runwayEl.textContent = s.balance > 0 ? '∞' : '—'; runwayEl.className = 'kpi';
+  }
+  $('kpi_balanceSub').textContent = `${(d.finance||[]).length} opération(s) au total`;
+  $('kpi_revenueSub').textContent = `+ ${fmtMoney(s.pendingIn)} à encaisser`;
+  $('kpi_expenseSub').textContent = `+ ${fmtMoney(s.pendingOut)} à payer`;
+  $('kpi_runwaySub').textContent = `burn ${fmtMoney(s.burn)}/mois`;
+
+  // Sparkline 6 derniers mois
+  const series = symbBuildMonthSeries(s.ledger, 6);
+  symbDrawSpark('sparkBalance', series.map(x => ({ label:x.label, value:x.bal })), 'var(--acc)');
+  symbDrawSpark('sparkRev',     series.map(x => ({ label:x.label, value:x.rev })), '#22c55e');
+  symbDrawSpark('sparkExp',     series.map(x => ({ label:x.label, value:x.exp })), '#f59e0b');
+
+  // Reco IA + forecast
+  const adv = symbBuildMoneyAdvice(s, d);
+  $('kpi_forecast').textContent = `→ projection 30j : ${fmtMoney(adv.horizon30)}`;
+  const advBox = $('moneyAdvice'); const advBody = $('moneyAdviceBody');
+  if (adv.tips.length) {
+    advBox.style.display = '';
+    advBody.innerHTML = adv.tips.map(t => {
+      const cls = t.kind === 'crit' ? 'b-critical' : t.kind === 'warn' ? 'b-high' : t.kind === 'ok' ? 'b-ok' : 'b-medium';
+      return `<div style="margin:6px 0"><span class="badge ${cls}">${t.kind}</span> ${esc(t.msg)}</div>`;
+    }).join('');
+  } else { advBox.style.display = 'none'; }
+
+  // Filtres : peuple les options dynamiquement
+  symbPopulateFinFilters(s.ledger);
+
+  const filtered = symbApplyFinFilters(s.ledger);
+
+  // À encaisser
+  const incoming = s.ledger.filter(r => r.type === 'income' && r.status === 'pending')
+    .sort((a,b) => (a.due_date||'9') > (b.due_date||'9') ? 1 : -1);
+  $('incomingCount').textContent = incoming.length;
+  $('listIncoming').innerHTML = incoming.map(r => symbRenderFinRow(r, s, { showActions:true })).join('') || emptyRow('Rien à encaisser. Bravo.');
+
+  // À payer
+  const outgoing = s.ledger.filter(r => r.type === 'expense' && r.status === 'pending')
+    .sort((a,b) => (a.due_date||'9') > (b.due_date||'9') ? 1 : -1);
+  $('outgoingCount').textContent = outgoing.length;
+  $('listOutgoing').innerHTML = outgoing.map(r => symbRenderFinRow(r, s, { showActions:true })).join('') || emptyRow('Aucune dépense en attente.');
+
+  // Wishlist avec affordability live
+  const wl = (d.wishlist || []).slice().sort((a,b) => {
+    const order = { high:0, medium:1, low:2 };
+    return (order[lower(a.priority)]??3) - (order[lower(b.priority)]??3);
+  });
+  $('wishlistCount').textContent = wl.filter(w=>lower(w.decided||'pending')==='pending').length;
+  $('listWishlist').innerHTML = wl.map(w => {
+    const decided = lower(w.decided||'pending');
+    const price = Number(w.price_estimate) || 0;
+    const safeBudget = s.balance - (s.burn * 3);  // si on garde 3 mois de runway
+    const canAfford = price <= safeBudget;
+    const tightAfford = price <= s.balance && !canAfford;
+    const cls = decided === 'approved' ? 'b-ok' : decided === 'rejected' ? 'b-critical' : 'b-pending';
+    const affordBadge = decided === 'pending'
+      ? (canAfford ? '<span class="badge b-afford" title="Couvert avec 3 mois de runway après">finançable</span>'
+        : tightAfford ? '<span class="badge b-wait" title="Couvert mais réduit le runway sous 3 mois">attendre</span>'
+        : '<span class="badge b-critical" title="Solde insuffisant">trop tôt</span>')
+      : '';
+    return `<div class="item">
+      <div class="ic ${lower(w.priority)==='high'?'crit':lower(w.priority)==='medium'?'warn':''}">★</div>
+      <div class="body">
+        <div class="ttl truncate">${esc(w.item||'')}</div>
+        <div class="meta">${esc(FIN_CAT_LABEL[w.category]||w.category||'')} · ${esc(w.justification||'')}</div>
+        <div class="meta">${esc(w.recommended_by||'IA')} · ${fmtRelative(w.ts)}</div>
+      </div>
+      <div class="right">
+        <strong>${fmtMoney(price)}</strong>
+        <span class="badge ${cls}">${decided === 'pending' ? esc(w.priority||'?') : esc(decided)}</span>
+        ${affordBadge}
+        ${decided === 'pending' ? `
+          <div class="actions">
+            <button class="btn success" onclick="symbDecideWish('${esc(w.id)}','approved')">Acheter</button>
+            <button class="btn danger"  onclick="symbDecideWish('${esc(w.id)}','rejected')">Plus tard</button>
+          </div>` : ''}
+      </div>
+    </div>`;
+  }).join('') || emptyRow('Wishlist vide. L\'IA proposera des achats utiles ici.');
+
+  // Historique filtré
+  const hist = filtered.slice().sort((a,b)=>Date.parse(b.ts||0)-Date.parse(a.ts||0));
+  $('histCount').textContent = hist.length;
+  $('listFinHistory').innerHTML = hist.slice(0, 100).map(r => symbRenderFinRow(r, s, { showActions:false, showEdit:true })).join('') || emptyRow('Aucune opération.');
+}
+
+function symbRenderFinRow(r, s, opts){
+  const overdue = symbIsOverdue(r);
+  const recur = s.recurring && s.recurring.has(r.id);
+  const sign = r.type === 'income' ? '+' : r.type === 'expense' ? '−' : '';
+  const color = r.type === 'income' ? 'var(--ok)' : r.type === 'expense' ? 'var(--warn)' : 'var(--muted)';
+  const icCls = r.type === 'income' ? 'ok' : r.type === 'expense' ? 'warn' : '';
+  const editable = symbCanEditFin(r);
+  const actionBtn = opts.showActions
+    ? `<button class="btn ghost" style="font-size:11px;padding:4px 8px" onclick="symbMarkFinanceDone('${esc(r.id)}')">${r.type==='income'?'Encaissé':'Payé'}</button>`
+    : '';
+  const editBtns = (opts.showEdit && editable)
+    ? `<div class="row-actions">
+         <button onclick="symbEditFinance('${esc(r.id)}')">✎ Éditer</button>
+         <button class="danger" onclick="symbDeleteFinance('${esc(r.id)}')">Supprimer</button>
+       </div>`
+    : '';
+  return `<div class="item">
+    <div class="ic ${icCls}">${sign || '·'}</div>
+    <div class="body">
+      <div class="ttl truncate">${esc(r.description||'(sans description)')}</div>
+      <div class="meta">${esc(FIN_CAT_LABEL[r.category]||r.category||'')}${r.created_by ? ' · ' + esc(r.created_by) : ''}${r.due_date ? ' · échéance ' + esc(r.due_date) : ''}</div>
+      <div class="meta">${fmtRelative(r.ts)}${r.status ? ' · ' + esc(r.status) : ''}</div>
+      ${editBtns}
+    </div>
+    <div class="right">
+      <strong style="color:${color}">${sign} ${fmtMoney(r.amount, r.currency)}</strong>
+      ${overdue ? '<span class="badge b-overdue">en retard</span>' : ''}
+      ${recur ? '<span class="badge b-recurring">récurrent</span>' : ''}
+      ${actionBtn}
+    </div>
+  </div>`;
+}
+
+function symbPopulateFinFilters(ledger){
+  const monthSel = $('finFilterMonth'); const catSel = $('finFilterCat');
+  if (!monthSel || !catSel) return;
+  const months = [...new Set(ledger.map(r => String(r.paid_at || r.ts || '').slice(0,7)).filter(Boolean))].sort().reverse();
+  const cats   = [...new Set(ledger.map(r => lower(r.category)).filter(Boolean))].sort();
+  const curM = monthSel.value, curC = catSel.value;
+  monthSel.innerHTML = '<option value="all">Tous mois</option>' + months.map(m => `<option value="${esc(m)}" ${m===curM?'selected':''}>${esc(m)}</option>`).join('');
+  catSel.innerHTML   = '<option value="all">Toutes catégories</option>' + cats.map(c => `<option value="${esc(c)}" ${c===curC?'selected':''}>${esc(FIN_CAT_LABEL[c]||c)}</option>`).join('');
+}
+
+async function symbAddFinance(){
+  const type = $('finType').value;
+  const amount = Number($('finAmount').value);
+  const desc = $('finDesc').value.trim();
+  const category = ($('finCategory').value.trim() || detectCategory(desc) || 'other').toLowerCase();
+  const due = $('finDueDate').value;
+  const status = $('finStatus').value;
+  const me = STATE.cfg.identity;
+  if (!amount || amount <= 0) { toast('Montant invalide','err'); return; }
+  if (amount > 1000000) { toast('Montant suspect (> 1M €)','err'); return; }
+  if (!desc) { toast('Description manquante','err'); return; }
+  if (desc.length > 280) { toast('Description trop longue (max 280)', 'err'); return; }
+  if (!me)   { toast('Identité requise','err'); return; }
+
+  // Mode édition d'une ligne existante
+  if (STATE.editingFinId) {
+    const id = STATE.editingFinId;
+    const wh = STATE.cfg.webhook;
+    const patch = { type, amount, category, description:desc, status, due_date: due || '',
+      paid_at: status === 'done' ? (new Date().toISOString().slice(0,10)) : '' };
+    if (STATE.data) {
+      const r = (STATE.data.finance||[]).find(x => x.id === id);
+      if (r) Object.assign(r, patch);
+    }
+    if (wh.baseUrl && wh.secret) {
+      try {
+        await fetch(`${wh.baseUrl}/symbalyx-finance`, {
+          method:'POST',
+          headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+          body: JSON.stringify({ kind:'patch_ledger', id, patch })
+        });
+        toast('Ligne mise à jour');
+      } catch(e) { toast('Webhook KO — local uniquement', 'err'); }
+    } else {
+      toast('(local uniquement — webhook non configuré)');
+    }
+    STATE.editingFinId = null;
+    $('finAmount').value = ''; $('finDesc').value = ''; $('finCategory').value = ''; $('finDueDate').value = '';
+    delete $('finCategory').dataset.touched;
+    symbRender();
+    return;
+  }
+
+  if (type === 'wishlist') {
+    const item = { id:'wl_'+Date.now(), ts:new Date().toISOString(), item:desc, category, price_estimate:amount,
+      priority:'medium', justification:desc, recommended_by:me.name, recommended_by_id: me.id || '', decided:'pending', decided_at:'' };
+    await symbPostFinance('wishlist', item);
+    return;
+  }
+
+  const row = {
+    id:'fin_'+Date.now(), ts:new Date().toISOString(),
+    type, amount, currency:'EUR', category, description:desc,
+    status, due_date: due || '',
+    paid_at: status === 'done' ? (new Date().toISOString().slice(0,10)) : '',
+    created_by: me.name, created_by_id: me.id || ''
+  };
+  await symbPostFinance('ledger', row);
+  delete $('finCategory').dataset.touched;
+}
+
+async function symbPostFinance(kind, row){
+  const wh = STATE.cfg.webhook;
+  const status = $('finAddStatus');
+  status.textContent = 'Envoi…';
+  // Optimiste : ajoute dans STATE.data (mock-friendly)
+  if (STATE.data) {
+    if (kind === 'wishlist') (STATE.data.wishlist = STATE.data.wishlist || []).unshift(row);
+    else (STATE.data.finance = STATE.data.finance || []).unshift(row);
+  }
+  symbRender();
+
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const r = await fetch(`${wh.baseUrl}/symbalyx-finance`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ kind, row })
+      });
+      if (!r.ok) throw new Error('HTTP '+r.status);
+      status.textContent = '✓ enregistré';
+      toast('Opération ajoutée');
+    } catch(e) {
+      status.textContent = '✗ ' + e.message + ' (gardé en local)';
+      toast('Webhook KO — gardé localement', 'err');
+    }
+  } else {
+    status.textContent = '(local — webhook non configuré)';
+  }
+  // Reset form
+  $('finAmount').value = ''; $('finDesc').value = ''; $('finCategory').value = ''; $('finDueDate').value = '';
+  setTimeout(()=>{ status.textContent = ''; }, 3500);
+}
+
+async function symbMarkFinanceDone(id){
+  if (!STATE.data) return;
+  const row = (STATE.data.finance||[]).find(r => r.id === id); if (!row) return;
+  row.status = 'done'; row.paid_at = new Date().toISOString().slice(0,10);
+  symbRender();
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      await fetch(`${wh.baseUrl}/symbalyx-finance`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ kind:'patch_ledger', id, patch:{ status:'done', paid_at: row.paid_at } })
+      });
+      toast(row.type === 'income' ? 'Encaissement enregistré' : 'Paiement enregistré');
+    } catch (e) { toast('Webhook KO — local seulement', 'err'); }
+  }
+}
+
+function symbEditFinance(id){
+  if (!STATE.data) return;
+  const r = (STATE.data.finance||[]).find(x => x.id === id); if (!r) return;
+  if (!symbCanEditFin(r)) { toast('Pas autorisé : tu n\'es pas l\'auteur', 'err'); return; }
+  // Pré-remplit le formulaire et passe en mode édition.
+  $('finType').value = r.type || 'expense';
+  $('finAmount').value = r.amount || '';
+  $('finDesc').value = r.description || '';
+  $('finCategory').value = r.category || '';
+  $('finCategory').dataset.touched = '1';
+  $('finDueDate').value = r.due_date || '';
+  $('finStatus').value = r.status || 'pending';
+  STATE.editingFinId = id;
+  $('finAddStatus').textContent = `Édition de ${id}. Clique Ajouter pour mettre à jour.`;
+  window.scrollTo({ top: 200, behavior: 'smooth' });
+}
+async function symbDeleteFinance(id){
+  if (!STATE.data) return;
+  const r = (STATE.data.finance||[]).find(x => x.id === id); if (!r) return;
+  if (!symbCanEditFin(r)) { toast('Pas autorisé : tu n\'es pas l\'auteur', 'err'); return; }
+  if (!confirm(`Supprimer "${r.description}" (${fmtMoney(r.amount)}) ? Cette action écrase la ligne dans la Sheet.`)) return;
+  // Soft-delete : on marque status=deleted plutôt que supprimer la ligne (audit trail).
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      await fetch(`${wh.baseUrl}/symbalyx-finance`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ kind:'patch_ledger', id, patch:{ status:'deleted', notes:'soft-deleted by ' + (STATE.cfg.identity?.name || 'unknown') } })
+      });
+      toast('Supprimé (soft-delete)');
+    } catch(e) { toast('Webhook KO — local uniquement', 'err'); }
+  }
+  // Local : retire de la liste pour l'UI
+  STATE.data.finance = STATE.data.finance.filter(x => x.id !== id);
+  symbRender();
+}
+
+function symbExportFinanceCSV(){
+  const d = STATE.data || {}; const ledger = d.finance || [];
+  if (!ledger.length) { toast('Rien à exporter', 'err'); return; }
+  const cols = ['id','ts','type','amount','currency','category','description','status','due_date','paid_at','created_by','vendor','invoice_ref','notes'];
+  const escCSV = v => { const s = String(v == null ? '' : v); return /[",\n;]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+  const rows = [cols.join(',')].concat(
+    ledger.map(r => cols.map(c => escCSV(r[c])).join(','))
+  );
+  const blob = new Blob([rows.join('\n')], { type:'text/csv;charset=utf-8' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a');
+  a.href = url; a.download = `symbalyx_finance_${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  toast(`${ledger.length} ligne(s) exportée(s)`);
+}
+
+async function symbDecideWish(id, decision){
+  if (!STATE.data) return;
+  const me = STATE.cfg.identity;
+  const w = (STATE.data.wishlist||[]).find(x => x.id === id); if (!w) return;
+  w.decided = decision; w.decided_at = new Date().toISOString();
+  symbRender();
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      await fetch(`${wh.baseUrl}/symbalyx-finance`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ kind:'patch_wishlist', id, patch:{ decided: decision, decided_at: w.decided_at, decided_by: me?.name||'', decided_by_id: me?.id||'' } })
+      });
+      toast(decision === 'approved' ? 'Achat approuvé — ajoute la dépense quand payée' : 'Reporté');
+      // Si approved, push immédiatement une dépense pending pour ne pas oublier
+      if (decision === 'approved') {
+        await symbPostFinance('ledger', {
+          id:'fin_'+Date.now(), ts:new Date().toISOString(),
+          type:'expense', amount: Number(w.price_estimate)||0, currency:'EUR',
+          category: w.category||'other', description: '[wishlist] '+w.item,
+          status:'pending', due_date:'', paid_at:'',
+          created_by: me?.name||'', created_by_id: me?.id||''
+        });
+      }
+    } catch (e) { toast('Webhook KO — local seulement', 'err'); }
+  }
+}
+
 /* ---------- DETAIL drawer ---------- */
 function symbOpenDetail(type, id){
+  STATE.detailContext = { type, id };
   const d = STATE.data || {}; let html = '';
   if (type === 'bcl') {
     const b = (d.bcl||[]).find(x => x.id === id) || {};
+    const status = lower(b.decision_status||'pending');
+    const decided = status !== 'pending';
+    const statusBadge = decided
+      ? `<span class="badge ${status==='approved'?'b-low':status==='rejected'?'b-critical':'b-medium'}">${esc(status)}</span>`
+      : '';
+    const decidedLine = decided
+      ? `<div class="muted" style="margin-top:6px">${esc(status)} par <strong>${esc(b.decided_by||'?')}</strong>${b.decided_at ? ' · ' + esc(fmtRelative(b.decided_at)) : ''}</div>`
+      : '';
+    const actionRow = decided
+      ? `<div class="row" style="margin-top:10px">
+          <button class="btn" onclick="symbReassign('${b.id}')">↪ Réassigner</button>
+          <button class="btn ghost right" onclick="symbCloseDetail()">Fermer</button>
+         </div>`
+      : `<div class="row" style="margin-top:10px">
+          <button class="btn success" onclick="symbDecide('${b.id}','approved');symbCloseDetail()">Approuver</button>
+          <button class="btn danger" onclick="symbDecide('${b.id}','rejected');symbCloseDetail()">Rejeter</button>
+          <button class="btn" onclick="symbReassign('${b.id}')">↪ Réassigner</button>
+          <button class="btn ghost right" onclick="symbCloseDetail()">Fermer</button>
+        </div>`;
     html = `
-      <div style="margin-bottom:8px">${priorityBadge(b.priority_level)} <span class="pill">${esc(b.item_type||'')}</span> <span class="muted">${fmtRelative(b.ts)}</span></div>
+      <div style="margin-bottom:8px">${priorityBadge(b.priority_level)} <span class="pill">${esc(b.item_type||'')}</span> ${statusBadge} <span class="muted">${fmtRelative(b.ts)}</span></div>
       <h2 class="h2">${esc(b.title||b.item_id||'')}</h2>
+      ${decidedLine}
+      <div class="card" style="background:var(--panel2);border-color:var(--line);margin:10px 0;padding:10px 12px">
+        <div class="card-h"><span class="t">Résumé IA</span></div>
+        <div style="line-height:1.6">${symbBuildSummary(b, d)}</div>
+      </div>
       <p>${esc(b.recommendation||'')}</p>
       <div class="grid grid-2">
         <div><div class="muted">Action</div><strong>${esc(b.recommended_action||'-')}</strong></div>
@@ -969,17 +2091,24 @@ function symbOpenDetail(type, id){
         <div><div class="muted">Source</div><strong>${esc(b.source_workflow||'-')}</strong></div>
       </div>
       <div class="sep"></div>
+      <details class="advice-extra" style="margin:6px 0">
+        <summary>Historique d'activité</summary>
+        <div style="margin-top:8px">${symbRenderActivityHTML(symbBuildActivityForBcl(b, d))}</div>
+      </details>
       <p class="muted">${esc(b.notes||'')}</p>
-      <div class="row" style="margin-top:10px">
-        <button class="btn success" onclick="symbDecide('${b.id}','approved');symbCloseDetail()">Approuver</button>
-        <button class="btn danger" onclick="symbDecide('${b.id}','rejected');symbCloseDetail()">Rejeter</button>
-        <button class="btn ghost right" onclick="symbCloseDetail()">Fermer</button>
-      </div>`;
+      ${actionRow}`;
   } else if (type === 'prospect') {
     const p = (d.review||[]).find(x => x.id === id) || {};
+    const dups = symbFindDuplicates(p, d);
+    const dupBadge = dups.length
+      ? `<div class="card" style="background:rgba(245,158,11,.08);border-color:rgba(245,158,11,.3);margin:10px 0;padding:10px 12px">
+           <strong style="color:#fcd34d">⚠ Doublon possible</strong>
+           <div class="muted" style="margin-top:4px">Match sur : ${dups.map(d2 => `${esc(d2.match)} avec <strong>${esc(d2.name||d2.id)}</strong>`).join(' · ')}</div>
+         </div>` : '';
     html = `
       <h2 class="h2">${esc(p.company_name||'')}</h2>
       <div class="muted">${esc(p.city||'-')} · ${esc(p.niche||'-')}</div>
+      ${dupBadge}
       <div class="grid grid-2" style="margin-top:10px">
         <div><div class="muted">Email</div><strong>${esc(p.email||'-')}</strong></div>
         <div><div class="muted">Statut</div><strong>${esc(p.status||'-')}</strong></div>
@@ -992,6 +2121,21 @@ function symbOpenDetail(type, id){
       <button class="btn ghost" onclick="symbCloseDetail()">Fermer</button>`;
   } else if (type === 'project') {
     const p = (d.projects||[]).find(x => x.id === id) || {};
+    const dels = (d.project_deliverables || []).filter(x => x.project_id === id)
+      .sort((a,b) => Date.parse(b.ts||0) - Date.parse(a.ts||0));
+    const delsHtml = dels.length
+      ? dels.map(dl => `<div class="item">
+            <div class="ic ${lower(dl.status)==='delivered'?'ok':lower(dl.status)==='failed'?'crit':'warn'}">⌑</div>
+            <div class="body">
+              <div class="ttl truncate">${esc(dl.type||'-')} · ${esc(dl.version||'')}</div>
+              <div class="meta">${esc(dl.generated_by||'-')} · ${fmtRelative(dl.ts)} · ${esc(dl.cost_eur||'0')}€</div>
+              ${dl.file_url ? `<div class="meta"><a href="${esc(dl.file_url)}" target="_blank" rel="noopener">Ouvrir</a></div>` : ''}
+            </div>
+            <div class="right">
+              <span class="badge ${lower(dl.status)==='delivered'?'b-ok':lower(dl.status)==='failed'?'b-critical':'b-pending'}">${esc(dl.status||'draft')}</span>
+            </div>
+          </div>`).join('')
+      : '<div class="muted" style="padding:8px 12px">Aucun livrable. Clique « Générer le site » pour lancer WF50.</div>';
     html = `
       <h2 class="h2">${esc(p.client_name||'')}</h2>
       <div class="muted">${esc(p.niche||'-')} · ${esc(p.city||'-')}</div>
@@ -1003,7 +2147,19 @@ function symbOpenDetail(type, id){
       </div>
       <div class="sep"></div>
       <p>${esc(p.client_brief_summary||'')}</p>
-      <button class="btn ghost" onclick="symbCloseDetail()">Fermer</button>`;
+
+      <div class="card padless" style="margin:10px 0">
+        <div style="padding:10px 12px;display:flex;align-items:center;gap:8px">
+          <span class="card-h t" style="margin:0">Livrables IA — sites & devis</span>
+          <span class="right pill" id="delsCount_${esc(id)}">${dels.length}</span>
+        </div>
+        <div class="list">${delsHtml}</div>
+      </div>
+
+      <div class="row">
+        <button class="btn primary" onclick="symbBuildSite('${esc(id)}')">✨ Générer le site (WF50)</button>
+        <button class="btn ghost right" onclick="symbCloseDetail()">Fermer</button>
+      </div>`;
   } else if (type === 'invoice') {
     const inv = (d.invoices||[]).find(x => (x.id||x.invoice_ref) === id) || {};
     html = `
@@ -1018,10 +2174,99 @@ function symbOpenDetail(type, id){
       <p class="muted">Toute relance passe par un brouillon Gmail à valider, jamais d'envoi auto.</p>
       <button class="btn ghost" onclick="symbCloseDetail()">Fermer</button>`;
   }
+  // Bloc commentaires partagés équipe — universel pour tous les types.
+  html += `
+    <div class="sep"></div>
+    <div class="card-h"><span class="t">Commentaires équipe</span><span class="muted" id="cmtMeta_${esc(id)}"></span></div>
+    <div class="list" id="cmtList_${esc(id)}"><div class="muted">Chargement…</div></div>
+    <div style="height:8px"></div>
+    <div class="row">
+      <input id="cmtInput_${esc(id)}" placeholder="Écrire un commentaire (signé ${esc(STATE.cfg.identity||'Équipe')})…">
+      <button class="btn primary" onclick="symbPostComment('${type}','${esc(id)}')">Envoyer</button>
+    </div>`;
   $('detailContent').innerHTML = html;
   $('detailBg').classList.add('open'); $('detailSheet').classList.add('open');
+  symbLoadComments(type, id);
 }
-function symbCloseDetail(){ $('detailBg').classList.remove('open'); $('detailSheet').classList.remove('open'); }
+function symbCloseDetail(){ STATE.detailContext = null; $('detailBg').classList.remove('open'); $('detailSheet').classList.remove('open'); }
+
+/* ---------- comments (team sync) ---------- */
+function symbCommentKey(type, id){ return type + ':' + id; }
+function symbRenderComments(type, id, comments, source){
+  const list = $('cmtList_' + id);
+  const meta = $('cmtMeta_' + id);
+  if (!list) return;
+  if (!comments || comments.length === 0) {
+    list.innerHTML = '<div class="muted">Aucun commentaire.</div>';
+  } else {
+    list.innerHTML = comments.map(c => `
+      <div class="item" style="display:block">
+        <div class="row" style="margin-bottom:4px">
+          <strong>${esc(c.author||'?')}</strong>
+          <span class="muted" style="margin-left:8px">${esc(fmtRelative(c.ts))}</span>
+        </div>
+        <div>${esc(c.body||'')}</div>
+      </div>`).join('');
+  }
+  if (meta) meta.textContent = source === 'remote' ? 'sync' : (source === 'cache' ? 'hors-ligne (cache)' : 'local');
+}
+async function symbLoadComments(type, id){
+  const key = symbCommentKey(type, id);
+  const cached = STATE.commentsCache[key] || [];
+  // Affiche immédiatement le cache (UX), puis tente la sync.
+  symbRenderComments(type, id, cached, cached.length ? 'cache' : 'local');
+  const wh = STATE.cfg.webhook;
+  if (!wh.baseUrl || !wh.secret) return;
+  try {
+    const url = `${wh.baseUrl}/symbalyx-comments?item_type=${encodeURIComponent(type)}&item_id=${encodeURIComponent(id)}&limit=100`;
+    const r = await fetch(url, { headers: { 'x-symbalyx-token': wh.secret } });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const remote = (j && j.comments) || [];
+    STATE.commentsCache[key] = remote;
+    localStorage.setItem('symbalyx_comments_cache', JSON.stringify(STATE.commentsCache));
+    symbRenderComments(type, id, remote, 'remote');
+  } catch (e) {
+    // Garde l'affichage cache, indique l'état.
+    const meta = $('cmtMeta_' + id); if (meta) meta.textContent = 'hors-ligne (' + e.message + ')';
+  }
+}
+async function symbPostComment(type, id){
+  const input = $('cmtInput_' + id);
+  if (!input) return;
+  const body = (input.value || '').trim();
+  if (!body) { toast('Commentaire vide', 'err'); return; }
+  const me = STATE.cfg.identity;
+  if (!me || !me.name) { toast('Choisis une identité d\'abord (Réglages)', 'err'); return; }
+  const wh = STATE.cfg.webhook;
+  const key = symbCommentKey(type, id);
+  const local = { id: 'local_' + Date.now(), ts: new Date().toISOString(), item_type: type, item_id: id, author: me.name, author_id: me.id || '', body, _pending: true };
+  // Optimistic UI : on l'affiche tout de suite.
+  const cur = STATE.commentsCache[key] || [];
+  cur.push(local);
+  STATE.commentsCache[key] = cur;
+  localStorage.setItem('symbalyx_comments_cache', JSON.stringify(STATE.commentsCache));
+  symbRenderComments(type, id, cur, 'local');
+  input.value = '';
+  if (!wh.baseUrl || !wh.secret) {
+    toast('Commentaire local (configurer le webhook pour partager)', 'ok');
+    return;
+  }
+  try {
+    const r = await fetch(wh.baseUrl + '/symbalyx-comments', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-symbalyx-token': wh.secret },
+      body: JSON.stringify({ item_type: type, item_id: id, author: me.name, author_id: me.id || '', body })
+    });
+    const j = await r.json().catch(()=>({}));
+    if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP '+r.status));
+    // Recharge depuis la source pour récupérer l'id officiel et l'ordre canonique.
+    await symbLoadComments(type, id);
+    toast('Commentaire partagé');
+  } catch (e) {
+    toast('Webhook KO ('+e.message+') · gardé en local', 'err');
+  }
+}
 
 /* ---------- NOTIF drawer ---------- */
 function symbOpenNotif(){
@@ -1063,12 +2308,143 @@ function refreshBadges(){
 }
 
 /* ---------- decisions actions ---------- */
-function symbDecide(id, status){
-  // Lecture seule : on enregistre localement et on pousse dans une queue exportable.
-  const log = JSON.parse(localStorage.getItem('symbalyx_decisions') || '[]');
-  log.push({id,status,ts:new Date().toISOString()});
-  localStorage.setItem('symbalyx_decisions', JSON.stringify(log));
-  toast(`${status === 'approved' ? 'Approuvé' : 'Rejeté'} · à propager dans business_control`, status==='approved'?'ok':'err');
+async function symbDecide(id, status, opts){
+  opts = opts || {};
+  const me = STATE.cfg.identity;
+  if (!me || !me.name) { toast('Choisis une identité d\'abord (Réglages)', 'err'); return; }
+  const reason = (opts.reason || '').toString();
+  // Optimistic UI : marque la ligne BCL localement comme déjà décidée.
+  const row = (STATE.data?.bcl || []).find(x => x.id === id);
+  if (row) { row.decision_status = status; row.decided_by = me.name; row.decider_id = me.id || ''; row.decided_at = new Date().toISOString(); }
+  symbRender();
+  // Cas 1 : webhook configuré → POST n8n.
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const res = await fetch(wh.baseUrl + '/symbalyx-decision', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ bcl_id: id, decision: status, decided_by: me.name, decider_id: me.id || '', reason })
+      });
+      const j = await res.json().catch(()=>({}));
+      if (!res.ok || j.ok === false) throw new Error(j.error || ('HTTP '+res.status));
+      toast(`${status === 'approved' ? 'Approuvé' : 'Décision'} · propagé (action: ${j.action_routed || '-'})`, status==='approved'?'ok':'err');
+      return;
+    } catch (e) {
+      // Rollback optimistic + fallback queue locale.
+      if (row) { row.decision_status = 'pending'; row.decided_by = ''; row.decider_id = ''; row.decided_at = ''; }
+      symbRender();
+      symbQueueDecisionLocally(id, status, me, reason);
+      toast('Webhook KO ('+e.message+') · décision mise en file locale', 'err');
+      return;
+    }
+  }
+  // Cas 2 : pas de webhook → file locale exportable.
+  symbQueueDecisionLocally(id, status, me, reason);
+  toast(`${status === 'approved' ? 'Approuvé' : 'Décision'} · à propager (configurer le webhook dans Réglages)`, status==='approved'?'ok':'err');
+}
+function symbQueueDecisionLocally(id, status, me, reason){
+  STATE.pendingDecisions.push({ id, status, by: me?.name||'', decider_id: me?.id||'', reason, ts: new Date().toISOString() });
+  localStorage.setItem('symbalyx_decisions', JSON.stringify(STATE.pendingDecisions));
+}
+async function symbTestWebhook(){
+  const el = $('webhookStatus');
+  const c = STATE.cfg.webhook;
+  // On lit depuis l'UI au cas où l'utilisateur n'a pas encore cliqué Enregistrer.
+  const baseUrl = ($('cfgWebhookBase').value || '').trim().replace(/\/+$/,'');
+  const secret = $('cfgWebhookSecret').value;
+  if (!baseUrl || !secret) { el.textContent = 'URL ou secret manquant.'; return; }
+  el.textContent = 'Test en cours…';
+  try {
+    // Un GET /comments avec un item bidon : on s'attend à 200 ok:true (vide) si auth ok.
+    const url = `${baseUrl}/symbalyx-comments?item_type=bcl&item_id=__ping__&limit=1`;
+    const r = await fetch(url, { headers: { 'x-symbalyx-token': secret } });
+    const j = await r.json().catch(()=>({}));
+    if (r.status === 401) { el.textContent = 'Auth refusée (secret invalide).'; return; }
+    if (!r.ok) { el.textContent = 'HTTP ' + r.status; return; }
+    el.textContent = 'OK · webhook joignable.';
+  } catch (e) { el.textContent = 'Erreur réseau : ' + e.message; }
+}
+
+// Smoke test V8.1 : exerce les 3 webhooks (WF21 GET, WF19 POST/GET, WF18 POST 404 attendu)
+// pour valider la chaîne complète depuis Safari iPad sans terminal.
+async function symbSmokeTest(){
+  const report = $('smokeReport');
+  const baseUrl = ($('cfgWebhookBase').value || '').trim().replace(/\/+$/,'');
+  const secret = $('cfgWebhookSecret').value;
+  if (!baseUrl || !secret) { report.innerHTML = '<div class="muted">Renseigne URL et secret avant le smoke test.</div>'; return; }
+  const lines = [];
+  function render() {
+    report.innerHTML = lines.map(l =>
+      `<div class="row" style="gap:8px"><span style="min-width:18px">${l.icon}</span><strong style="min-width:140px">${esc(l.label)}</strong><span class="muted">${esc(l.detail||'')}</span></div>`
+    ).join('');
+  }
+  function add(label, status, detail){
+    lines.push({ icon: status==='ok'?'✓':status==='fail'?'✗':'…', label, detail });
+    render();
+  }
+  async function call(method, pathAndQuery, body){
+    try {
+      const opts = { method, headers: { 'x-symbalyx-token': secret } };
+      if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+      const r = await fetch(baseUrl + pathAndQuery, opts);
+      const j = await r.json().catch(()=>({}));
+      return { status: r.status, json: j, ok: r.ok };
+    } catch (e) { return { status: 0, json: { error: e.message }, ok: false }; }
+  }
+  lines.length = 0; report.innerHTML = '<div class="muted">Smoke test en cours…</div>';
+
+  // 1. WF21 GET /team-members?active_only=1
+  {
+    const r = await call('GET', '/symbalyx-team-members?active_only=1');
+    if (r.status === 200 && r.json.ok) add('WF21 GET /team-members', 'ok', `200 OK · ${r.json.count} membre(s) actif(s)`);
+    else if (r.status === 401) add('WF21 GET /team-members', 'fail', '401 — secret invalide ou différent côté n8n');
+    else if (r.status === 0) add('WF21 GET /team-members', 'fail', 'réseau/CORS — vérifie l\'URL et que le workflow est activé');
+    else add('WF21 GET /team-members', 'fail', `${r.status} — ${r.json.error || 'webhook injoignable ou onglet team_members absent'}`);
+  }
+
+  // 2. WF19 POST /comments (item_id factice)
+  const probeId = '__smoke_' + Date.now();
+  {
+    const r = await call('POST', '/symbalyx-comments', {
+      item_type: 'bcl', item_id: probeId,
+      author: STATE.cfg.identity?.name || 'Smoke',
+      author_id: STATE.cfg.identity?.id || '',
+      body: 'Smoke test depuis CRM (à supprimer)'
+    });
+    if (r.status === 200 && r.json.ok) add('WF19 POST /comments', 'ok', `200 OK · ${r.json.comment?.id || 'créé'}`);
+    else if (r.status === 401) add('WF19 POST /comments', 'fail', '401 — secret invalide');
+    else add('WF19 POST /comments', 'fail', `${r.status} — ${r.json.error || 'check workflow + onglet team_comments'}`);
+  }
+
+  // 3. WF19 GET /comments?item_id=probeId — doit retrouver celui qu'on vient de poster
+  {
+    const r = await call('GET', `/symbalyx-comments?item_type=bcl&item_id=${encodeURIComponent(probeId)}`);
+    if (r.status === 200 && r.json.ok) add('WF19 GET /comments', 'ok', `200 OK · ${r.json.count} récupéré(s)`);
+    else add('WF19 GET /comments', 'fail', `${r.status} — ${r.json.error || 'lecture impossible'}`);
+  }
+
+  // 4. WF18 POST /decision avec un bcl_id factice → on attend 404 "bcl_id not found".
+  // Si on reçoit 404 + ok:false avec ce message, c'est que tout fonctionne (auth OK + workflow lit BCL).
+  {
+    const r = await call('POST', '/symbalyx-decision', {
+      bcl_id: '__smoke_nonexistent__',
+      decision: 'approved',
+      decided_by: STATE.cfg.identity?.name || 'Smoke',
+      decider_id: STATE.cfg.identity?.id || '',
+      reason: 'smoke test'
+    });
+    if (r.status === 404 && r.json && r.json.ok === false) add('WF18 POST /decision', 'ok', '404 attendu · webhook répond et lit business_control');
+    else if (r.status === 200) add('WF18 POST /decision', 'fail', '200 inattendu — un bcl_id "__smoke_nonexistent__" existe vraiment ?');
+    else if (r.status === 401) add('WF18 POST /decision', 'fail', '401 — secret invalide');
+    else if (r.status === 0) add('WF18 POST /decision', 'fail', 'réseau/CORS — vérifie l\'URL et que WF18 est activé');
+    else add('WF18 POST /decision', 'fail', `${r.status} — ${r.json.error || 'workflow inactif ou onglet business_control absent'}`);
+  }
+
+  // Résumé
+  const okCount = lines.filter(l => l.icon === '✓').length;
+  const total = lines.length;
+  add(`Bilan : ${okCount}/${total}`, okCount === total ? 'ok' : 'fail', okCount === total ? 'tu es en prod' : 'voir détails ci-dessus');
 }
 function symbExportCSV(){
   const d = STATE.data || {}; const rows = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending');
@@ -1123,7 +2499,101 @@ function isPrefAllowed(kind){
   const p = m[kind]; return !p || STATE.cfg.prefs[p] !== false;
 }
 
+/* ---------- équipe (admin) ---------- */
+function symbPopulateRoleSelect(elId){
+  const sel = $(elId); if (!sel) return;
+  sel.innerHTML = ROLES.map(r => `<option value="${r.id}">${esc(r.label)}</option>`).join('');
+}
+function symbRenderTeam(d){
+  const list = $('listTeam'); if (!list) return;
+  const me = STATE.cfg.identity;
+  if (!(me && isAdminRole(me.role))) {
+    list.innerHTML = '<div class="muted" style="padding:14px">Section réservée aux admins.</div>';
+    return;
+  }
+  const members = d.team_members || MOCK.team_members;
+  if (!members.length) {
+    list.innerHTML = '<div class="muted" style="padding:14px">Aucun membre.</div>'; return;
+  }
+  list.innerHTML = members.map(m => `
+    <div class="item" style="display:flex;align-items:center;gap:10px">
+      <span class="chip" style="background:${esc(m.color||'#3a86ff')};color:#fff;min-width:36px;text-align:center">${esc(m.initials||initialsFrom(m.name))}</span>
+      <div style="flex:1">
+        <div><strong>${esc(m.name)}</strong> ${m.is_active===false?'<span class="muted">(désactivé)</span>':''}</div>
+        <div class="muted">${esc(ROLE_LABEL[m.role]||m.role||'-')} · ${esc(m.email||'sans email')}</div>
+      </div>
+      <button class="btn ghost" onclick="symbToggleMember('${esc(m.id)}', ${m.is_active===false ? 'true':'false'})">${m.is_active===false?'Réactiver':'Désactiver'}</button>
+    </div>`).join('');
+}
+async function symbAddMember(){
+  const me = STATE.cfg.identity;
+  if (!(me && isAdminRole(me.role))) { toast('Seuls les admins peuvent ajouter','err'); return; }
+  const name = $('tmName').value.trim();
+  const email = $('tmEmail').value.trim();
+  const role = $('tmRole').value;
+  const initials = $('tmInitials').value.trim().toUpperCase();
+  const color = $('tmColor').value;
+  if (!name) { toast('Nom requis','err'); return; }
+  const status = $('tmAddStatus');
+  status.textContent = 'Ajout…';
+  const wh = STATE.cfg.webhook;
+  const body = { name, email, role, initials, color };
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const r = await fetch(wh.baseUrl + '/symbalyx-team-members', {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify(body)
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP '+r.status));
+      status.textContent = 'Ajouté · ' + (j.member?.id || '');
+      toast('Membre ajouté');
+    } catch (e) { status.textContent = ''; toast('Webhook KO ('+e.message+')','err'); return; }
+  } else {
+    // Mode local (mock) : on l'ajoute en mémoire — non persistant entre sessions.
+    const m = { id: 'tm_' + Date.now().toString(36), name, email, role, initials: initials || initialsFrom(name), color, is_active: true, created_at: new Date().toISOString() };
+    (STATE.data?.team_members || MOCK.team_members).push(m);
+    status.textContent = 'Ajouté en local (mode mock — pas persisté)';
+    toast('Ajouté en local');
+  }
+  $('tmName').value=''; $('tmEmail').value=''; $('tmInitials').value='';
+  await symbRefresh();
+}
+async function symbToggleMember(id, makeActive){
+  const me = STATE.cfg.identity;
+  if (!(me && isAdminRole(me.role))) { toast('Seuls les admins peuvent modifier','err'); return; }
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const r = await fetch(wh.baseUrl + '/symbalyx-team-members', {
+        method: 'PATCH',
+        headers: { 'Content-Type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ id, is_active: !!makeActive })
+      });
+      const j = await r.json().catch(()=>({}));
+      if (!r.ok || j.ok === false) throw new Error(j.error || ('HTTP '+r.status));
+      toast(makeActive ? 'Réactivé' : 'Désactivé');
+    } catch (e) { toast('Webhook KO ('+e.message+')','err'); return; }
+  } else {
+    // Mode local : update in-memory.
+    const list = STATE.data?.team_members || MOCK.team_members;
+    const m = list.find(x => x.id === id); if (m) m.is_active = !!makeActive;
+    toast('Modifié en local');
+  }
+  await symbRefresh();
+}
+
 /* ---------- cfg UI ---------- */
+function symbPopulateIdentitySelect(){
+  const sel = $('cfgIdentity'); if (!sel) return;
+  const members = (STATE.data?.team_members || STATE.bootMembers || MOCK.team_members).filter(m => m.is_active !== false);
+  const cur = STATE.cfg.identity;
+  sel.innerHTML = members.map(m => {
+    const sel2 = (cur && ((cur.id && cur.id === m.id) || (!cur.id && cur.name === m.name))) ? ' selected' : '';
+    return `<option value="${esc(m.id||m.name)}"${sel2}>${esc(m.name)} · ${esc(ROLE_LABEL[m.role]||m.role||'')}</option>`;
+  }).join('');
+}
 function symbLoadCfgUI(){
   const c = STATE.cfg;
   $('cfgSource').value = c.source;
@@ -1131,6 +2601,10 @@ function symbLoadCfgUI(){
   $('cfgSheetId').value = c.sheets.sheetId || '';
   $('cfgSupabaseUrl').value = c.supabase.url || '';
   $('cfgSupabaseKey').value = c.supabase.anonKey || '';
+  $('cfgWebhookBase').value = c.webhook.baseUrl || '';
+  $('cfgWebhookSecret').value = c.webhook.secret || '';
+  symbPopulateIdentitySelect();
+  symbPopulateRoleSelect('tmRole');
 }
 function symbSaveCfg(){
   STATE.cfg.source = $('cfgSource').value;
@@ -1138,7 +2612,15 @@ function symbSaveCfg(){
   STATE.cfg.sheets.sheetId = $('cfgSheetId').value.trim();
   STATE.cfg.supabase.url = $('cfgSupabaseUrl').value.trim();
   STATE.cfg.supabase.anonKey = $('cfgSupabaseKey').value.trim();
-  localStorage.setItem('symbalyx_cfg_v2', JSON.stringify(STATE.cfg));
+  STATE.cfg.webhook.baseUrl = $('cfgWebhookBase').value.trim().replace(/\/+$/,'');
+  STATE.cfg.webhook.secret = $('cfgWebhookSecret').value;
+  // Identité : on retrouve le membre depuis la liste pour stocker l'objet riche.
+  const sel = $('cfgIdentity').value;
+  const members = (STATE.data?.team_members || STATE.bootMembers || MOCK.team_members);
+  const m = members.find(x => x.id === sel) || members.find(x => x.name === sel);
+  if (m) STATE.cfg.identity = { id: m.id||'', name: m.name, role: m.role||'member', initials: m.initials||initialsFrom(m.name), color: m.color||'#3a86ff' };
+  saveCfg();
+  symbApplyIdentityUI();
   toast('Configuration enregistrée'); symbRefresh();
 }
 
@@ -1158,17 +2640,815 @@ async function symbRefresh(){
 }
 function symbRender(){
   const d = STATE.data || {};
+  symbApplyIdentityUI();
   if (STATE.view === 'today')     renderToday(d);
   if (STATE.view === 'prospects') renderProspects(d);
   if (STATE.view === 'projects')  renderProjects(d);
   if (STATE.view === 'decisions') renderDecisions(d);
+  if (STATE.view === 'money')     renderMoney(d);
   if (STATE.view === 'memory')    renderMemory(d);
   if (STATE.view === 'logs')      renderLogs(d);
+  if (STATE.view === 'team')      symbRenderTeam(d);
+  if (STATE.view === 'settings')  symbPopulateIdentitySelect();
   // Toujours mettre à jour le compteur du nav mobile
   const navCount = (d.bcl||[]).filter(r=>lower(r.decision_status)==='pending').length;
   $('navDecCount').textContent = navCount > 0 ? `Décider · ${navCount}` : 'Décider';
+  // Badges "Nouveau" sur les nav buttons (desktop + mobile)
+  if (typeof symbUpdateNavBadges === 'function') symbUpdateNavBadges(d);
 }
 setInterval(symbRefresh, 5*60*1000);
+
+/* ============================================================
+   PREMIUM — Morning synthesis, @mentions, "new" badges, bot inbox
+   ============================================================ */
+
+/* ---------- Last-seen tracking (badges "Nouveau") ---------- */
+function lsLoad(){ try { return JSON.parse(localStorage.getItem('symbalyx_lastseen') || '{}'); } catch { return {}; } }
+function lsSave(o){ localStorage.setItem('symbalyx_lastseen', JSON.stringify(o)); }
+STATE.lastSeen = lsLoad();
+function symbMarkSeen(view){
+  STATE.lastSeen[view] = new Date().toISOString();
+  lsSave(STATE.lastSeen);
+}
+function symbIsNew(view, ts){
+  const seen = STATE.lastSeen[view]; if (!seen || !ts) return false;
+  return Date.parse(ts) > Date.parse(seen);
+}
+function symbCountNew(d){
+  return {
+    decisions: (d.bcl||[]).filter(b => lower(b.decision_status) === 'pending' && symbIsNew('decisions', b.ts)).length,
+    prospects: (d.review||[]).filter(p => symbIsNew('prospects', p.reply_received_at || p.ts || '')).length,
+    comments:  (function(){
+      let n = 0;
+      for (const k in (STATE.commentsCache || {})) {
+        for (const c of (STATE.commentsCache[k] || [])) {
+          if (symbIsNew('comments', c.ts) && c.author_id !== STATE.cfg.identity?.id) n++;
+        }
+      }
+      return n;
+    })()
+  };
+}
+
+/* ---------- Morning synthesis (heuristique top 5) ---------- */
+function symbBuildMorning(d){
+  const me = STATE.cfg.identity;
+  const items = [];
+  // 1. BCL critical pending assignées à moi
+  for (const b of (d.bcl || [])) {
+    if (lower(b.decision_status) !== 'pending') continue;
+    const assignedToMe = me && (b.assignee_id === me.id || b.assigned_to === me.name);
+    let score = +b.priority_score || 0;
+    if (lower(b.priority_level) === 'critical') score += 5;
+    if (assignedToMe) score += 2;
+    items.push({
+      score, kind:'decision',
+      icon:'!', cls:'b-critical',
+      title: b.title || b.item_id,
+      next: b.recommendation || ('action suggérée : ' + (b.recommended_action||'?')),
+      action: () => { setView('decisions'); setTimeout(()=>symbOpenDetail('bcl', b.id), 60); }
+    });
+  }
+  // 2. Réponses chaudes interested / needs_quote
+  for (const p of (d.review || [])) {
+    const cat = lower(p.reply_category||'');
+    if (!['interested','needs_quote'].includes(cat)) continue;
+    const score = (cat === 'interested' ? 8 : 6) + (Number(p.opportunity_score)||0)/3;
+    items.push({
+      score, kind:'reply',
+      icon:'✉', cls:'b-ok',
+      title: `${p.company_name||p.id} — ${cat}`,
+      next: cat === 'interested' ? 'Relancer sous 48h' : 'Préparer un devis simple',
+      action: () => { setView('prospects'); setTimeout(()=>symbOpenDetail('prospect', p.id), 60); }
+    });
+  }
+  // 3. Projets bloqués > 7j
+  for (const p of (d.projects || [])) {
+    if (lower(p.status) !== 'blocked') continue;
+    items.push({
+      score: 6, kind:'project',
+      icon:'⛔', cls:'b-high',
+      title: `${p.client_name||p.id} bloqué`,
+      next: 'Identifier le bloqueur (input client / dépendance) et débloquer.',
+      action: () => { setView('projects'); setTimeout(()=>symbOpenDetail('project', p.id), 60); }
+    });
+  }
+  // 4. Factures en retard
+  for (const i of (d.invoices || [])) {
+    if (lower(i.status) === 'paid') continue;
+    if (!i.due_date) continue;
+    const days = Math.floor((Date.now() - Date.parse(i.due_date))/86400e3);
+    if (days < 1) continue;
+    items.push({
+      score: 5 + Math.min(days/10, 3), kind:'invoice',
+      icon:'€', cls:'b-critical',
+      title: `Facture ${i.invoice_ref||i.id} — ${i.client_name||''}`,
+      next: `Relance niveau ${days < 15 ? 1 : days < 30 ? 2 : 3} (${days}j de retard).`
+    });
+  }
+  // 5. Wishlist priorité haute non décidée
+  for (const w of (d.wishlist || [])) {
+    if (lower(w.decided||'pending') !== 'pending') continue;
+    if (lower(w.priority) !== 'high') continue;
+    items.push({
+      score: 4, kind:'wishlist',
+      icon:'★', cls:'b-medium',
+      title: `Wishlist : ${w.item}`,
+      next: w.justification || 'Décider acheter / reporter.',
+      action: () => { setView('money'); }
+    });
+  }
+  return items.sort((a,b) => b.score - a.score).slice(0, 5);
+}
+
+function symbRenderMorning(d){
+  const items = symbBuildMorning(d);
+  const box = $('morningSynth'); const body = $('morningBody'); const sub = $('morningSub');
+  if (!box || !body) return;
+  if (!items.length) { box.style.display = 'none'; return; }
+  box.style.display = '';
+  const me = STATE.cfg.identity;
+  const hello = me ? `Bonjour ${me.name.split(/\s+/)[0]}` : 'Bonjour';
+  sub.textContent = `${items.length} priorité(s) — IA`;
+  body.innerHTML = `<div class="muted" style="font-size:13px;margin-bottom:6px">${hello}, voici ce que je te recommande de regarder en premier ce matin :</div>` +
+    items.map((it, i) => `
+      <div class="morning-row" data-morning="${i}">
+        <span class="badge ${it.cls}">${it.icon}</span>
+        <div class="body">
+          <div><strong>${esc(it.title)}</strong></div>
+          <div class="next">→ ${esc(it.next)}</div>
+        </div>
+      </div>
+    `).join('');
+  // Bind clicks
+  body.querySelectorAll('[data-morning]').forEach(el => {
+    el.addEventListener('click', () => {
+      const it = items[+el.dataset.morning];
+      if (it && it.action) it.action();
+    });
+  });
+}
+
+/* ---------- Bot inbox (agent_messages) ---------- */
+function symbRenderBotInbox(d){
+  const msgs = (d.agent_messages || []).filter(m => {
+    const lvl = lower(m.level || '');
+    const esc = String(m.escalated_to_human || '').toLowerCase();
+    const ack = String(m.acknowledged_by || '').trim();
+    if (ack) return false; // déjà pris en compte → masque
+    return esc === 'true' || esc === '1' || lvl === 'blocked';
+  }).slice(0, 5);
+  const box = $('botInbox'); if (!box) return;
+  const list = $('listBotInbox');
+  if (!msgs.length) { box.style.display = 'none'; if (list) list.innerHTML = ''; return; }
+  box.style.display = '';
+  $('listBotInbox').innerHTML = msgs.map(m => {
+    const lvl = lower(m.level||'info');
+    const cls = lvl === 'blocked' ? 'crit' : lvl === 'progress' ? 'ok' : '';
+    const ic  = lvl === 'blocked' ? '⛔' : lvl === 'progress' ? '✓' : '·';
+    return `<div class="item">
+      <div class="ic ${cls}">${ic}</div>
+      <div class="body">
+        <div class="ttl truncate">${esc(m.title||'')}</div>
+        <div class="meta truncate">${esc(m.body||'')}</div>
+        <div class="meta">${esc(m.from_workflow||'?')} → ${esc(m.to_workflow||'human')} · ${fmtRelative(m.ts)}</div>
+      </div>
+      <div class="right">
+        <span class="badge ${lvl==='blocked'?'b-critical':lvl==='progress'?'b-ok':'b-medium'}">${esc(lvl)}</span>
+        <button class="btn ghost" style="font-size:11px;padding:4px 8px;margin-top:4px" onclick="symbAckAgent('${esc(m.id)}')">✓ Pris en compte</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function symbAckAgent(id){
+  if (!STATE.data) return;
+  const me = STATE.cfg.identity; if (!me) { toast('Identité requise', 'err'); return; }
+  const m = (STATE.data.agent_messages || []).find(x => x.id === id); if (!m) return;
+  // Optimistic
+  m.acknowledged_by = me.name;
+  m.acknowledged_by_id = me.id || '';
+  m.acknowledged_at = new Date().toISOString();
+  symbRender();
+  // POST vers WF40 (relay) si configuré, sinon vers WF20 finance pattern (pas idéal mais fallback)
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      await fetch(`${wh.baseUrl}/symbalyx-agents`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({ kind:'ack', id, acknowledged_by: me.name, acknowledged_by_id: me.id || '' })
+      });
+      toast('Marqué pris en compte');
+    } catch(e) { toast('Webhook KO — local seulement', 'err'); }
+  }
+}
+
+/* ---------- Hooks dans renderToday ---------- */
+const _origRenderToday = renderToday;
+renderToday = function(d){
+  _origRenderToday(d);
+  symbRenderMorning(d);
+  symbRenderBotInbox(d);
+  // Marque la vue comme vue (au prochain refresh, "new" repart à zéro)
+  symbMarkSeen('today');
+};
+
+/* ---------- @mentions ---------- */
+function symbExtractMentions(body){
+  const team = (STATE.data?.team_members || []).filter(m => m.is_active);
+  const found = [];
+  const re = /@([\p{L}][\p{L}\p{N}_-]{0,40})/gu;
+  let m; while ((m = re.exec(body)) !== null) {
+    const name = m[1].toLowerCase();
+    const member = team.find(t => lower(t.name).startsWith(name) || lower((t.name||'').split(/\s+/)[0]) === name);
+    if (member && !found.find(f => f.id === member.id)) found.push({ id: member.id, name: member.name });
+  }
+  return found;
+}
+function symbHighlightMentions(body){
+  return esc(body).replace(/@([\p{L}][\p{L}\p{N}_-]{0,40})/gu, (full, name) => {
+    const team = (STATE.data?.team_members || []).filter(m => m.is_active);
+    const member = team.find(t => lower(t.name).startsWith(name.toLowerCase()) || lower((t.name||'').split(/\s+/)[0]) === name.toLowerCase());
+    return member ? `<span class="mention" title="${esc(member.name)}">@${esc(name)}</span>` : `@${esc(name)}`;
+  });
+}
+
+// Override de symbRenderComments pour highlight @mentions + ts "nouveau"
+const _origRenderComments = symbRenderComments;
+symbRenderComments = function(type, id, comments, source){
+  const list = $('cmtList_' + id);
+  const meta = $('cmtMeta_' + id);
+  if (!list) return;
+  if (!comments || comments.length === 0) {
+    list.innerHTML = '<div class="muted">Aucun commentaire.</div>';
+  } else {
+    const me = STATE.cfg.identity;
+    list.innerHTML = comments.map(c => {
+      const isNew = symbIsNew('comments', c.ts) && c.author_id !== me?.id;
+      return `<div class="item" style="display:block">
+        <div class="row" style="margin-bottom:4px">
+          ${isNew ? '<span class="new-dot" title="Nouveau"></span>' : ''}
+          <strong>${esc(c.author||'?')}</strong>
+          <span class="muted" style="margin-left:8px">${esc(fmtRelative(c.ts))}</span>
+        </div>
+        <div>${symbHighlightMentions(c.body||'')}</div>
+      </div>`;
+    }).join('');
+  }
+  if (meta) meta.textContent = source === 'remote' ? 'sync' : (source === 'cache' ? 'hors-ligne (cache)' : 'local');
+};
+
+/* Mention autocomplete dans le textarea de commentaire */
+let MPOP = null;
+function symbHandleCommentInput(e){
+  const ta = e.target; if (!ta || !ta.id || !ta.id.startsWith('cmtInput_')) return;
+  const cur = ta.value.slice(0, ta.selectionEnd || ta.value.length);
+  const m = cur.match(/@(\w*)$/);
+  if (!m) { symbCloseMentionPop(); return; }
+  const q = m[1].toLowerCase();
+  const team = (STATE.data?.team_members || []).filter(t => t.is_active && (!q || lower(t.name).includes(q)));
+  if (!team.length) { symbCloseMentionPop(); return; }
+  symbOpenMentionPop(ta, team, q.length);
+}
+function symbOpenMentionPop(ta, team, qlen){
+  symbCloseMentionPop();
+  const rect = ta.getBoundingClientRect();
+  const pop = document.createElement('div');
+  pop.className = 'mention-pop';
+  // Clamp horizontal pour ne pas déborder à droite sur mobile
+  const desiredLeft = rect.left + window.scrollX;
+  const maxLeft = window.scrollX + window.innerWidth - 16 - 320;
+  pop.style.left = Math.max(window.scrollX + 8, Math.min(desiredLeft, maxLeft)) + 'px';
+  pop.style.top  = (rect.bottom + window.scrollY + 4) + 'px';
+  pop.innerHTML = team.slice(0, 6).map((t, i) => {
+    const initials = t.initials || initialsFrom(t.name);
+    return `<button class="${i===0?'sel':''}" data-mention="${esc(t.name)}">
+      <span class="av" style="background:${esc(t.color||'#3a86ff')}">${esc(initials)}</span>
+      <span><strong>${esc(t.name)}</strong> <span class="muted" style="font-size:11px">${esc(ROLE_LABEL[t.role]||t.role||'')}</span></span>
+    </button>`;
+  }).join('');
+  document.body.appendChild(pop);
+  MPOP = { pop, ta, team, sel: 0, qlen };
+  pop.addEventListener('click', e => {
+    const b = e.target.closest('[data-mention]'); if (!b) return;
+    symbInsertMention(b.dataset.mention);
+  });
+}
+function symbCloseMentionPop(){ if (MPOP && MPOP.pop) { MPOP.pop.remove(); } MPOP = null; }
+function symbInsertMention(name){
+  if (!MPOP) return;
+  const ta = MPOP.ta; const qlen = MPOP.qlen;
+  const pos = ta.selectionEnd || ta.value.length;
+  const before = ta.value.slice(0, pos - qlen);
+  const after = ta.value.slice(pos);
+  const firstName = name.split(/\s+/)[0];
+  ta.value = before + firstName + ' ' + after;
+  const newPos = (before + firstName + ' ').length;
+  ta.focus(); ta.setSelectionRange(newPos, newPos);
+  symbCloseMentionPop();
+}
+document.addEventListener('input', symbHandleCommentInput);
+document.addEventListener('keydown', e => {
+  if (!MPOP) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); MPOP.sel = Math.min(MPOP.team.length-1, MPOP.sel+1); MPOP.pop.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('sel', i===MPOP.sel)); }
+  else if (e.key === 'ArrowUp')   { e.preventDefault(); MPOP.sel = Math.max(0, MPOP.sel-1); MPOP.pop.querySelectorAll('button').forEach((b,i)=>b.classList.toggle('sel', i===MPOP.sel)); }
+  else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); symbInsertMention(MPOP.team[MPOP.sel].name); }
+  else if (e.key === 'Escape') { symbCloseMentionPop(); }
+});
+document.addEventListener('click', e => { if (MPOP && !e.target.closest('.mention-pop') && e.target !== MPOP.ta) symbCloseMentionPop(); });
+
+/* Override de symbPostComment pour passer mentions[] au webhook */
+const _origPostComment = symbPostComment;
+symbPostComment = async function(type, id){
+  const input = $('cmtInput_' + id); if (!input) return;
+  const body = (input.value || '').trim(); if (!body) { toast('Commentaire vide', 'err'); return; }
+  const mentions = symbExtractMentions(body);
+  // Réutilise le flow d'origine (optimistic + webhook) puis tag mentions dans cache.
+  await _origPostComment(type, id);
+  if (mentions.length) {
+    const key = symbCommentKey(type, id);
+    const arr = STATE.commentsCache[key] || [];
+    if (arr.length) arr[arr.length-1].mentions = mentions;
+    localStorage.setItem('symbalyx_comments_cache', JSON.stringify(STATE.commentsCache));
+  }
+};
+
+/* ---------- Quick reassign sur BCL detail ---------- */
+async function symbReassign(bclId){
+  const me = STATE.cfg.identity; if (!me) { toast('Identité requise', 'err'); return; }
+  const team = (STATE.data?.team_members || []).filter(t => t.is_active);
+  if (!team.length) { toast('Aucun membre actif', 'err'); return; }
+  const list = team.map((t,i) => `${i+1}. ${t.name} (${ROLE_LABEL[t.role]||t.role||''})`).join('\n');
+  const choice = prompt('Réassigner à :\n\n' + list + '\n\nTape le numéro :');
+  const idx = parseInt(choice, 10) - 1;
+  if (!Number.isInteger(idx) || idx < 0 || idx >= team.length) return;
+  const target = team[idx];
+  // Optimistic UI
+  const b = (STATE.data?.bcl || []).find(x => x.id === bclId);
+  if (b) { b.assigned_to = target.name; b.assignee_id = target.id; symbRender(); }
+  // Webhook : appel à WF23 dédié (Read+Merge anti-wipe sur business_control).
+  const wh = STATE.cfg.webhook;
+  if (wh.baseUrl && wh.secret) {
+    try {
+      const r = await fetch(`${wh.baseUrl}/symbalyx-reassign`, {
+        method:'POST',
+        headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+        body: JSON.stringify({
+          bcl_id: bclId,
+          new_assignee_id: target.id,
+          new_assigned_to: target.name,
+          decided_by: me.name,
+          decider_id: me.id || '',
+          reason: ''
+        })
+      });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      toast(`Réassigné à ${target.name}`);
+    } catch(e) { toast('Webhook KO ('+e.message+') — local seulement', 'err'); }
+  }
+  symbCloseDetail();
+}
+
+/* ---------- Site Builder (WF50) ---------- */
+async function symbBuildSite(projectId){
+  const me = STATE.cfg.identity; if (!me) { toast('Identité requise', 'err'); return; }
+  const p = (STATE.data?.projects || []).find(x => x.id === projectId);
+  if (!p) { toast('Projet introuvable', 'err'); return; }
+  // Ouvre un mini formulaire pour préciser tone + couleurs (le brief Sheet manque souvent ces infos).
+  const tone = prompt(`Tone du site pour ${p.client_name} ?\n\nex: élégant · dynamique · artisanal · corporate · éditorial`, 'élégant');
+  if (tone === null) return;
+  const colors = prompt('Couleurs principales (ex: « or sur noir », « bleu nuit + rouille ») ?', 'sobre, contraste fort');
+  if (colors === null) return;
+  toast('Génération du site en cours… (30-60s)');
+  const wh = STATE.cfg.webhook;
+  if (!wh.baseUrl || !wh.secret) { toast('Webhook non configuré', 'err'); return; }
+  try {
+    const r = await fetch(`${wh.baseUrl}/symbalyx-build-site`, {
+      method:'POST',
+      headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+      body: JSON.stringify({
+        project_id: projectId,
+        client_name: p.client_name || '',
+        niche: p.niche || '',
+        city: p.city || '',
+        tone, colors,
+        pages: ['home','services','contact'],
+        email: p.email || '',
+        phone: p.phone || '',
+        brief_summary: p.client_brief_summary || ''
+      })
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(()=>({}));
+      throw new Error(j.error || ('HTTP '+r.status));
+    }
+    const j = await r.json();
+    toast(`Site v1 généré (${j.html_size} chars · ${j.cost_eur}€)`);
+    // Affiche un aperçu : nouvelle fenêtre avec le HTML
+    if (j.html) {
+      const w = window.open('', '_blank');
+      if (w) { w.document.write(j.html); w.document.close(); }
+      else { toast('Pop-up bloqué — autorise les pop-ups pour prévisualiser', 'err'); }
+    }
+    // Refresh data pour voir le nouveau livrable
+    setTimeout(symbRefresh, 500);
+  } catch(e) {
+    toast('Génération KO : ' + e.message, 'err');
+  }
+}
+
+/* ---------- Nav badges "Nouveau" ---------- */
+function symbUpdateNavBadges(d){
+  const counts = symbCountNew(d);
+  // Helper qui injecte/maj un badge dans un bouton
+  const setBadge = (btn, n, cls = '') => {
+    if (!btn) return;
+    let bdg = btn.querySelector('.nav-badge');
+    if (!n) { if (bdg) bdg.remove(); return; }
+    if (!bdg) { bdg = document.createElement('span'); bdg.className = 'nav-badge'; btn.appendChild(bdg); }
+    bdg.className = 'nav-badge' + (cls ? ' ' + cls : '');
+    bdg.textContent = n > 99 ? '99+' : String(n);
+  };
+  // Décisions = pending count (toujours affiché)
+  const pending = (d.bcl||[]).filter(r => lower(r.decision_status) === 'pending').length;
+  setBadge(document.querySelector('#navDesktop button[data-view="decisions"]'), pending);
+  // Aujourd'hui = sum nouveautés depuis lastSeen
+  const todayNew = counts.decisions + counts.prospects;
+  setBadge(document.querySelector('#navDesktop button[data-view="today"]'), todayNew, 'acc');
+  // Prospects = leads chauds nouveaux
+  setBadge(document.querySelector('#navDesktop button[data-view="prospects"]'), counts.prospects, 'acc');
+}
+
+/* ---------- Auto-summary 3 lignes (heuristique, no-LLM) ---------- */
+function symbBuildSummary(b, d){
+  if (!b) return '';
+  const lines = [];
+  const me = STATE.cfg.identity;
+  const ageH = b.ts ? Math.max(1, Math.round((Date.now() - Date.parse(b.ts))/3600e3)) : null;
+  const status = lower(b.decision_status||'pending');
+  // Ligne 1 : identité de l'item
+  const subj = `${b.title || b.item_id || '?'}${b.item_type ? ' · ' + b.item_type : ''}`;
+  lines.push(`<strong>${esc(subj)}</strong>`);
+  // Ligne 2 : état + IA
+  const aiPart = b.recommended_action ? `IA : ${esc(b.recommended_action)}` : '';
+  const prio = b.priority_level ? `priorité <strong>${esc(b.priority_level)}</strong>` : '';
+  const assigned = b.assigned_to ? `assigné <strong>${esc(b.assigned_to)}</strong>` : 'non assigné';
+  lines.push([prio, assigned, aiPart].filter(Boolean).join(' · '));
+  // Ligne 3 : âge + commentaires
+  const cmtKey = symbCommentKey('bcl', b.id);
+  const cmts = (STATE.commentsCache?.[cmtKey] || []).length;
+  const ageTxt = ageH ? (ageH < 24 ? `en attente depuis ${ageH}h` : `en attente depuis ${Math.round(ageH/24)}j`) : '';
+  const statusTxt = status === 'pending' ? '' : `· décidé : ${esc(status)}`;
+  lines.push([ageTxt, `${cmts} commentaire${cmts>1?'s':''}`, statusTxt].filter(Boolean).join(' · '));
+  return lines.join('<br>');
+}
+
+/* ---------- Activity log par fiche (BCL) ---------- */
+function symbBuildActivityForBcl(b, d){
+  if (!b) return [];
+  const events = [];
+  // 1. IA proposition (le BCL lui-même)
+  if (b.ts) events.push({
+    ts: b.ts, who: 'IA', color: '#a78bfa',
+    msg: `IA a proposé priorité <strong>${esc(b.priority_level||'?')}</strong> · action : <strong>${esc(b.recommended_action||'?')}</strong>`,
+    quote: b.recommendation || ''
+  });
+  // 2. Assignation initiale
+  if (b.assigned_to) events.push({
+    ts: b.ts, who: 'IA', color: '#a78bfa',
+    msg: `Assignée à <strong>${esc(b.assigned_to)}</strong>`,
+    quote: ''
+  });
+  // 3. Mémoire de décisions liée
+  for (const m of (d.memDec || [])) {
+    if (m.bcl_id === b.id || (m.item_type === b.item_type && m.item_id === b.item_id)) {
+      events.push({
+        ts: m.ts, who: m.decided_by || '?', color: '#5eead4',
+        msg: `<strong>${esc(m.decided_by||'?')}</strong> a ${esc(m.decision)}`,
+        quote: m.reason || ''
+      });
+    }
+  }
+  // 4. Commentaires depuis le cache
+  const cmts = STATE.commentsCache?.[symbCommentKey('bcl', b.id)] || [];
+  for (const c of cmts) {
+    events.push({
+      ts: c.ts, who: c.author || '?', color: '#60a5fa',
+      msg: `<strong>${esc(c.author||'?')}</strong> a commenté`,
+      quote: c.body || ''
+    });
+  }
+  // 5. Réassignation si différente de l'assignée IA
+  if (b.decided_at && b.assigned_to && b.assignee_id) {
+    // Pas de moyen direct de détecter une réassignation depuis le BCL seul.
+  }
+  return events.sort((a,b) => Date.parse(a.ts || 0) - Date.parse(b.ts || 0));
+}
+function symbRenderActivityHTML(events){
+  if (!events.length) return '<div class="muted">Pas encore d\'activité.</div>';
+  return events.map(e => {
+    const initials = (e.who || '?').split(/\s+/).slice(0,2).map(s=>s[0]).join('').toUpperCase().slice(0,2);
+    return `<div class="activity-row">
+      <span class="av" style="background:${esc(e.color)}">${esc(initials)}</span>
+      <div class="body">
+        <div>${e.msg}</div>
+        ${e.quote ? `<div class="quote">${esc(e.quote)}</div>` : ''}
+        <div class="meta">${esc(fmtRelative(e.ts))}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ---------- Détection de doublons prospects ---------- */
+function symbNormalize(s){
+  return String(s||'').toLowerCase()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+}
+function symbFindDuplicates(p, d){
+  if (!p) return [];
+  const targetName = symbNormalize(p.company_name);
+  const targetEmailDomain = (String(p.email||'').split('@')[1] || '').toLowerCase();
+  const dups = [];
+  for (const other of (d.review || [])) {
+    if (other.id === p.id) continue;
+    const n = symbNormalize(other.company_name);
+    const dom = (String(other.email||'').split('@')[1] || '').toLowerCase();
+    let match = '';
+    if (targetName && n && (n === targetName || n.includes(targetName) || targetName.includes(n))) match = 'nom';
+    else if (targetEmailDomain && dom && dom === targetEmailDomain && targetEmailDomain.length > 4) match = 'domaine';
+    if (match) dups.push({ id: other.id, name: other.company_name, match });
+  }
+  return dups;
+}
+
+const CMDK = { open:false, sel:0, items:[] };
+
+function symbOpenCmdK(){
+  CMDK.open = true; CMDK.sel = 0;
+  $('cmdkBg').classList.add('open');
+  symbBuildCmdK('');
+  setTimeout(()=>{ const i = $('cmdkInput'); if (i){ i.value = ''; i.focus(); } }, 30);
+}
+function symbCloseCmdK(e){
+  if (e && e.target && e.target.id !== 'cmdkBg') return;
+  CMDK.open = false;
+  $('cmdkBg').classList.remove('open');
+}
+function symbBuildCmdK(q){
+  const d = STATE.data || {};
+  const ql = lower(q).trim();
+  const items = [];
+
+  // Navigation rapide (toujours présent)
+  const navs = [
+    { ic:'⌂', label:"Aujourd'hui",  meta:'g t', view:'today' },
+    { ic:'◷', label:'Prospects',    meta:'g p', view:'prospects' },
+    { ic:'◉', label:'Décisions',    meta:'g d', view:'decisions' },
+    { ic:'⊞', label:'Projets',      meta:'g j', view:'projects' },
+    { ic:'€', label:'Argent',       meta:'g a', view:'money' },
+    { ic:'✦', label:'Mémoire',      meta:'g m', view:'memory' },
+    { ic:'≡', label:'Logs',         meta:'g l', view:'logs' },
+    { ic:'⚙', label:'Réglages',     meta:'g s', view:'settings' }
+  ];
+  if (STATE.cfg.identity && isAdminRole(STATE.cfg.identity.role)) {
+    navs.splice(6, 0, { ic:'☰', label:'Équipe', meta:'g e', view:'team' });
+  }
+  for (const n of navs) {
+    if (!ql || lower(n.label).includes(ql)) {
+      items.push({ group:'Aller à', ic:n.ic, label:n.label, meta:n.meta,
+                   action:()=>{ setView(n.view); symbCloseCmdK(); } });
+    }
+  }
+
+  // Actions globales
+  const acts = [
+    { ic:'↻', label:'Rafraîchir les données',  action:()=>{ symbRefresh(); symbCloseCmdK(); toast('Rafraîchi'); } },
+    { ic:'🌓', label:'Basculer le thème',       action:()=>{ symbToggleTheme(); symbCloseCmdK(); } },
+    { ic:'🔔', label:'Ouvrir les notifications', action:()=>{ symbCloseCmdK(); symbOpenNotif(); } },
+    { ic:'⌃', label:"Voir l'activité de l'équipe", action:()=>{ symbCloseCmdK(); symbOpenActivity(); } },
+    { ic:'🧪', label:'Smoke test webhooks',     action:()=>{ symbCloseCmdK(); setView('settings'); setTimeout(symbSmokeTest, 200); } },
+    { ic:'⏏', label:'Logout',                  action:()=>{ symbLogout(); } }
+  ];
+  for (const a of acts) {
+    if (!ql || lower(a.label).includes(ql)) {
+      items.push({ group:'Actions', ic:a.ic, label:a.label, meta:a.meta||'', action:a.action });
+    }
+  }
+
+  // Items recherchables (BCL, prospects, projets, membres)
+  if (ql) {
+    const matchAny = (...fields) => fields.some(f => lower(f||'').includes(ql));
+    for (const r of (d.bcl || []).slice(0, 50)) {
+      if (matchAny(r.title, r.item_id, r.recommended_action, r.assigned_to)) {
+        items.push({ group:'Décisions',
+          ic: lower(r.priority_level)==='critical' ? '!' : '◉',
+          label: r.title || r.item_id,
+          meta: `${r.priority_level||''} · ${r.assigned_to||''}`,
+          action:()=>{ symbCloseCmdK(); setView('decisions'); setTimeout(()=>symbOpenDetail('bcl', r.id), 50); } });
+      }
+    }
+    for (const p of (d.review || []).slice(0, 50)) {
+      if (matchAny(p.company_name, p.id, p.niche, p.city, p.email)) {
+        items.push({ group:'Prospects',
+          ic:'◷', label: p.company_name || p.id,
+          meta: `${p.niche||''} · ${p.city||''}`,
+          action:()=>{ symbCloseCmdK(); setView('prospects'); setTimeout(()=>symbOpenDetail('prospect', p.id), 50); } });
+      }
+    }
+    for (const j of (d.projects || []).slice(0, 50)) {
+      if (matchAny(j.client_name, j.id, j.niche, j.assigned_to)) {
+        items.push({ group:'Projets',
+          ic:'⊞', label: j.client_name || j.id,
+          meta: `${j.status||''} · ${j.assigned_to||''}`,
+          action:()=>{ symbCloseCmdK(); setView('projects'); setTimeout(()=>symbOpenDetail('project', j.id), 50); } });
+      }
+    }
+    for (const m of (d.team_members || []).slice(0, 50)) {
+      if (matchAny(m.name, m.email, m.role, m.id)) {
+        items.push({ group:'Équipe',
+          ic:'☰', label: m.name,
+          meta: `${ROLE_LABEL[m.role]||m.role||''}${m.is_active ? '' : ' · inactif'}`,
+          action:()=>{ symbCloseCmdK(); if (STATE.cfg.identity && isAdminRole(STATE.cfg.identity.role)) setView('team'); } });
+      }
+    }
+  }
+
+  CMDK.items = items;
+  if (CMDK.sel >= items.length) CMDK.sel = Math.max(0, items.length - 1);
+  symbRenderCmdK();
+}
+function symbRenderCmdK(){
+  const list = $('cmdkList');
+  if (!CMDK.items.length) { list.innerHTML = '<div class="cmdk-empty">Aucun résultat. Essaie un nom de prospect, projet, ou tape une commande.</div>'; return; }
+  let html = ''; let lastGrp = null;
+  CMDK.items.forEach((it, i) => {
+    if (it.group !== lastGrp) { html += `<div class="cmdk-grp">${esc(it.group)}</div>`; lastGrp = it.group; }
+    html += `<div class="cmdk-row ${i===CMDK.sel?'sel':''}" data-cmdk-i="${i}">
+      <span class="cmdk-ic">${esc(it.ic||'·')}</span>
+      <span>${esc(it.label)}</span>
+      ${it.meta ? `<span class="cmdk-meta">${esc(it.meta)}</span>` : ''}
+    </div>`;
+  });
+  list.innerHTML = html;
+}
+document.addEventListener('input', e => {
+  if (e.target.id === 'cmdkInput') symbBuildCmdK(e.target.value);
+});
+document.addEventListener('click', e => {
+  const r = e.target.closest('[data-cmdk-i]');
+  if (r) { const i = +r.dataset.cmdkI; const it = CMDK.items[i]; if (it && it.action) it.action(); }
+});
+
+/* ---------- Activity feed (calculée à la volée) ---------- */
+function symbBuildActivity(){
+  const d = STATE.data || {};
+  const events = [];
+  // Décisions humaines (BCL avec decision_status = approved/rejected/escalate)
+  for (const r of (d.bcl || [])) {
+    const st = lower(r.decision_status);
+    if (st && st !== 'pending' && r.decided_at) {
+      events.push({
+        ts: r.decided_at, kind:'decision',
+        who: r.decided_by || '?',
+        color: lower(r.priority_level) === 'critical' ? '#ef4444' : '#5eead4',
+        title: `${r.decided_by || '?'} a ${st === 'approved' ? 'approuvé' : st === 'rejected' ? 'rejeté' : 'escaladé'} <strong>${esc(r.title || r.item_id || '')}</strong>`,
+        quote: r.notes || '',
+        deeplink: { view:'decisions', detail:['bcl', r.id] }
+      });
+    }
+  }
+  // Mémoire de décisions (capture l'historique riche)
+  for (const m of (d.memDec || []).slice(0, 30)) {
+    if (m.decided_by) {
+      events.push({
+        ts: m.ts, kind:'memory',
+        who: m.decided_by,
+        color: '#a78bfa',
+        title: `${m.decided_by} → ${m.decision} sur <strong>${esc(m.item_id || '')}</strong>`,
+        quote: m.reason || ''
+      });
+    }
+  }
+  // Commentaires depuis le cache local
+  for (const key in (STATE.commentsCache || {})) {
+    const arr = STATE.commentsCache[key] || [];
+    for (const c of arr.slice(-5)) {
+      events.push({
+        ts: c.ts, kind:'comment',
+        who: c.author || '?',
+        color: '#60a5fa',
+        title: `${esc(c.author || '?')} a commenté sur <strong>${esc(key.split(':')[1] || '')}</strong>`,
+        quote: c.body || ''
+      });
+    }
+  }
+  // Membres récemment ajoutés
+  for (const m of (d.team_members || [])) {
+    if (m.created_at) {
+      events.push({
+        ts: m.created_at, kind:'member',
+        who: m.name,
+        color: m.color || '#3a86ff',
+        title: `<strong>${esc(m.name)}</strong> a rejoint l'équipe (${esc(ROLE_LABEL[m.role]||m.role||'')})`,
+        quote: ''
+      });
+    }
+  }
+  return events
+    .filter(e => e.ts)
+    .sort((a,b) => Date.parse(b.ts) - Date.parse(a.ts))
+    .slice(0, 30);
+}
+function symbOpenActivity(){
+  const events = symbBuildActivity();
+  $('activityCount').textContent = events.length;
+  const list = $('listActivity');
+  if (!events.length) {
+    list.innerHTML = '<div class="empty">Pas encore d\'activité. Les décisions, commentaires et nouveaux membres apparaîtront ici.</div>';
+  } else {
+    list.innerHTML = events.map(e => {
+      const initials = (e.who || '?').split(/\s+/).slice(0,2).map(s=>s[0]).join('').toUpperCase().slice(0,2);
+      return `<div class="activity-row">
+        <span class="av" style="background:${esc(e.color)}">${esc(initials)}</span>
+        <div class="body">
+          <div>${e.title}</div>
+          ${e.quote ? `<div class="quote">${esc(e.quote)}</div>` : ''}
+          <div class="meta">${esc(fmtRelative(e.ts))}</div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+  $('activityBg').classList.add('open');
+  $('activitySheet').classList.add('open');
+}
+function symbCloseActivity(){
+  $('activityBg').classList.remove('open');
+  $('activitySheet').classList.remove('open');
+}
+
+/* ---------- Keyboard shortcuts ---------- */
+const KEYS = { gPrefix:false, gTimer:null };
+function symbIsTyping(e){
+  const el = e.target;
+  if (!el) return false;
+  const tag = (el.tagName || '').toLowerCase();
+  return tag === 'input' || tag === 'textarea' || tag === 'select' || el.isContentEditable;
+}
+document.addEventListener('keydown', e => {
+  // Cmd+K / Ctrl+K — toujours capté, même dans un input
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault(); CMDK.open ? symbCloseCmdK() : symbOpenCmdK(); return;
+  }
+  // Echap : ferme cmdk, drawers
+  if (e.key === 'Escape') {
+    if (CMDK.open) { symbCloseCmdK(); return; }
+    if ($('detailSheet')?.classList.contains('open')) { symbCloseDetail(); return; }
+    if ($('activitySheet')?.classList.contains('open')) { symbCloseActivity(); return; }
+    if ($('notifSheet')?.classList.contains('open')) { symbCloseNotif(); return; }
+  }
+  // Navigation cmdk
+  if (CMDK.open) {
+    if (e.key === 'ArrowDown') { e.preventDefault(); CMDK.sel = Math.min(CMDK.items.length-1, CMDK.sel+1); symbRenderCmdK(); return; }
+    if (e.key === 'ArrowUp')   { e.preventDefault(); CMDK.sel = Math.max(0, CMDK.sel-1); symbRenderCmdK(); return; }
+    if (e.key === 'Enter')     { e.preventDefault(); const it = CMDK.items[CMDK.sel]; if (it && it.action) it.action(); return; }
+    return;
+  }
+  // Hors champs de saisie : raccourcis
+  if (symbIsTyping(e)) return;
+  // / = ouvre cmdk
+  if (e.key === '/') { e.preventDefault(); symbOpenCmdK(); return; }
+  // ? = aide
+  if (e.key === '?') { e.preventDefault(); symbShowShortcuts(); return; }
+  // g + lettre = navigation
+  if (KEYS.gPrefix) {
+    KEYS.gPrefix = false; clearTimeout(KEYS.gTimer);
+    const map = { t:'today', p:'prospects', d:'decisions', j:'projects', a:'money', m:'memory', l:'logs', e:'team', s:'settings' };
+    const v = map[e.key.toLowerCase()];
+    if (v) {
+      if (v === 'team' && !(STATE.cfg.identity && isAdminRole(STATE.cfg.identity.role))) return;
+      setView(v); return;
+    }
+  }
+  if (e.key === 'g') {
+    KEYS.gPrefix = true;
+    KEYS.gTimer = setTimeout(()=>{ KEYS.gPrefix = false; }, 800);
+    return;
+  }
+  // a / r dans le drawer détail BCL
+  if ($('detailSheet')?.classList.contains('open')) {
+    const ctx = STATE.detailContext;
+    if (ctx && ctx.type === 'bcl') {
+      if (e.key === 'a') { e.preventDefault(); symbDecide(ctx.id, 'approved'); return; }
+      if (e.key === 'r') { e.preventDefault(); symbDecide(ctx.id, 'rejected'); return; }
+    }
+  }
+});
+function symbShowShortcuts(){
+  toast('⌘K recherche · / palette · g+t/p/d/j/m/l/e/s nav · a/r approuver/rejeter · ? aide', 'ok');
+}
+
 </script>
 </body>
 </html>
