@@ -1,0 +1,160 @@
+{
+  "name": "Symbalyx — WF50 Site Builder (HTML generator)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "symbalyx-build-site",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "50100001-0000-0000-0000-000000000001",
+      "name": "Webhook POST /build-site",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "symbalyx-build-site",
+      "notes": "POST /webhook/symbalyx-build-site  body: { project_id, client_name, niche, city, tone, colors, pages, email?, phone?, hours?, brief_summary? }"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Auth + validation du brief (cf skills/site-builder.md).\nconst h = $json.headers || {};\nconst token = h['x-symbalyx-token'] || h['X-Symbalyx-Token'] || '';\nconst expected = $env.SYMBALYX_WEBHOOK_SECRET || '';\nif (!expected) return [{ json: { _ok:false, _status:500, _error:'SYMBALYX_WEBHOOK_SECRET not configured' } }];\nif (token !== expected) return [{ json: { _ok:false, _status:401, _error:'invalid_token' } }];\nconst b = $json.body || {};\nconst project_id = String(b.project_id || '').trim();\nconst client_name = String(b.client_name || '').trim();\nconst niche = String(b.niche || '').trim();\nconst city = String(b.city || '').trim();\nconst tone = String(b.tone || 'élégant').trim();\nconst colors = String(b.colors || 'sobre, contraste fort').trim();\nconst pages = Array.isArray(b.pages) ? b.pages : ['home','services','contact'];\nif (!project_id || !client_name || !niche) {\n  return [{ json: { _ok:false, _status:400, _error:'missing project_id, client_name or niche' } }];\n}\nconst userPrompt = `Client : ${client_name}\\nNiche : ${niche}\\nVille : ${city || 'France'}\\nTone : ${tone}\\nCouleurs : ${colors}\\nPages demandées : ${pages.join(', ')}\\nEmail contact : ${b.email || '(à demander au client)'}\\nTéléphone : ${b.phone || '(à demander)'}\\nHoraires : ${b.hours || '(non précisé)'}\\nBrief libre : ${b.brief_summary || ''}\\n\\nGénère index.html complet, autonome, en français, mobile-first.`;\nreturn [{ json: { _ok:true, project_id, client_name, niche, city, tone, colors, pages, email: b.email||'', phone: b.phone||'', hours: b.hours||'', brief_summary: b.brief_summary||'', userPrompt } }];"
+      },
+      "id": "50100002-0000-0000-0000-000000000002",
+      "name": "Auth & validate brief",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [400, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            { "leftValue": "={{ $json._ok }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }
+          ]
+        }
+      },
+      "id": "50100003-0000-0000-0000-000000000003",
+      "name": "Brief OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [600, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-api-key", "value": "={{ $env.ANTHROPIC_API_KEY }}" },
+            { "name": "anthropic-version", "value": "2023-06-01" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'claude-opus-4-7',\n  max_tokens: 16000,\n  temperature: 0.6,\n  system: [\n    { type: 'text', text: 'Tu es un designer web français senior spécialisé dans les sites premium pour artisans et indépendants.\\n\\nGénère un fichier HTML COMPLET et AUTONOME pour le client.\\n\\nRègles strictes :\\n1. UN SEUL FICHIER index.html, aucune dépendance locale.\\n2. Utilise Tailwind via CDN : <script src=\"https://cdn.tailwindcss.com\"></script>\\n3. Utilise des fonts Google Fonts via <link>. Choisis 1 serif + 1 sans-serif accordées au tone.\\n4. Le hero doit faire effet wow en 2 secondes : grand titre, sous-titre courageux, CTA clair.\\n5. Mobile-first (sm/md/lg breakpoints Tailwind).\\n6. Sections obligatoires : Hero, Services (3 cards min), À propos, Contact (form simple).\\n7. Pas de Lorem ipsum. Écris du vrai contenu en français pour la niche du client.\\n8. Pas de JS framework. Vanilla JS uniquement si interaction (menu mobile, smooth scroll).\\n9. Inclus : <meta description> SEO localisée, OpenGraph tags, favicon emoji inline.\\n10. Form contact : action=\"mailto:\" en fallback, vrai email du client si fourni.\\n11. Accessibilité : alt sur toutes images, contraste WCAG AA, navigation au clavier.\\n12. Performance : zéro image > 200KB. Préfère SVG inline ou unsplash optimisé.\\n13. Pied de page : mentions légales placeholder + © année + ville.\\n14. RAPPEL : tout en français de France, jamais d\\'anglicisme commercial gratuit.\\n\\nRetourne UNIQUEMENT le HTML, sans markdown, sans commentaires hors HTML, sans préambule.', cache_control: { type: 'ephemeral' } }\n  ],\n  messages: [\n    { role: 'user', content: $json.userPrompt }\n  ]\n}) }}",
+        "options": {
+          "timeout": 90000
+        }
+      },
+      "id": "50100004-0000-0000-0000-000000000004",
+      "name": "Claude — Generate HTML",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [820, 250]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Extrait le HTML de la réponse Claude + valide.\nconst resp = $json;\nconst content = (resp.content || []).find(c => c.type === 'text');\nlet html = (content && content.text) || '';\n// Strip code fences si Claude en a mis quand même\nhtml = html.replace(/^```(?:html)?\\s*/i, '').replace(/```\\s*$/i, '').trim();\nconst inp = $('Auth & validate brief').first().json;\n\n// Validation\nconst checks = {\n  starts_with_html: /^<!doctype html|^<html/i.test(html),\n  has_title: /<title>[^<]+<\\/title>/i.test(html),\n  has_tailwind: /cdn\\.tailwindcss\\.com/.test(html),\n  has_client_name: html.toLowerCase().includes(inp.client_name.toLowerCase()),\n  ends_with_html: /<\\/html>\\s*$/.test(html),\n  size_ok: html.length > 3000 && html.length < 200000\n};\nconst ok = Object.values(checks).every(Boolean);\n\nconst version = Date.now();\nconst deliverable_id = 'del_' + version;\nconst usage = resp.usage || {};\nconst cost_eur = ((usage.input_tokens||0) * 0.000015 + (usage.output_tokens||0) * 0.000075).toFixed(4);\n\nreturn [{ json: {\n  _ok: ok,\n  _status: ok ? 200 : 422,\n  _error: ok ? '' : ('html validation failed: ' + JSON.stringify(checks)),\n  html,\n  html_size: html.length,\n  checks,\n  deliverable_id,\n  project_id: inp.project_id,\n  client_name: inp.client_name,\n  niche: inp.niche,\n  generated_by: 'WF50 / claude-opus-4-7',\n  cost_eur,\n  input_tokens: usage.input_tokens || 0,\n  output_tokens: usage.output_tokens || 0\n} }];"
+      },
+      "id": "50100005-0000-0000-0000-000000000005",
+      "name": "Extract & validate HTML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1050, 250]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "project_deliverables", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": "={{ {\n  id: $json.deliverable_id,\n  ts: new Date().toISOString(),\n  project_id: $json.project_id,\n  client_id: '',\n  type: 'site_html',\n  version: 'v1',\n  file_url: '',\n  generated_by: $json.generated_by,\n  status: $json._ok ? 'draft' : 'failed',\n  reviewed_by: '',\n  reviewed_at: '',\n  cost_eur: $json.cost_eur,\n  input_tokens: $json.input_tokens,\n  output_tokens: $json.output_tokens,\n  html_size: $json.html_size,\n  notes: $json._ok ? '' : $json._error\n} }}",
+          "matchingColumns": ["id"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "50100006-0000-0000-0000-000000000006",
+      "name": "Append project_deliverables",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1300, 250]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": { "__rl": true, "value": "{{GOOGLE_SHEET_ID}}", "mode": "id" },
+        "sheetName": { "__rl": true, "value": "agent_messages", "mode": "name" },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": "={{ {\n  id: 'agt_' + Date.now(),\n  ts: new Date().toISOString(),\n  from_workflow: 'WF50',\n  to_workflow: 'human',\n  level: $json._ok ? 'progress' : 'blocked',\n  title: ($json._ok ? 'Site v1 généré : ' : 'Site KO : ') + $json.client_name,\n  body: $json._ok ? ('Taille: ' + $json.html_size + ' chars · coût: ' + $json.cost_eur + ' € · projet: ' + $json.project_id) : ('Validation échouée : ' + $json._error),\n  item_type: 'project',\n  item_id: $json.project_id,\n  escalated_to_human: $json._ok ? 'false' : 'true',\n  acknowledged_by: '',\n  acknowledged_at: '',\n  trace_id: $json.deliverable_id\n} }}",
+          "matchingColumns": ["id"],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "id": "50100007-0000-0000-0000-000000000007",
+      "name": "Log to agent_messages",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1550, 250]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  ok: $json._ok,\n  deliverable_id: $json.deliverable_id,\n  project_id: $json.project_id,\n  client_name: $json.client_name,\n  html_size: $json.html_size,\n  cost_eur: $json.cost_eur,\n  html: $json.html,\n  checks: $json.checks,\n  error: $json._ok ? null : $json._error\n} }}",
+        "options": { "responseCode": "={{ $json._ok ? 200 : 422 }}" }
+      },
+      "id": "50100008-0000-0000-0000-000000000008",
+      "name": "Respond with HTML",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1800, 250]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { ok: false, error: $json._error || 'invalid', status: $json._status || 400 } }}",
+        "options": { "responseCode": "={{ $json._status || 400 }}" }
+      },
+      "id": "50100009-0000-0000-0000-000000000009",
+      "name": "Respond ERR",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [800, 450]
+    }
+  ],
+  "connections": {
+    "Webhook POST /build-site":  { "main": [[{ "node": "Auth & validate brief", "type": "main", "index": 0 }]] },
+    "Auth & validate brief":     { "main": [[{ "node": "Brief OK?", "type": "main", "index": 0 }]] },
+    "Brief OK?": { "main": [
+      [{ "node": "Claude — Generate HTML", "type": "main", "index": 0 }],
+      [{ "node": "Respond ERR", "type": "main", "index": 0 }]
+    ] },
+    "Claude — Generate HTML":    { "main": [[{ "node": "Extract & validate HTML", "type": "main", "index": 0 }]] },
+    "Extract & validate HTML":   { "main": [[{ "node": "Append project_deliverables", "type": "main", "index": 0 }]] },
+    "Append project_deliverables":{ "main": [[{ "node": "Log to agent_messages", "type": "main", "index": 0 }]] },
+    "Log to agent_messages":     { "main": [[{ "node": "Respond with HTML", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

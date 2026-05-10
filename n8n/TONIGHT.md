@@ -24,7 +24,7 @@ Tu as ton PC ce soir. Suis ce guide dans l'ordre. Toutes les étapes sont indisp
 
 ## Ce que tu vas déployer
 
-**10 workflows n8n :**
+**11 workflows n8n :**
 
 | WF | Nom | Rôle | Webhook |
 |---|---|---|---|
@@ -37,7 +37,14 @@ Tu as ton PC ce soir. Suis ce guide dans l'ordre. Toutes les étapes sont indisp
 | WF23 | BCL Reassign | Réassigner une décision BCL avec audit | `POST /symbalyx-reassign` |
 | WF30 | WhatsApp Bot | Squelette Twilio/Meta — désactivé par défaut | `POST /symbalyx-whatsapp` |
 | WF40 | Agent Relay | Bus de messages bot↔bot avec inbox + ack | `POST /symbalyx-agents` |
+| **WF50** | **Site Builder** | **Génère un index.html complet via Claude Opus 4.7 depuis un brief projet** | `POST /symbalyx-build-site` |
 | WF99 | Error Handler | Capture les erreurs des autres WF | sub-workflow |
+
+**4 Skills livrés** (dossier `skills/`) :
+- `site-builder.md` — la spec du générateur de sites HTML (utilisé par WF50)
+- `email-draft.md` — composition emails 2 variants (concise/warmer)
+- `lead-qualifier-bland.md` — qualification voix via Bland.ai (à brancher)
+- `prospect-finder-leadgenius.md` — découverte de leads B2B (à brancher)
 
 **1 CRM web (single-page, hébergé sur GitHub Pages) :**
 
@@ -176,6 +183,39 @@ n8n/workflows/99_error_handler.json
    ✓ WF18 POST /decision (404 attendu) · webhook répond
    ```
 6. Si tout est ✓, repasse en source `sheets` dans Réglages → mets ton Sheet ID + ta clé API Google Sheets (générée dans Google Cloud → Identifiants → + Créer → Clé API publique) → enregistre.
+
+---
+
+## Étape 7bis — Activer WF50 Site Builder (5 min) [optionnel mais wow]
+
+Le générateur de sites IA. C'est ce qui te livre des HTML clients en 30 secondes pour 0,10 €.
+
+1. Va sur **console.anthropic.com** → API Keys → Create Key → copie la clé.
+2. n8n → **Settings → Variables → + Add** :
+   - Key : `ANTHROPIC_API_KEY`
+   - Value : `sk-ant-api03-...` (ta clé)
+3. Active **WF50** dans n8n (toggle).
+4. Test rapide depuis le terminal :
+   ```bash
+   curl -X POST https://TON-SOUS-DOMAINE.app.n8n.cloud/webhook/symbalyx-build-site \
+     -H "Content-Type: application/json" \
+     -H "x-symbalyx-token: TON_SECRET" \
+     -d '{
+       "project_id":"proj_test",
+       "client_name":"Salon Élégance",
+       "niche":"coiffure premium",
+       "city":"Lyon",
+       "tone":"élégant",
+       "colors":"or sur noir profond",
+       "pages":["home","services","contact"],
+       "email":"contact@salon-elegance.fr"
+     }'
+   ```
+5. Réponse : `{ ok:true, deliverable_id:"del_...", html_size:12000+, cost_eur:"0.18", html:"<!doctype html>..." }`. 30-60 secondes d'attente.
+6. Une ligne apparaît dans la Sheet `project_deliverables`, et un message dans `agent_messages` (silent, level=progress).
+7. Dans le CRM → ouvre n'importe quel projet → bouton **✨ Générer le site** → tu auras une fenêtre avec l'aperçu live du HTML.
+
+> Coût d'usage : ~0,18 € en Opus 4.7 (qualité max), ou ~0,06 € en Sonnet 4.6 (excellent aussi). Pour passer en Sonnet, change `model` dans le workflow node `Claude — Generate HTML`.
 
 ---
 

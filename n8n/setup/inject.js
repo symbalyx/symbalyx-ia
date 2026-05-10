@@ -49,6 +49,7 @@ const TARGET_FILES = [
   '23_bcl_reassign.json',
   '30_whatsapp_bot.json',
   '40_agent_relay.json',
+  '50_site_builder.json',
   '99_error_handler.json',
 ];
 

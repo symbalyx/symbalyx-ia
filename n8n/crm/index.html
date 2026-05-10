@@ -828,7 +828,8 @@ const DEFAULT_CFG = {
     review:'review_queue', projects:'project_queue', logs:'logs',
     memDec:'memory_decisions', memPat:'memory_patterns', memCom:'memory_commercial',
     invoices:'invoices', notifs:'notifications_inbox', members:'team_members',
-    finance:'finance_ledger', wishlist:'wishlist', agents:'agent_messages'
+    finance:'finance_ledger', wishlist:'wishlist', agents:'agent_messages',
+    deliverables:'project_deliverables'
   }},
   supabase: { url: '', anonKey: '' },
   webhook: { baseUrl: '', secret: '' },
@@ -1077,6 +1078,10 @@ const MOCK = {
     {id:'agt_1', ts:new Date(Date.now()-2*3600e3).toISOString(), from_workflow:'WF1',  to_workflow:'WF7',   level:'progress', title:'12 prospects analysés', body:'Niche plombier · 3 fits forts envoyés en review_queue.', item_type:'', item_id:'', escalated_to_human:'false'},
     {id:'agt_2', ts:new Date(Date.now()-30*60e3).toISOString(),  from_workflow:'WF2',  to_workflow:'human', level:'blocked',  title:'Quota Gmail dépassé', body:'5 brouillons en file mais quota journalier atteint. Reprise demain 06:00 ou augmenter le quota.', item_type:'', item_id:'', escalated_to_human:'true'},
     {id:'agt_3', ts:new Date(Date.now()-15*60e3).toISOString(),  from_workflow:'WF22', to_workflow:'WF15',  level:'progress', title:'4 outcomes réconciliés', body:'memory_decisions enrichi : 2 reply_received, 1 delivered, 1 no_reply.', item_type:'', item_id:'', escalated_to_human:'false'}
+  ],
+  project_deliverables: [
+    {id:'del_1', ts:new Date(Date.now()-2*86400e3).toISOString(), project_id:'proj_0007', client_id:'', type:'site_html', version:'v1', file_url:'', generated_by:'WF50 / claude-opus-4-7', status:'reviewed', reviewed_by:'Arsène', reviewed_at:new Date(Date.now()-1*86400e3).toISOString(), cost_eur:'0.18', html_size:'12450', notes:''},
+    {id:'del_2', ts:new Date(Date.now()-1*86400e3).toISOString(), project_id:'proj_0007', client_id:'', type:'site_html', version:'v2', file_url:'', generated_by:'WF50 / claude-opus-4-7', status:'draft',    reviewed_by:'',       reviewed_at:'',                                                              cost_eur:'0.04', html_size:'13100', notes:'Itération hero plus contrasté'}
   ]
 };
 
@@ -1097,7 +1102,7 @@ async function fetchSheets(){
     const j = await r.json(); const [head, ...rows] = j.values || [];
     return rows.map(row => Object.fromEntries(head.map((h,i)=>[h, row[i]])));
   }
-  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs,members,finance,wishlist,agents] = await Promise.all([
+  const [bcl,kpi,team,review,projects,logs,memDec,memPat,memCom,invoices,notifs,members,finance,wishlist,agents,deliverables] = await Promise.all([
     read(c.tabs.bcl).catch(()=>[]), read(c.tabs.kpi).catch(()=>[]), read(c.tabs.team).catch(()=>[]),
     read(c.tabs.review).catch(()=>[]), read(c.tabs.projects).catch(()=>[]), read(c.tabs.logs).catch(()=>[]),
     read(c.tabs.memDec).catch(()=>[]), read(c.tabs.memPat).catch(()=>[]), read(c.tabs.memCom).catch(()=>[]),
@@ -1105,9 +1110,10 @@ async function fetchSheets(){
     read(c.tabs.members || 'team_members').catch(()=>[]),
     read(c.tabs.finance || 'finance_ledger').catch(()=>[]),
     read(c.tabs.wishlist || 'wishlist').catch(()=>[]),
-    read(c.tabs.agents || 'agent_messages').catch(()=>[])
+    read(c.tabs.agents || 'agent_messages').catch(()=>[]),
+    read(c.tabs.deliverables || 'project_deliverables').catch(()=>[])
   ]);
-  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, team_members: normalizeMembers(members), finance, wishlist, agent_messages: agents, digest: '' };
+  return { bcl, kpi, team, review, projects, logs, memDec, memPat, memCom, invoices, notifs, team_members: normalizeMembers(members), finance, wishlist, agent_messages: agents, project_deliverables: deliverables, digest: '' };
 }
 async function fetchSupabase(){
   const c = STATE.cfg.supabase;
@@ -1130,6 +1136,7 @@ async function fetchSupabase(){
     finance: await get('finance_ledger','?select=*&order=ts.desc&limit=500').catch(()=>[]),
     wishlist: await get('wishlist','?select=*&order=ts.desc&limit=200').catch(()=>[]),
     agent_messages: await get('agent_messages','?select=*&order=ts.desc&limit=200').catch(()=>[]),
+    project_deliverables: await get('project_deliverables','?select=*&order=ts.desc&limit=200').catch(()=>[]),
     digest: ''
   };
 }
@@ -2114,6 +2121,21 @@ function symbOpenDetail(type, id){
       <button class="btn ghost" onclick="symbCloseDetail()">Fermer</button>`;
   } else if (type === 'project') {
     const p = (d.projects||[]).find(x => x.id === id) || {};
+    const dels = (d.project_deliverables || []).filter(x => x.project_id === id)
+      .sort((a,b) => Date.parse(b.ts||0) - Date.parse(a.ts||0));
+    const delsHtml = dels.length
+      ? dels.map(dl => `<div class="item">
+            <div class="ic ${lower(dl.status)==='delivered'?'ok':lower(dl.status)==='failed'?'crit':'warn'}">⌑</div>
+            <div class="body">
+              <div class="ttl truncate">${esc(dl.type||'-')} · ${esc(dl.version||'')}</div>
+              <div class="meta">${esc(dl.generated_by||'-')} · ${fmtRelative(dl.ts)} · ${esc(dl.cost_eur||'0')}€</div>
+              ${dl.file_url ? `<div class="meta"><a href="${esc(dl.file_url)}" target="_blank" rel="noopener">Ouvrir</a></div>` : ''}
+            </div>
+            <div class="right">
+              <span class="badge ${lower(dl.status)==='delivered'?'b-ok':lower(dl.status)==='failed'?'b-critical':'b-pending'}">${esc(dl.status||'draft')}</span>
+            </div>
+          </div>`).join('')
+      : '<div class="muted" style="padding:8px 12px">Aucun livrable. Clique « Générer le site » pour lancer WF50.</div>';
     html = `
       <h2 class="h2">${esc(p.client_name||'')}</h2>
       <div class="muted">${esc(p.niche||'-')} · ${esc(p.city||'-')}</div>
@@ -2125,7 +2147,19 @@ function symbOpenDetail(type, id){
       </div>
       <div class="sep"></div>
       <p>${esc(p.client_brief_summary||'')}</p>
-      <button class="btn ghost" onclick="symbCloseDetail()">Fermer</button>`;
+
+      <div class="card padless" style="margin:10px 0">
+        <div style="padding:10px 12px;display:flex;align-items:center;gap:8px">
+          <span class="card-h t" style="margin:0">Livrables IA — sites & devis</span>
+          <span class="right pill" id="delsCount_${esc(id)}">${dels.length}</span>
+        </div>
+        <div class="list">${delsHtml}</div>
+      </div>
+
+      <div class="row">
+        <button class="btn primary" onclick="symbBuildSite('${esc(id)}')">✨ Générer le site (WF50)</button>
+        <button class="btn ghost right" onclick="symbCloseDetail()">Fermer</button>
+      </div>`;
   } else if (type === 'invoice') {
     const inv = (d.invoices||[]).find(x => (x.id||x.invoice_ref) === id) || {};
     html = `
@@ -2974,6 +3008,54 @@ async function symbReassign(bclId){
     } catch(e) { toast('Webhook KO ('+e.message+') — local seulement', 'err'); }
   }
   symbCloseDetail();
+}
+
+/* ---------- Site Builder (WF50) ---------- */
+async function symbBuildSite(projectId){
+  const me = STATE.cfg.identity; if (!me) { toast('Identité requise', 'err'); return; }
+  const p = (STATE.data?.projects || []).find(x => x.id === projectId);
+  if (!p) { toast('Projet introuvable', 'err'); return; }
+  // Ouvre un mini formulaire pour préciser tone + couleurs (le brief Sheet manque souvent ces infos).
+  const tone = prompt(`Tone du site pour ${p.client_name} ?\n\nex: élégant · dynamique · artisanal · corporate · éditorial`, 'élégant');
+  if (tone === null) return;
+  const colors = prompt('Couleurs principales (ex: « or sur noir », « bleu nuit + rouille ») ?', 'sobre, contraste fort');
+  if (colors === null) return;
+  toast('Génération du site en cours… (30-60s)');
+  const wh = STATE.cfg.webhook;
+  if (!wh.baseUrl || !wh.secret) { toast('Webhook non configuré', 'err'); return; }
+  try {
+    const r = await fetch(`${wh.baseUrl}/symbalyx-build-site`, {
+      method:'POST',
+      headers:{ 'content-type':'application/json', 'x-symbalyx-token': wh.secret },
+      body: JSON.stringify({
+        project_id: projectId,
+        client_name: p.client_name || '',
+        niche: p.niche || '',
+        city: p.city || '',
+        tone, colors,
+        pages: ['home','services','contact'],
+        email: p.email || '',
+        phone: p.phone || '',
+        brief_summary: p.client_brief_summary || ''
+      })
+    });
+    if (!r.ok) {
+      const j = await r.json().catch(()=>({}));
+      throw new Error(j.error || ('HTTP '+r.status));
+    }
+    const j = await r.json();
+    toast(`Site v1 généré (${j.html_size} chars · ${j.cost_eur}€)`);
+    // Affiche un aperçu : nouvelle fenêtre avec le HTML
+    if (j.html) {
+      const w = window.open('', '_blank');
+      if (w) { w.document.write(j.html); w.document.close(); }
+      else { toast('Pop-up bloqué — autorise les pop-ups pour prévisualiser', 'err'); }
+    }
+    // Refresh data pour voir le nouveau livrable
+    setTimeout(symbRefresh, 500);
+  } catch(e) {
+    toast('Génération KO : ' + e.message, 'err');
+  }
 }
 
 /* ---------- Nav badges "Nouveau" ---------- */
