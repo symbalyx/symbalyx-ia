@@ -145,9 +145,31 @@ services:
     restart: unless-stopped
     volumes:
       - ./ui:/usr/share/nginx/html:ro
+      - ./config/nginx-ui.conf:/etc/nginx/conf.d/default.conf:ro
     ports:
       - "8090:80"
     networks: [symbalyx_net]
+
+  # ------------------------------------------------------------
+  # Caddy — reverse proxy HTTPS single-origin.
+  # Optionnel : démarrez ce service quand vous avez généré les
+  # certificats mkcert dans ./certs/ (voir README · HTTPS local).
+  # Si ./certs/ est absent, le service échouera proprement.
+  # ------------------------------------------------------------
+  caddy:
+    image: caddy:2-alpine
+    container_name: symbalyx_caddy
+    restart: unless-stopped
+    depends_on: [synapse, element, ui, whisper, element-call, lk-jwt-service]
+    volumes:
+      - ./config/Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./certs:/certs:ro
+    ports:
+      - "8443:8443"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks: [symbalyx_net]
+    profiles: ["https"]
 
 networks:
   symbalyx_net:

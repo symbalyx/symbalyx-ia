@@ -3,6 +3,8 @@
 Stack Matrix Synapse + Element Web + Element Call + UI custom, 100% locale,
 chiffrement E2E natif (Megolm + MatrixRTC), jusqu'à 10 utilisateurs.
 
+> 📋 **Voir aussi** : [`SECURITY.md`](./SECURITY.md) — audit fait du point de vue attaquant, failles identifiées et corrigées.
+
 **Features livrées :**
 - ✅ Messagerie 1-1 et groupe E2E (Olm/Megolm)
 - ✅ Groupes privés créés depuis la UI custom (preset `private_chat` + encryption forcée + history `invited` + guests interdits)
@@ -218,6 +220,44 @@ docker exec -it symbalyx_synapse register_new_matrix_user -u iris   -p MotDePass
 
 Le badge `Auto-suppression Xh` apparaît sous le nom du groupe. Le serveur purge les anciens events à chaque cycle (1×/jour).
 
+### Compte coffre cryptographiquement isolé
+
+Le mode "Coffre" local (tag `u.symbalyx.hidden`) filtre les conversations dans la sidebar mais elles restent sur le même compte Matrix. Pour les **vraies infos sensibles**, utilise un **2e compte Matrix dédié**, dont les credentials sont chiffrés AES-GCM avec une clé dérivée de ton PIN coffre.
+
+**Setup (une fois)** :
+
+1. Créer le 2e compte côté Synapse via la CLI :
+
+   ```powershell
+   docker exec -it symbalyx_synapse register_new_matrix_user `
+     -u tonpseudo_v -p MotDePasseSensiblesFort `
+     --no-admin -c /data/homeserver.yaml http://localhost:8008
+   ```
+
+   Convention : suffixe `_v` (vault), mais tu peux choisir le pseudo que tu veux. Le suffixe ne révèle pas la nature du compte — Synapse a juste un user de plus parmi les autres.
+
+2. Menu profil → **Compte coffre** → **Lier**
+3. Saisis identifiant, mot de passe, et un PIN à 4-8 chiffres
+4. L'app teste le login, chiffre les credentials avec PBKDF2 + AES-GCM, stocke en localStorage
+
+**Ouvrir le coffre** :
+
+Menu profil → **Compte coffre** → **Ouvrir** → saisir le PIN. L'app :
+- `logout` du compte principal (révoque le device courant)
+- `login` sur le compte coffre
+- Charge ses conversations
+- Bascule l'UI en thème rouge/orange (badge **Coffre** visible)
+
+Pendant que le coffre est ouvert, ton compte principal est **complètement déconnecté**. Aucun token, aucun device. Si l'attaquant exfiltre la mémoire, il a juste un compte secondaire avec des conversations sensibles — mais pas ton identité principale.
+
+**Fermer le coffre** :
+
+Menu profil → **Compte coffre** → **Fermer**. Logout + retour à l'écran de login. Il faudra te reconnecter au compte principal manuellement.
+
+> ⚠ **Note** : si tu oublies le PIN coffre, les credentials sont **irrécupérables** (chiffrés sans backdoor). Solution : recréer un nouveau coffre depuis zéro après recréation manuelle du compte Matrix.
+
+---
+
 ### Mode visiteur (leurre) — quand on passe le téléphone à un inconnu
 
 Pensé pour les moments où quelqu'un te demande "ton téléphone pour appeler" / "regarder une info". Tu actives le mode visiteur **en 1 seconde** et l'appli affiche **uniquement des fausses conversations crédibles** (Maman, Léo, le pressing, le club de yoga, etc.) avec un fake chat fonctionnel.
@@ -241,13 +281,19 @@ Pensé pour les moments où quelqu'un te demande "ton téléphone pour appeler" 
 
 **Personnaliser les fausses conversations** :
 
-Édite `matrix/ui/decoy-data.js`. Le fichier est documenté ; tu peux :
-- Changer ton "nom" en mode visiteur (`myName`, `myAvatar`)
-- Modifier les contacts (nom, couleur, dernière activité)
-- Modifier les messages (texte, expéditeur, heure)
-- Ajouter des auto-réponses par regex (`autoreply`)
+Édite `matrix/ui/decoy-data.js`. Le fichier contient :
+- **4 profils distincts** (A : cadre administratif, B : indépendant/consultant, C : étudiant, D : entrepreneur). Chacun avec 7-8 contacts et 5-15 messages réalistes par conversation.
+- Un **mapping `map`** par utilisateur Matrix (`alice → A`, `bob → B`, ...) : chaque user voit son propre profil pour éviter qu'un visiteur tombe deux fois sur les mêmes "amis" en passant l'app entre deux personnes.
+- Une identité fake par profil (`me.name`, `me.avatar`) qui remplace l'avatar et le label du menu profil quand le leurre est actif.
 
-Plus c'est cohérent avec ta vie réelle, plus c'est indétectable.
+À chaque session, ajuste le mapping et personnalise les conversations pour que ça colle à la "vie" supposée de chaque utilisateur.
+
+> **Conseil** : pré-remplir avec des conversations qui ressemblent à la vie réelle. Un inconnu qui regarde la liste cherche des incohérences (langue, ton, dates). Les messages factices fournis sont volontairement banals et datés (hier, semaine dernière) pour ne pas paraître "trop frais". Ton neutre, peu d'emojis — pas de kitch.
+
+**Sécurité du leurre** :
+- À l'activation, le token Matrix est **invalidé** (`logout`) et `sessionStorage` est vidé. L'inconnu qui ouvre la console F12 ne voit aucun token, aucune session active.
+- Aucune connexion réseau vers Matrix pendant le leurre.
+- À la sortie, retour à l'écran de login — il faut se reconnecter manuellement pour accéder au vrai compte.
 
 > **Conseil de crédibilité** : pré-remplir avec des conversations qui ressemblent à ta vie. Un inconnu qui regarderait la liste cherche des incohérences (langue, ton, dates). Les messages factices fournis sont volontairement banals et datés (hier, semaine dernière) pour ne pas paraître "trop frais".
 
@@ -301,18 +347,34 @@ Après le délai d'inactivité (souris, clavier, scroll), un écran de verrouill
 
 Bouton **cadenas** à côté de votre avatar = verrouiller manuellement.
 
-### Sortie de secours (panic)
+### TOUT SUPPRIMER · Annihilation totale
 
-Trois moyens de déclencher :
-- Menu profil → **Sortie de secours**
-- Raccourci clavier **Ctrl+Shift+Q** (depuis n'importe où dans l'app)
-- (Documenté seulement ici : le panic n'a pas de bouton visible, par discrétion)
+Deux gros boutons rouges sont visibles en bas du menu profil. **Pas d'option par défaut, pas de bouton caché — tu veux supprimer, tu cliques, tout part.**
 
-Effets :
-- Logout via API (invalide le token côté serveur)
-- `localStorage` vidé (sauf le hash du code coffre, gardé pour la prochaine session)
-- `sessionStorage` vidé
-- Redirection vers `about:blank` (la page Symbalyx disparaît de l'historique récent)
+**Bouton 1 — TOUT SUPPRIMER (local)** :
+
+- Révoque **tous** les tokens Matrix actifs du compte (`logout/all` → tous les appareils logués sont déconnectés)
+- Vide `localStorage`, `sessionStorage`
+- Supprime **toutes les IndexedDB** de l'origin (où Element stocke les clés Megolm)
+- Vide le Cache API
+- Désinscrit le service worker (plus de cache résiduel)
+- Vide les cookies
+- Appelle `/wipe` sur Element / Element Call / Synapse → `Clear-Site-Data: *` (efface aussi leur storage si Caddy single-origin est actif)
+- Redirige vers `about:blank` et remplace l'history
+
+Demande de taper `SUPPRIMER` en majuscules pour confirmer.
+
+**Bouton 2 — ANNIHILATION SERVEUR (irréversible)** :
+
+Tout ce qui précède **+** :
+- Appel à `POST /_matrix/client/v3/account/deactivate` avec `erase: true`
+- Le compte Matrix est **désactivé**, les messages sont marqués comme effacés sur le serveur, le compte ne pourra **plus jamais** être réactivé
+
+Demande de taper `ANNIHILER` en majuscules + le mot de passe Matrix (validation UI-auth requise par le serveur).
+
+**Raccourci clavier** : `Ctrl+Shift+Q` déclenche le bouton 1 (effacement local) sans confirmation.
+
+⚠ **Limite** : sans Caddy single-origin (étape HTTPS), les IndexedDB d'Element Web et Element Call (sur leurs ports natifs 8080/8181) ne peuvent **pas** être effacées par l'app — limite browser cross-origin. Active HTTPS + Caddy pour avoir vraiment "tout tout tout" effacé.
 
 ### Transcription vocale & résumé d'appel (Whisper local)
 
@@ -475,23 +537,58 @@ docker exec -it symbalyx_synapse curl -X POST `
 
 ---
 
-## HTTPS local (requis pour appels vidéo mobile)
+## HTTPS local · single-origin via Caddy
 
-Les navigateurs Chrome/Safari/Firefox refusent l'accès caméra/micro hors HTTPS (sauf `localhost`). Pour passer en HTTPS local :
+Active HTTPS + reverse proxy Caddy pour deux raisons :
+1. Les navigateurs refusent caméra/micro hors HTTPS (donc pas d'appels vidéo mobile sans).
+2. Tout passe sur un seul origin (`https://symbalyx.local:8443`) → le bouton **TOUT SUPPRIMER** peut effacer les IndexedDB d'Element Web et Element Call (sinon c'est cross-origin et impossible depuis JS).
+
+### Étapes
 
 ```powershell
-# 1. Installer mkcert
+# 1. Installer mkcert via Scoop (https://scoop.sh)
 scoop install mkcert
 mkcert -install
 
 # 2. Générer les certificats
 mkdir certs
 cd certs
-mkcert 192.168.1.42 localhost 127.0.0.1
+mkcert -cert-file cert.pem -key-file key.pem `
+  symbalyx.local localhost 127.0.0.1 192.168.1.42
 cd ..
+
+# 3. Ajouter symbalyx.local à votre fichier hosts (Bloc-notes en admin)
+#    C:\Windows\System32\drivers\etc\hosts
+#    Ajoute la ligne :
+#    127.0.0.1   symbalyx.local
+
+# 4. Démarrer Caddy
+docker compose --profile https up -d
+
+# 5. Ouvrir https://symbalyx.local:8443
 ```
 
-Puis ajoutez un service `caddy` au compose (peut être demandé à Claude au moment où vous êtes prêt à passer en HTTPS).
+Routes exposées :
+
+| URL                                     | Service        |
+| --------------------------------------- | -------------- |
+| `https://symbalyx.local:8443/`          | UI Symbalyx    |
+| `https://symbalyx.local:8443/element/`  | Element Web    |
+| `https://symbalyx.local:8443/call/`     | Element Call   |
+| `https://symbalyx.local:8443/_matrix/`  | Synapse API    |
+| `https://symbalyx.local:8443/whisper/`  | Whisper        |
+| `https://symbalyx.local:8443/wipe`      | Clear-Site-Data global |
+
+Une fois Caddy actif, **ne plus exposer** les ports natifs 8008/8080/8181 sur le LAN — désactive-les ou bloque-les au pare-feu.
+
+> Pour basculer la UI vers les URLs Caddy, édite `ui/index.html` → `CONFIG` :
+> ```js
+> homeserver:  "https://symbalyx.local:8443",
+> elementUrl:  "https://symbalyx.local:8443/element",
+> elementCall: "https://symbalyx.local:8443/call",
+> whisperUrl:  "https://symbalyx.local:8443/whisper",
+> ```
+> Et dans `data/synapse/homeserver.yaml` : `public_baseurl: "https://symbalyx.local:8443"`.
 
 ---
 

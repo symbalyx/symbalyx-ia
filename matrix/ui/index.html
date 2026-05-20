@@ -857,6 +857,35 @@
   }
   .decoy-send:active { transform: scale(0.92); }
 
+  /* ============ NUKE BUTTONS ============ */
+  .nuke-section { padding: 14px 12px; }
+  .profile-nuke {
+    width: 100%;
+    padding: 14px 16px;
+    background: linear-gradient(135deg, var(--danger), #d63045);
+    border: 0; border-radius: 12px;
+    color: #fff; font-weight: 700; font-size: 14px;
+    letter-spacing: 0.5px; text-transform: uppercase;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-family: inherit;
+    box-shadow: 0 8px 22px rgba(255, 84, 112, 0.35);
+    transition: transform .08s, filter .12s;
+  }
+  .profile-nuke:hover { filter: brightness(1.08); }
+  .profile-nuke:active { transform: scale(0.98); }
+  .profile-nuke.max {
+    margin-top: 12px;
+    background: linear-gradient(135deg, #6b1a2c, #2a0810);
+    color: #ff9aa8;
+    border: 1px solid rgba(255, 84, 112, 0.5);
+  }
+  .nuke-desc {
+    font-size: 11px; color: var(--text-3);
+    margin: 6px 4px 0;
+    line-height: 1.4;
+  }
+
   /* ============ PWA INSTALL HINT ============ */
   .install-hint {
     position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -1220,6 +1249,13 @@
   </div>
 
   <div class="profile-section">
+    <button class="profile-item" id="profVaultAccount">
+      <div class="ic">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+      </div>
+      <span>Compte coffre</span>
+      <span class="arrow" id="vaultAccountLabel">Lier</span>
+    </button>
     <button class="profile-item" id="profDecoy">
       <div class="ic">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
@@ -1230,18 +1266,25 @@
   </div>
 
   <div class="profile-section">
-    <button class="profile-item danger" id="profPanic">
-      <div class="ic">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      </div>
-      <span>Sortie de secours</span>
-    </button>
     <button class="profile-item" id="profLogout">
       <div class="ic">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
       </div>
       <span>Déconnexion</span>
     </button>
+  </div>
+
+  <div class="profile-section nuke-section">
+    <button class="profile-nuke" id="profPanic">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+      TOUT SUPPRIMER
+    </button>
+    <div class="nuke-desc">Efface session, clés, cache, code coffre, code leurre, IndexedDB, service worker. Local.</div>
+    <button class="profile-nuke max" id="profNuke">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/></svg>
+      ANNIHILATION SERVEUR
+    </button>
+    <div class="nuke-desc">Désactive aussi le compte Matrix côté serveur. Irréversible.</div>
   </div>
 
   <div class="profile-secret-zone" id="profSecretZone">
@@ -1999,7 +2042,8 @@ Object.assign(M, {
 });
 
 /* =======================================================================
-   PIN (vault unlock) — stocké hashé en localStorage, salé avec user_id
+   PIN (vault unlock) — PBKDF2 250 000 itérations + salt aléatoire 16o
+   Format stocké : pbkdf2_v1:saltHex:iterations:hashHex
    ======================================================================= */
 async function sha256(s) {
   const buf = new TextEncoder().encode(s);
@@ -2007,17 +2051,47 @@ async function sha256(s) {
   return Array.from(new Uint8Array(h))
     .map(b => b.toString(16).padStart(2, "0")).join("");
 }
-function pinKey()       { return `sx_pin_${M.userId || "anon"}`; }
-function hasPinSet()    { return !!localStorage.getItem(pinKey()); }
+
+const PIN_ITER = 250000;
+function randomSalt() {
+  const a = new Uint8Array(16);
+  crypto.getRandomValues(a);
+  return Array.from(a).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+async function pbkdf2(secret, saltHex, iter, bits = 256) {
+  const enc = new TextEncoder();
+  const saltBytes = new Uint8Array(saltHex.match(/.{2}/g).map(h => parseInt(h, 16)));
+  const km = await crypto.subtle.importKey(
+    "raw", enc.encode(secret), { name: "PBKDF2" }, false, ["deriveBits"]
+  );
+  const d = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: saltBytes, iterations: iter, hash: "SHA-256" },
+    km, bits
+  );
+  return Array.from(new Uint8Array(d)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+
+function pinKey()    { return `sx_pin_${M.userId || "anon"}`; }
+function hasPinSet() { return !!localStorage.getItem(pinKey()); }
+
+async function setPin(pin) {
+  const salt = randomSalt();
+  const hash = await pbkdf2(`${M.userId}:${pin}`, salt, PIN_ITER);
+  localStorage.setItem(pinKey(), `pbkdf2_v1:${salt}:${PIN_ITER}:${hash}`);
+}
+
 async function pinMatches(pin) {
   const stored = localStorage.getItem(pinKey());
   if (!stored) return false;
-  const h = await sha256(`${M.userId}:${pin}`);
-  return h === stored;
-}
-async function setPin(pin) {
-  const h = await sha256(`${M.userId}:${pin}`);
-  localStorage.setItem(pinKey(), h);
+  // Legacy SHA-256 fallback : migrer au prochain bon PIN
+  if (!stored.startsWith("pbkdf2_v1:")) {
+    const legacyOk = (await sha256(`${M.userId}:${pin}`)) === stored;
+    if (legacyOk) await setPin(pin); // upgrade silencieux
+    return legacyOk;
+  }
+  const [, salt, iterStr, expected] = stored.split(":");
+  const h = await pbkdf2(`${M.userId}:${pin}`, salt, parseInt(iterStr, 10));
+  return h === expected;
 }
 function clearPin() { localStorage.removeItem(pinKey()); }
 
@@ -2336,25 +2410,136 @@ $("#profLogout").addEventListener("click", async () => {
 });
 
 /* =======================================================================
-   Panic / Sortie de secours
+   ANNIHILATION TOTALE
+   Efface TOUT, pour de vrai, sans demi-mesure :
+   - Révoque tous les tokens du compte Matrix (logout/all)
+   - Vide localStorage, sessionStorage, IndexedDB, Cache API, cookies
+   - Désinscrit les service workers
+   - Demande à chaque origin externe de se wiper (Clear-Site-Data via /wipe)
+   - (Option destructrice) Désactive le compte Matrix → suppression côté serveur
+   - Redirige vers about:blank et replace history
    ======================================================================= */
-async function panic() {
-  try { await M.logout(); } catch {}
-  sessionStorage.clear();
-  // garder le PIN si l'user veut, mais effacer le reste
-  Object.keys(localStorage).forEach(k => {
-    if (!k.startsWith("sx_pin_")) localStorage.removeItem(k);
-  });
-  document.body.innerHTML = "";
+async function annihilate(opts = {}) {
+  const { serverDeactivate = false, password = null } = opts;
+
+  // 1. Révoquer tous les tokens Matrix de tous les devices du user
+  if (M.token) {
+    try { await M.req("POST", "/_matrix/client/v3/logout/all", {}); } catch {}
+  }
+
+  // 2. (Option destructrice) Deactivate compte côté serveur (irréversible)
+  if (serverDeactivate && password && M.token && M.userId) {
+    try {
+      const userHandle = M.userId.replace(/^@/, "").split(":")[0];
+      await M.req("POST", "/_matrix/client/v3/account/deactivate", {
+        auth: {
+          type: "m.login.password",
+          identifier: { type: "m.id.user", user: userHandle },
+          password
+        },
+        erase: true
+      });
+    } catch (e) { console.warn("deactivate failed", e); }
+  }
+
+  // 3. Wiper localStorage TOTAL (y compris PIN coffre/leurre - on veut TOUT)
+  try { localStorage.clear(); } catch {}
+  try { sessionStorage.clear(); } catch {}
+
+  // 4. Wiper toutes les IndexedDB du même origin
+  try {
+    if (indexedDB.databases) {
+      const dbs = await indexedDB.databases();
+      await Promise.all(dbs.map(db =>
+        new Promise(res => {
+          const r = indexedDB.deleteDatabase(db.name);
+          r.onsuccess = r.onerror = r.onblocked = () => res();
+        })
+      ));
+    }
+  } catch {}
+
+  // 5. Wiper l'API Cache (service worker)
+  try {
+    if (window.caches) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map(k => caches.delete(k)));
+    }
+  } catch {}
+
+  // 6. Désinscrire les service workers
+  try {
+    if (navigator.serviceWorker) {
+      const regs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(regs.map(r => r.unregister()));
+    }
+  } catch {}
+
+  // 7. Cookies du domaine courant
+  try {
+    document.cookie.split(";").forEach(c => {
+      const eq = c.indexOf("=");
+      const name = (eq > -1 ? c.substr(0, eq) : c).trim();
+      if (name) {
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/`;
+        document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=${location.hostname}`;
+      }
+    });
+  } catch {}
+
+  // 8. Demander à chaque origin tiers de se wiper via la route /wipe (Clear-Site-Data)
+  //    Fonctionne automatiquement si Caddy single-origin est actif (même origin).
+  //    Sinon, on tente en best-effort (no-cors fetch).
+  const externalOrigins = [
+    CONFIG.elementUrl, CONFIG.elementCall, CONFIG.homeserver
+  ];
+  await Promise.all(externalOrigins.map(o =>
+    fetch(`${o}/wipe`, { mode: "no-cors", credentials: "include" }).catch(() => {})
+  ));
+
+  // 9. Replace history et redirige
+  try {
+    history.pushState({}, "", "about:blank");
+    history.replaceState({}, "", "about:blank");
+  } catch {}
   document.title = "";
-  location.replace("about:blank");
+  document.body.innerHTML = "";
+  setTimeout(() => location.replace("about:blank"), 100);
 }
-$("#profPanic").addEventListener("click", () => {
-  if (confirm("Sortie de secours : déconnexion + effacement des données locales. Continuer ?")) panic();
+
+/* ====== Bouton "TOUT SUPPRIMER" visible (effacement local immédiat) ====== */
+$("#profPanic").addEventListener("click", async () => {
+  const code = prompt(
+    "TOUT SUPPRIMER\n\n" +
+    "Cette action est IRRÉVERSIBLE.\n" +
+    "Vont être effacés : session, tokens, clés Megolm, messages chiffrés " +
+    "stockés localement, code coffre, code leurre, service workers, cache.\n\n" +
+    "Tape SUPPRIMER (en majuscules) pour confirmer :"
+  );
+  if (code !== "SUPPRIMER") return;
+  await annihilate({ serverDeactivate: false });
 });
+
+/* ====== Bouton "ANNIHILATION SERVEUR" (désactive le compte Matrix) ====== */
+$("#profNuke").addEventListener("click", async () => {
+  const code = prompt(
+    "ANNIHILATION COMPTE SERVEUR\n\n" +
+    "Cette action désactive votre compte Matrix sur le serveur.\n" +
+    "Vos messages dans les conversations seront marqués 'effacés'.\n" +
+    "Le compte ne pourra plus être réactivé.\n\n" +
+    "Tape ANNIHILER (en majuscules) pour confirmer :"
+  );
+  if (code !== "ANNIHILER") return;
+  const password = prompt("Mot de passe Matrix (validation requise par le serveur) :");
+  if (!password) return;
+  await annihilate({ serverDeactivate: true, password });
+});
+
+/* Raccourci clavier Ctrl+Shift+Q : effacement local seulement (rapide) */
 window.addEventListener("keydown", (e) => {
   if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "q") {
-    e.preventDefault(); panic();
+    e.preventDefault();
+    annihilate({ serverDeactivate: false });
   }
 });
 
@@ -2491,89 +2676,265 @@ enterApp = function () {
 };
 
 /* =======================================================================
+   COMPTE COFFRE — isolement cryptographique réel
+   Stocke les credentials d'un 2e compte Matrix dans localStorage,
+   chiffrés AES-GCM avec une clé dérivée du PIN coffre (PBKDF2).
+   Le déchiffrement n'est possible qu'avec le bon PIN.
+   ======================================================================= */
+function vaultAcctKey() { return `sx_vault_acct_${M.userId || "anon"}`; }
+function hasVaultAccount() { return !!localStorage.getItem(vaultAcctKey()); }
+
+async function deriveAesKey(pin, saltHex) {
+  const enc = new TextEncoder();
+  const saltBytes = new Uint8Array(saltHex.match(/.{2}/g).map(h => parseInt(h, 16)));
+  const km = await crypto.subtle.importKey(
+    "raw", enc.encode(`${M.userId}:vault-acct:${pin}`),
+    { name: "PBKDF2" }, false, ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    { name: "PBKDF2", salt: saltBytes, iterations: PIN_ITER, hash: "SHA-256" },
+    km,
+    { name: "AES-GCM", length: 256 },
+    false, ["encrypt", "decrypt"]
+  );
+}
+
+function bytesToHex(b) { return Array.from(b).map(x => x.toString(16).padStart(2, "0")).join(""); }
+function hexToBytes(h) { return new Uint8Array(h.match(/.{2}/g).map(x => parseInt(x, 16))); }
+
+async function storeVaultAccount(pin, username, password) {
+  const salt = randomSalt();
+  const iv   = new Uint8Array(12); crypto.getRandomValues(iv);
+  const key  = await deriveAesKey(pin, salt);
+  const enc  = new TextEncoder();
+  const ct = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    enc.encode(JSON.stringify({ username, password }))
+  );
+  localStorage.setItem(vaultAcctKey(), JSON.stringify({
+    v: 1, salt, iv: bytesToHex(iv), ct: bytesToHex(new Uint8Array(ct))
+  }));
+}
+
+async function loadVaultAccount(pin) {
+  const raw = localStorage.getItem(vaultAcctKey());
+  if (!raw) return null;
+  const { salt, iv, ct } = JSON.parse(raw);
+  const key  = await deriveAesKey(pin, salt);
+  const ivB  = hexToBytes(iv);
+  const ctB  = hexToBytes(ct);
+  let pt;
+  try {
+    pt = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ivB }, key, ctB);
+  } catch { return null; }   // mauvais PIN
+  return JSON.parse(new TextDecoder().decode(pt));
+}
+
+// État pour switcher entre compte principal et compte coffre
+const vaultAcct = {
+  mainSession: null,   // { token, userId, deviceId } pour revenir au principal
+  active: false
+};
+
+async function switchToVaultAccount(pin) {
+  const creds = await loadVaultAccount(pin);
+  if (!creds) { toast("Code incorrect", "err"); return false; }
+
+  // Sauvegarder la session principale pour la restaurer plus tard
+  vaultAcct.mainSession = { token: M.token, userId: M.userId, deviceId: M.deviceId };
+
+  // Logout du compte principal (révoque le device courant)
+  try { await M.logout(); } catch {}
+
+  // Login sur le compte coffre
+  try {
+    await M.login(creds.username, creds.password);
+    vaultAcct.active = true;
+    document.body.classList.add("vault");
+    state.currentRoomId = null;
+    $("#noRoomView").style.display = "flex";
+    $("#roomView").style.display = "none";
+    $("#elementFrame").src = "about:blank";
+    await loadRooms();
+    startSyncLoop();
+    toast("Compte coffre ouvert", "ok");
+    return true;
+  } catch (err) {
+    toast("Login compte coffre échoué : " + err.message, "err");
+    // Restaurer la session principale en silencieux n'est pas possible sans password
+    showLogin();
+    return false;
+  }
+}
+
+async function switchBackToMain() {
+  // Logout du compte coffre
+  try { await M.logout(); } catch {}
+  vaultAcct.active = false;
+  document.body.classList.remove("vault");
+  // On ne peut pas restaurer le main sans password : afficher login
+  showLogin();
+  toast("Reconnectez-vous à votre compte principal", "ok");
+}
+
+$("#profVaultAccount").addEventListener("click", async () => {
+  closeProfileMenu();
+  if (vaultAcct.active) {
+    if (confirm("Fermer le compte coffre et revenir au login ?")) {
+      await switchBackToMain();
+    }
+    return;
+  }
+  if (!hasVaultAccount()) {
+    // Liaison d'un compte coffre existant (créé manuellement via la CLI Synapse)
+    alert(
+      "Liaison d'un compte coffre.\n\n" +
+      "Vous devez d'abord créer un 2e compte Matrix dédié au coffre via la CLI Synapse :\n\n" +
+      "docker exec -it symbalyx_synapse register_new_matrix_user " +
+      "-u VOTREPSEUDO_v -p MOTDEPASSEFORT --no-admin " +
+      "-c /data/homeserver.yaml http://localhost:8008\n\n" +
+      "Puis revenez ici."
+    );
+    const u = prompt("Identifiant du compte coffre (sans @ ni domaine) :");
+    if (!u) return;
+    const p = prompt("Mot de passe du compte coffre :");
+    if (!p) return;
+    const pin = prompt("Code PIN à 4 chiffres pour ouvrir le compte coffre :");
+    if (!pin || !/^\d{4,8}$/.test(pin)) { toast("Code invalide (4-8 chiffres)", "err"); return; }
+
+    // Test du login pour valider les credentials
+    const tmp = await fetch(`${CONFIG.homeserver}/_matrix/client/v3/login`, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "m.login.password",
+        identifier: { type: "m.id.user", user: u },
+        password: p
+      })
+    });
+    if (!tmp.ok) { toast("Credentials coffre invalides", "err"); return; }
+    const tmpData = await tmp.json();
+    // Logout immédiat du device de test
+    await fetch(`${CONFIG.homeserver}/_matrix/client/v3/logout`, {
+      method: "POST",
+      headers: { "Authorization": `Bearer ${tmpData.access_token}` }
+    });
+
+    await storeVaultAccount(pin, u, p);
+    toast("Compte coffre lié", "ok");
+    $("#vaultAccountLabel").textContent = "Ouvrir";
+  } else {
+    const pin = prompt("Code coffre :");
+    if (!pin) return;
+    await switchToVaultAccount(pin);
+  }
+});
+
+const origOpenProfileMenu2 = openProfileMenu;
+openProfileMenu = function () {
+  origOpenProfileMenu2();
+  $("#vaultAccountLabel").textContent = vaultAcct.active ? "Fermer" : (hasVaultAccount() ? "Ouvrir" : "Lier");
+};
+
+/* =======================================================================
    DECOY MODE — fausses conversations crédibles
    ======================================================================= */
 const decoy = {
   active: false,
   currentId: null,
-  msgs: {}   // id => array de messages (modifications locales volatiles)
+  msgs: {},        // id => array de messages (modifications locales volatiles)
+  profile: null    // profil chargé pour l'utilisateur courant
 };
 
 function decoyPinKey() { return `sx_decoy_pin_${M.userId || "anon"}`; }
 function hasDecoyPin() { return !!localStorage.getItem(decoyPinKey()); }
 async function setDecoyPin(pin) {
-  const h = await sha256(`${M.userId}:decoy:${pin}`);
-  localStorage.setItem(decoyPinKey(), h);
+  const salt = randomSalt();
+  const hash = await pbkdf2(`${M.userId}:decoy:${pin}`, salt, PIN_ITER);
+  localStorage.setItem(decoyPinKey(), `pbkdf2_v1:${salt}:${PIN_ITER}:${hash}`);
 }
 async function decoyPinMatches(pin) {
   const stored = localStorage.getItem(decoyPinKey());
   if (!stored) return false;
-  return (await sha256(`${M.userId}:decoy:${pin}`)) === stored;
+  if (!stored.startsWith("pbkdf2_v1:")) {
+    const legacyOk = (await sha256(`${M.userId}:decoy:${pin}`)) === stored;
+    if (legacyOk) await setDecoyPin(pin);
+    return legacyOk;
+  }
+  const [, salt, iterStr, expected] = stored.split(":");
+  return (await pbkdf2(`${M.userId}:decoy:${pin}`, salt, parseInt(iterStr, 10))) === expected;
 }
 
-function enterDecoy() {
+async function enterDecoy() {
+  // Charger le profil correspondant à l'utilisateur AVANT de couper la session
+  decoy.profile = window.DECOY_DATA.getForUser(M.userId);
+
+  // SÉCURITÉ : invalider le token Matrix AVANT d'activer le leurre.
+  // Plus de M.token, plus de M.userId, plus de session navigateur.
+  // Si l'inconnu inspecte la console : il ne voit rien d'utilisable.
+  try { await M.logout(); } catch {}
+  sessionStorage.clear();
+
   decoy.active = true;
-  decoy.msgs  = {};
+  decoy.msgs   = {};
   document.body.classList.add("decoy");
   closeProfileMenu();
-  // Coupe le sync, ferme l'iframe Element (rien ne fuite)
+
   if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+  if (autolockTimer) { clearTimeout(autolockTimer); autolockTimer = null; }
+
   $("#elementFrame").src = "about:blank";
   $("#elementFrameWrap").style.display = "none";
   $("#decoyChat").style.display = "none";
 
-  // Remplace la sidebar avec les fausses conversations
   renderDecoyRooms();
 
-  // Cache les actions Matrix qui pourraient révéler l'app
+  // Cache toute action Matrix qui pourrait révéler la vraie nature de l'app
   $("#btnTimer").style.display     = "none";
   $("#btnSummary").style.display   = "none";
   $("#btnInvite").style.display    = "none";
   $("#btnVoiceCall").style.display = "";
   $("#btnVideoCall").style.display = "";
 
-  // Avatar et label "ordinaires"
-  $("#myAvatar").textContent = window.DECOY_DATA.myAvatar;
-  $("#myLabel").textContent  = window.DECOY_DATA.myName;
+  // Avatar et label depuis le profil de leurre (identité plausible)
+  $("#myAvatar").textContent  = decoy.profile.me.avatar;
+  $("#myLabel").textContent   = decoy.profile.me.name;
+  $("#profileAvatar").textContent = decoy.profile.me.avatar;
+  $("#profileName").textContent   = decoy.profile.me.name;
+  $("#profileMxid").textContent   = "";
 
   $("#noRoomView").style.display = "flex";
   $("#roomView").style.display   = "none";
-  toast("Mode visiteur activé", "ok");
+
+  // Pas de toast crédible — pour l'inconnu, rien ne doit indiquer un "switch de mode"
 }
 
 function exitDecoy() {
+  // Sortie = revenir à l'écran de login. La session Matrix a été
+  // invalidée à l'entrée du leurre, l'utilisateur doit se reconnecter
+  // manuellement pour accéder à ses vraies conversations.
   decoy.active = false;
   decoy.currentId = null;
   decoy.msgs = {};
+  decoy.profile = null;
   document.body.classList.remove("decoy");
   $("#decoyChat").style.display = "none";
   $("#elementFrameWrap").style.display = "";
   $("#btnTimer").style.display     = "";
   $("#btnSummary").style.display   = "";
   $("#btnInvite").style.display    = "";
-
-  // Restaurer le vrai user
-  const short = (M.userId || "").replace(/^@/, "").split(":")[0];
-  $("#myAvatar").textContent = initials(short);
-  $("#myLabel").textContent  = short;
-
-  // Reprendre le sync normal
-  if (M.token) {
-    loadRooms();
-    startSyncLoop();
-  }
-  toast("Retour au mode normal", "ok");
+  showLogin();
 }
 
 function renderDecoyRooms() {
   const list = $("#roomsList");
-  const convs = window.DECOY_DATA.conversations;
+  const convs = (decoy.profile && decoy.profile.conversations) || [];
   const pinned = convs.filter(c => c.pinned);
   const rest   = convs.filter(c => !c.pinned);
   const ordered = pinned.concat(rest);
 
   list.innerHTML = ordered.map(c => {
-    const last = c.messages[c.messages.length - 1] || {};
+    const last = [...c.messages].reverse().find(m => m && m.text && m.from) || {};
     const preview = (last.text || "").slice(0, 38) + (last.text && last.text.length > 38 ? "…" : "");
     return `
       <div class="room-item ${c.id === decoy.currentId ? "active" : ""}" data-decoy-id="${c.id}">
@@ -2594,7 +2955,7 @@ function renderDecoyRooms() {
 }
 
 function openDecoyConv(id) {
-  const conv = window.DECOY_DATA.conversations.find(c => c.id === id);
+  const conv = (decoy.profile?.conversations || []).find(c => c.id === id);
   if (!conv) return;
   decoy.currentId = id;
   if (!decoy.msgs[id]) decoy.msgs[id] = conv.messages.slice();
@@ -2629,6 +2990,7 @@ function renderDecoyMessages() {
       html += `<div class="decoy-day">${escapeHtml(m.day)}</div>`;
       lastDay = m.day;
     }
+    if (!m.text || !m.from) continue;  // séparateurs de jour purs
     html += `<div class="decoy-msg ${m.from === "me" ? "me" : "them"}">${escapeHtml(m.text)}</div>`;
     html += `<div class="decoy-time">${escapeHtml(m.time || "")}</div>`;
   }
@@ -2650,8 +3012,8 @@ function decoySend() {
   renderDecoyRooms();
 
   // Auto-reply scripté ?
-  const conv = window.DECOY_DATA.conversations.find(c => c.id === decoy.currentId);
-  const autoreply = (conv.autoreply || []).find(r => r.match.test(text));
+  const conv = (decoy.profile?.conversations || []).find(c => c.id === decoy.currentId);
+  const autoreply = ((conv && conv.autoreply) || []).find(r => r.match.test(text));
   if (autoreply) {
     $("#decoyTyping").classList.add("show");
     $("#decoyMsgs").scrollTop = $("#decoyMsgs").scrollHeight;
