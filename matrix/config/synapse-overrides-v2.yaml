@@ -20,12 +20,12 @@ extra_well_known_client_content:
 retention:
   enabled: true
   default_policy:
-    min_lifetime: 1h
+    min_lifetime: 5m
     max_lifetime: 30d
-  allowed_lifetime_min: 1h
-  allowed_lifetime_max: 90d
+  allowed_lifetime_min: 5m
+  allowed_lifetime_max: 365d
   purge_jobs:
-    - interval: 1d
+    - interval: 1h
 
 # --- Messages éphémères côté client (Element labs) ---
 # Le client envoie des events avec un flag d'expiration.

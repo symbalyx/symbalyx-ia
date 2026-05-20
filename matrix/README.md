@@ -3,7 +3,8 @@
 Stack Matrix Synapse + Element Web + Element Call + UI custom, 100% locale,
 chiffrement E2E natif (Megolm + MatrixRTC), jusqu'à 10 utilisateurs.
 
-> 📋 **Voir aussi** : [`SECURITY.md`](./SECURITY.md) — audit fait du point de vue attaquant, failles identifiées et corrigées.
+> 🟢 **Présentation grand public** : [`GUIDE.md`](./GUIDE.md) — explique chaque fonction sans aucun jargon, avec comparatifs WhatsApp / Signal.
+> 🔒 **Audit sécurité** : [`SECURITY.md`](./SECURITY.md) — failles trouvées du point de vue attaquant, correctifs appliqués.
 
 **Features livrées :**
 - ✅ Messagerie 1-1 et groupe E2E (Olm/Megolm)

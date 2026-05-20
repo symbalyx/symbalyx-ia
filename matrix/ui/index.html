@@ -456,8 +456,16 @@
   }
 
   /* call modal (element-call iframe) */
-  #callModal .modal-body { display: flex; }
-  #callModal iframe { width: 100%; height: 100%; border: 0; background: #000; }
+  #callModal .modal-body { display: flex; flex-direction: column; }
+  #callModal iframe { width: 100%; flex: 1; border: 0; background: #000; }
+  .call-hint {
+    padding: 10px 16px;
+    font-size: 11px; color: var(--text-2);
+    background: rgba(0,0,0,0.4);
+    border-top: 1px solid var(--border);
+    text-align: center;
+  }
+  .call-hint strong { color: var(--text-1); }
 
   .info-row {
     display: flex; align-items: center; gap: 10px;
@@ -747,6 +755,26 @@
     background: var(--danger);
     margin-right: 2px;
   }
+  .star-mini { color: var(--warn); margin-right: 5px; }
+  .lvl { font-size: 9px; margin-left: 6px; letter-spacing: 1px; vertical-align: 1px; }
+  .lvl.high { color: var(--warn); }
+  .lvl.max  { color: var(--danger); }
+
+  /* Niveau MAX : bordure rouge subtile sur l'élément actif */
+  .room-item.lvl-max.active { border: 1px solid rgba(255, 84, 112, 0.45); }
+  .room-item.lvl-max { box-shadow: inset 3px 0 0 var(--danger); }
+  .room-item.lvl-high { box-shadow: inset 3px 0 0 var(--warn); }
+
+  /* Auto-blur de l'iframe quand la fenêtre perd le focus en niveau MAX */
+  body.blur-on-blur .chat-frame-container iframe { filter: blur(24px); }
+  body.blur-on-blur .chat-frame-container::after {
+    content: "Fenêtre en arrière-plan · contenu masqué";
+    position: absolute; inset: 0;
+    display: grid; place-items: center;
+    background: rgba(7, 7, 13, 0.6);
+    color: var(--text-1); font-size: 13px;
+    z-index: 5;
+  }
 
   /* ============ DECOY MODE (fausses conversations) ============ */
   body.decoy {
@@ -856,6 +884,70 @@
     transition: transform .1s;
   }
   .decoy-send:active { transform: scale(0.92); }
+
+  /* ============ MEMBERS / LEVELS ============ */
+  .lvl-legend {
+    margin: 16px 0 18px;
+    font-size: 12px; color: var(--text-1);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .lvl-legend strong { color: var(--text-0); }
+  .lvl-dot {
+    display: inline-block;
+    width: 9px; height: 9px; border-radius: 50%;
+    vertical-align: 0;
+    margin-right: 6px;
+  }
+  .lvl-dot.normal { background: var(--text-2); }
+  .lvl-dot.high   { background: var(--warn); }
+  .lvl-dot.max    { background: var(--danger); }
+  .members-list {
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+  }
+  .member-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 6px;
+    border-radius: 10px;
+    transition: background .12s;
+  }
+  .member-row + .member-row { border-top: 1px solid var(--border); }
+  .member-row .avatar {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--signal-blue));
+    display: grid; place-items: center;
+    font-size: 14px; font-weight: 700;
+    flex-shrink: 0;
+  }
+  .member-row .info { flex: 1; min-width: 0; }
+  .member-row .name {
+    font-size: 14px; font-weight: 600;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .member-row .mxid {
+    font-size: 11px; color: var(--text-2); margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .lvl-selector {
+    display: flex; gap: 4px;
+    background: var(--glass-strong);
+    border-radius: 999px;
+    padding: 3px;
+  }
+  .lvl-selector button {
+    background: transparent; border: 0;
+    color: var(--text-2);
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px; font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: background .12s, color .12s;
+  }
+  .lvl-selector button.on { color: #fff; }
+  .lvl-selector button.on[data-lvl="normal"] { background: var(--text-3); }
+  .lvl-selector button.on[data-lvl="high"]   { background: var(--warn); color: #1a1500; }
+  .lvl-selector button.on[data-lvl="max"]    { background: var(--danger); }
 
   /* ============ NUKE BUTTONS ============ */
   .nuke-section { padding: 14px 12px; }
@@ -1031,6 +1123,9 @@
             <button class="action-btn video" id="btnVideoCall" title="Appel vidéo">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
             </button>
+            <button class="action-btn" id="btnMembers" title="Membres et confidentialité">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+            </button>
             <button class="action-btn" id="btnSummary" title="Résumé / transcription">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
             </button>
@@ -1186,11 +1281,16 @@
       <p style="color: var(--text-2); font-size: 13px; margin: 18px 0 10px;">Durée de rétention :</p>
       <div class="timer-grid" id="timerGrid">
         <div class="timer-opt off" data-ms="0">Désactivé</div>
+        <div class="timer-opt" data-ms="300000">5 min</div>
+        <div class="timer-opt" data-ms="1800000">30 min</div>
         <div class="timer-opt" data-ms="3600000">1 heure</div>
-        <div class="timer-opt" data-ms="21600000">6 heures</div>
-        <div class="timer-opt" data-ms="86400000">24 heures</div>
-        <div class="timer-opt" data-ms="604800000">7 jours</div>
-        <div class="timer-opt" data-ms="2592000000">30 jours</div>
+        <div class="timer-opt" data-ms="18000000">5 heures</div>
+        <div class="timer-opt" data-ms="54000000">15 heures</div>
+        <div class="timer-opt" data-ms="86400000">1 jour</div>
+        <div class="timer-opt" data-ms="604800000">1 semaine</div>
+        <div class="timer-opt" data-ms="2592000000">1 mois</div>
+        <div class="timer-opt" data-ms="7776000000">3 mois</div>
+        <div class="timer-opt" data-ms="31536000000">1 an</div>
       </div>
     </div>
     <div class="modal-foot">
@@ -1205,12 +1305,21 @@
   <div class="modal modal-full">
     <div class="modal-head">
       <h3 id="callTitle">Appel en cours</h3>
-      <button class="close-btn" id="btnEndCall" title="Quitter l'appel">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <button class="btn ghost" id="btnInviteCall">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          Inviter
+        </button>
+        <button class="close-btn" id="btnEndCall" title="Quitter l'appel">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
     </div>
     <div class="modal-body">
       <iframe id="callFrame" src="about:blank" allow="camera; microphone; display-capture; autoplay; clipboard-read; clipboard-write"></iframe>
+      <div class="call-hint">
+        Pendant l'appel : cliquez sur l'icône <strong>micro</strong> pour vous muter, l'icône <strong>caméra</strong> pour couper la vidéo, et le <strong>moniteur</strong> pour partager votre écran.
+      </div>
     </div>
   </div>
 </div>
@@ -1347,6 +1456,12 @@
 
 <!-- ========= CONTEXT MENU (room actions) ========= -->
 <div class="ctx-menu" id="ctxMenu">
+  <button class="ctx-item" data-act="important">
+    <div class="ic">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+    </div>
+    <span id="ctxImportantLabel">Conversation importante</span>
+  </button>
   <button class="ctx-item" data-act="hide">
     <div class="ic">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
@@ -1366,6 +1481,40 @@
     </div>
     <span>Quitter la conversation</span>
   </button>
+</div>
+
+<!-- ========= Membres + niveau de confidentialité ========= -->
+<div class="modal-overlay" id="modalMembers">
+  <div class="modal" style="max-width: 520px;">
+    <div class="modal-head">
+      <h3>Membres · niveau de confidentialité</h3>
+      <button class="close-btn" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="info-row">
+        <div class="ic">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div>
+          <strong>Comment ça fonctionne</strong>
+          <span>Chaque contact a un niveau. Le niveau de la conversation = le plus élevé parmi les membres.</span>
+        </div>
+      </div>
+
+      <div class="lvl-legend">
+        <div><span class="lvl-dot normal"></span> <strong>Normal</strong> — fonctionnement standard</div>
+        <div><span class="lvl-dot high"></span> <strong>Élevé</strong> — notifications silencieuses, aperçus masqués dans la liste</div>
+        <div><span class="lvl-dot max"></span> <strong>Maximum</strong> — efface auto à 5 min, flou si fenêtre en arrière-plan, aucune notif</div>
+      </div>
+
+      <div class="members-list" id="membersList"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close>Fermer</button>
+    </div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1521,10 +1670,11 @@ const M = {
    UI state
    ======================================================================= */
 const state = {
-  rooms: [],          // [{id, name, members, retention}]
+  rooms: [],          // [{id, name, members, retention, hidden, important, level}]
   currentRoomId: null,
   newGroupInvites: [],
-  inviteChips: []
+  inviteChips: [],
+  contactLevels: {}   // mxid -> "high" | "max"   (depuis account_data)
 };
 
 /* =======================================================================
@@ -1557,12 +1707,15 @@ function initials(s) {
 
 function fmtRetention(ms) {
   if (!ms) return null;
-  const h = ms / 3600000;
-  if (h < 24) return `${h}h`;
+  const min = ms / 60000;
+  if (min < 60) return `${Math.round(min)}min`;
+  const h = min / 60;
+  if (h < 24) return `${Math.round(h)}h`;
   const d = h / 24;
-  if (d < 7) return `${d}j`;
+  if (d < 7) return `${Math.round(d)}j`;
   if (d < 30) return `${Math.round(d / 7)}sem`;
-  return `${Math.round(d / 30)}mois`;
+  if (d < 365) return `${Math.round(d / 30)}mois`;
+  return `${Math.round(d / 365)}an${d >= 730 ? "s" : ""}`;
 }
 
 /* =======================================================================
@@ -1692,9 +1845,13 @@ function selectRoom(roomId) {
   if (!r) return;
   $("#noRoomView").style.display = "none";
   $("#roomView").style.display   = "flex";
-  $("#curRoomName").textContent  = r.name;
+  const star = r.important ? "★ " : "";
+  $("#curRoomName").textContent  = star + r.name;
   $("#curRoomAvatar").textContent = initials(r.name);
-  $("#curRoomMembers").textContent = `· ${r.members.length} membre${r.members.length > 1 ? "s" : ""}`;
+  let sub = `· ${r.members.length} membre${r.members.length > 1 ? "s" : ""}`;
+  if (r.level === "max")  sub += " · niveau Maximum";
+  else if (r.level === "high") sub += " · niveau Élevé";
+  $("#curRoomMembers").textContent = sub;
 
   if (r.retention) {
     $("#curRoomTimer").style.display = "";
@@ -1705,13 +1862,20 @@ function selectRoom(roomId) {
     $("#btnTimer").classList.remove("on");
   }
 
+  // Tint header for high/max
+  $("#roomView").className = `room-view lvl-${r.level || "normal"}`;
+  $("#roomView").style.display = "flex";
+  $("#roomView").style.flexDirection = "column";
+  $("#roomView").style.minHeight = "0";
+  $("#roomView").style.flex = "1";
+
   // Load Element on this room
   $("#elementFrame").src =
     `${CONFIG.elementUrl}/#/room/${encodeURIComponent(roomId)}`;
 
+  refreshBlurState();
   renderRooms();
 
-  // Mobile: hide sidebar after selection
   if (window.innerWidth <= 760) $("#sidebar").classList.add("hidden-mobile");
 }
 
@@ -1985,11 +2149,88 @@ function launchCall(audioOnly) {
   openModal("#callModal");
 }
 
+/* =======================================================================
+   Membres + niveau de confidentialité par contact
+   ======================================================================= */
+$("#btnMembers").addEventListener("click", async () => {
+  if (!state.currentRoomId) return;
+  const r = state.rooms.find(x => x.id === state.currentRoomId);
+  if (!r) return;
+  await renderMembers(r);
+  openModal("#modalMembers");
+});
+
+async function renderMembers(room) {
+  const list = $("#membersList");
+  const others = (room.members || []).filter(m => m !== M.userId);
+  const lvls = state.contactLevels || {};
+  list.innerHTML = others.map(m => {
+    const short = m.replace(/^@/, "").split(":")[0];
+    const cur = lvls[m] || "normal";
+    return `
+      <div class="member-row" data-mxid="${escapeHtml(m)}">
+        <div class="avatar">${initials(short)}</div>
+        <div class="info">
+          <div class="name">${escapeHtml(short)}</div>
+          <div class="mxid">${escapeHtml(m)}</div>
+        </div>
+        <div class="lvl-selector" data-mxid="${escapeHtml(m)}">
+          <button data-lvl="normal" class="${cur==='normal'?'on':''}">Normal</button>
+          <button data-lvl="high"   class="${cur==='high'?'on':''}">Élevé</button>
+          <button data-lvl="max"    class="${cur==='max'?'on':''}">Max</button>
+        </div>
+      </div>
+    `;
+  }).join("");
+  list.querySelectorAll(".lvl-selector").forEach(sel => {
+    sel.querySelectorAll("button").forEach(b => {
+      b.addEventListener("click", async () => {
+        const mxid = sel.dataset.mxid;
+        const lvl  = b.dataset.lvl;
+        sel.querySelectorAll("button").forEach(x => x.classList.remove("on"));
+        b.classList.add("on");
+        state.contactLevels = state.contactLevels || {};
+        if (lvl === "normal") delete state.contactLevels[mxid];
+        else state.contactLevels[mxid] = lvl;
+        try {
+          await M.req("PUT",
+            `/_matrix/client/v3/user/${encodeURIComponent(M.userId)}/account_data/org.symbalyx.contact_levels`,
+            state.contactLevels);
+          toast(`Niveau ${lvl} pour ${mxid.replace(/^@/, "").split(":")[0]}`, "ok");
+          await loadRooms();
+        } catch (e) { toast(e.message || "Erreur", "err"); }
+      });
+    });
+  });
+}
+
+/* Auto-blur quand la fenêtre perd le focus et qu'on est sur une conv niveau MAX */
+function refreshBlurState() {
+  const r = state.rooms.find(x => x.id === state.currentRoomId);
+  if (r && r.level === "max" && !document.hasFocus()) {
+    document.body.classList.add("blur-on-blur");
+  } else {
+    document.body.classList.remove("blur-on-blur");
+  }
+}
+window.addEventListener("blur", refreshBlurState);
+window.addEventListener("focus", refreshBlurState);
+document.addEventListener("visibilitychange", refreshBlurState);
+
 $("#btnVoiceCall").addEventListener("click", () => launchCall(true));
 $("#btnVideoCall").addEventListener("click", () => launchCall(false));
 $("#btnEndCall").addEventListener("click", () => {
   $("#callFrame").src = "about:blank";
   closeModal("#callModal");
+});
+$("#btnInviteCall").addEventListener("click", () => {
+  // Ouvre la modale d'invitation sans fermer l'appel : l'utilisateur
+  // invite, ferme la modale, l'invité reçoit la notif et peut rejoindre.
+  state.inviteChips = [];
+  $("#inviteInput").value = "";
+  renderChips("#inviteChips", state.inviteChips);
+  openModal("#modalInvite");
+  setTimeout(() => $("#inviteInput").focus(), 100);
 });
 
 /* =======================================================================
@@ -2009,7 +2250,8 @@ $("#toggleSidebar").addEventListener("click", () => {
 /* =======================================================================
    Tags API (rooms cachés)
    ======================================================================= */
-const HIDDEN_TAG = "u.symbalyx.hidden";
+const HIDDEN_TAG    = "u.symbalyx.hidden";
+const IMPORTANT_TAG = "m.favourite";
 
 Object.assign(M, {
   async tagRoom(roomId, tag, order = 0) {
@@ -2107,6 +2349,14 @@ loadRooms = async function () {
     const ids = await M.joinedRooms();
     const rooms = [];
     state.hiddenRooms.clear();
+    // Charger les niveaux de confidentialité par contact (account_data)
+    try {
+      const lvl = await M.req("GET",
+        `/_matrix/client/v3/user/${encodeURIComponent(M.userId)}/account_data/org.symbalyx.contact_levels`,
+        null, { silent: true });
+      state.contactLevels = lvl || {};
+    } catch { state.contactLevels = {}; }
+
     for (const id of ids) {
       const [name, members, retention, tags] = await Promise.all([
         M.roomName(id),
@@ -2114,17 +2364,42 @@ loadRooms = async function () {
         M.roomRetention(id),
         M.getRoomTags(id)
       ]);
-      const hidden = !!tags[HIDDEN_TAG];
+      const hidden    = !!tags[HIDDEN_TAG];
+      const important = !!tags[IMPORTANT_TAG];
       if (hidden) state.hiddenRooms.add(id);
-      rooms.push({ id, name: name || "Conversation", members, retention, hidden });
+      const room = { id, name: name || "Conversation", members, retention, hidden, important };
+      room.level = roomMaxLevel(room);
+      rooms.push(room);
+
+      // Force retention 5 min pour les rooms niveau MAX (si pas déjà <= 5min)
+      if (room.level === "max" && (!retention || retention > 300000)) {
+        try { await M.setRoomRetention(id, 300000); room.retention = 300000; } catch {}
+      }
     }
-    rooms.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    // Tri : importantes en premier, puis alphabétique
+    rooms.sort((a, b) => {
+      if (a.important && !b.important) return -1;
+      if (!a.important && b.important) return 1;
+      return (a.name || "").localeCompare(b.name || "");
+    });
     state.rooms = rooms;
     renderRooms();
   } catch (err) {
     console.error(err); toast("Erreur de chargement", "err");
   }
 };
+
+function roomMaxLevel(room) {
+  let max = "normal";
+  const levels = state.contactLevels || {};
+  for (const m of room.members || []) {
+    if (m === M.userId) continue;
+    const l = levels[m];
+    if (l === "max") return "max";
+    if (l === "high") max = "high";
+  }
+  return max;
+}
 
 const origRenderRooms = renderRooms;
 renderRooms = function () {
@@ -2138,12 +2413,18 @@ renderRooms = function () {
     </div>`;
     return;
   }
-  list.innerHTML = filtered.map(r => `
-    <div class="room-item ${r.id === state.currentRoomId ? "active" : ""} ${r.hidden ? "hidden-room" : ""}"
+  list.innerHTML = filtered.map(r => {
+    const lvl = r.level || "normal";
+    const showPreview = lvl === "normal";
+    const lvlBadge = lvl === "max"  ? `<span class="lvl max">●●●</span>`
+                  : lvl === "high" ? `<span class="lvl high">●●</span>` : "";
+    const star = r.important ? `<span class="star-mini">★</span>` : "";
+    return `
+    <div class="room-item ${r.id === state.currentRoomId ? "active" : ""} ${r.hidden ? "hidden-room" : ""} lvl-${lvl}"
          data-id="${r.id}">
       <div class="room-avatar">${initials(r.name)}</div>
       <div class="room-info">
-        <div class="room-name">${escapeHtml(r.name)}</div>
+        <div class="room-name">${star}${escapeHtml(r.name)}${lvlBadge}</div>
         <div class="room-meta">
           <span class="lock-mini">
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -2153,7 +2434,8 @@ renderRooms = function () {
         </div>
       </div>
     </div>
-  `).join("");
+  `;
+  }).join("");
 
   $$("#roomsList .room-item").forEach(el => {
     el.addEventListener("click", (e) => {
@@ -2615,6 +2897,9 @@ function openCtxMenu(roomId, x, y) {
   $("#ctxHideLabel").textContent = r?.hidden
     ? "Sortir du coffre"
     : "Masquer la conversation";
+  $("#ctxImportantLabel").textContent = r?.important
+    ? "Retirer l'importance"
+    : "Conversation importante";
   ctxMenu.style.left = `${Math.min(x, window.innerWidth - 220)}px`;
   ctxMenu.style.top  = `${Math.min(y, window.innerHeight - 180)}px`;
   ctxMenu.classList.add("show");
@@ -2635,7 +2920,20 @@ $$("#ctxMenu .ctx-item").forEach(item => {
     if (!id) return;
     const r = state.rooms.find(x => x.id === id);
     try {
-      if (act === "hide") {
+      if (act === "important") {
+        if (r?.important) {
+          await M.untagRoom(id, IMPORTANT_TAG);
+          toast("Importance retirée", "ok");
+        } else {
+          await M.tagRoom(id, IMPORTANT_TAG);
+          // Retire la rétention pour ne plus jamais effacer
+          try { await M.req("PUT",
+            `/_matrix/client/v3/rooms/${encodeURIComponent(id)}/state/m.room.retention/`,
+            {}); } catch {}
+          toast("Conversation importante · ne s'efface plus", "ok");
+        }
+        await loadRooms();
+      } else if (act === "hide") {
         if (r?.hidden) {
           await M.untagRoom(id, HIDDEN_TAG);
           toast("Conversation visible", "ok");
