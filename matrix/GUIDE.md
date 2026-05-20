@@ -38,6 +38,23 @@ C'est ça qu'on appelle "chiffré de bout en bout". Tous vos messages dans Symba
 
 ## 4. Les fonctions principales
 
+### ⓪ Calculatrice façade (l'entrée secrète)
+
+Quand vous ouvrez l'app, vous voyez **une calculatrice complète, fonctionnelle**. Elle fait vraiment des additions, soustractions, multiplications, divisions, pourcentages — tout comme la calculatrice de votre téléphone. Quelqu'un qui prend votre téléphone pense vraiment que vous avez juste une calculatrice.
+
+**Pour ouvrir la messagerie cachée derrière** : tapez `2020 + 6 =`. L'écran affiche `2026` une demi-seconde, puis :
+
+- Si vous avez activé **Touch ID / Face ID / Empreinte** : le téléphone demande votre doigt ou votre visage
+- Si tout est OK → l'app messagerie s'ouvre
+
+**Pour revenir à la calculatrice à tout moment** : le petit cadenas à côté de votre nom dans le menu de gauche → la messagerie disparaît instantanément, l'app redevient une calculatrice.
+
+**Image** : c'est comme un livre dont la couverture dit "Dictionnaire" mais à l'intérieur c'est votre journal intime. Si quelqu'un ouvre le livre au hasard, il croit que c'est vraiment un dictionnaire.
+
+**Pour activer Touch ID / Face ID** : Menu profil → **Touch ID / Face ID** → **Activer**. Le téléphone enregistre votre empreinte/visage. Désormais, après le `2020 + 6 =`, il faudra votre doigt/visage pour ouvrir.
+
+**Sécurité supplémentaire pour les conversations niveau Maximum** : même si vous êtes déjà dans l'app, quand vous cliquez sur une conversation marquée "Maximum", Touch ID / Face ID est redemandé. C'est une double protection : pour la voir, il faut avoir passé la calculatrice ET refaire son empreinte/visage à chaque accès.
+
 ### A. Messagerie privée
 
 Comme un fil de discussion WhatsApp, mais privé. Vous écrivez, l'autre reçoit.
@@ -179,6 +196,18 @@ Une fois installée, c'est exactement comme une appli téléchargée sur l'App S
 
 ---
 
+### M. Joindre un fichier chiffré
+
+Bouton **trombone** dans le bandeau d'une conversation. Cliquez, sélectionnez un fichier (jusqu'à 50 Mo : document, photo, vidéo, audio). L'app :
+
+1. **Brouille** le contenu du fichier avec une clé aléatoire générée pour ce fichier seulement
+2. Envoie le fichier brouillé vers le serveur (le serveur ne voit que des données illisibles)
+3. Envoie la clé au destinataire via le canal chiffré normal
+
+Le destinataire reçoit le fichier, sa messagerie le déchiffre automatiquement.
+
+**Image** : c'est comme envoyer un dossier dans une mallette à code. Vous mettez le dossier dedans, vous fermez à clé, vous envoyez la mallette par la poste, et vous envoyez le code séparément au destinataire via un canal sécurisé. Si la mallette est interceptée, le voleur ne peut rien faire avec.
+
 ## 6. Ce qui marche bien aujourd'hui
 
 ✅ Échanger des messages texte chiffrés à 10 personnes  
@@ -195,6 +224,10 @@ Une fois installée, c'est exactement comme une appli téléchargée sur l'App S
 ✅ Verrouillage automatique  
 ✅ Installation comme une vraie app sur téléphone  
 ✅ Transcrire automatiquement les messages vocaux (le texte du vocal apparaît, sans envoi à un service cloud)  
+✅ **Calculatrice façade** au démarrage (`2020 + 6 =` pour entrer)  
+✅ **Touch ID / Face ID** après le code calculatrice  
+✅ **Touch ID redemandé** à l'ouverture d'une conversation niveau Maximum  
+✅ **Joindre un fichier** chiffré (jusqu'à 50 Mo : photo, document, vidéo, audio)  
 
 ---
 

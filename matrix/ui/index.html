@@ -118,6 +118,82 @@
     font-size: 12px; font-weight: 700;
   }
 
+  /* ============ CALCULATRICE (FAÇADE) ============ */
+  body.calc {
+    background: #000;
+  }
+  body.calc::before { opacity: 0; }
+  body.calc .topbar { display: none; }
+
+  .calc-view {
+    flex: 1; display: flex; flex-direction: column;
+    background: #000;
+    color: #fff;
+    padding: 14px;
+    max-width: 480px; margin: 0 auto; width: 100%;
+    min-height: 100vh;
+    justify-content: flex-end;
+  }
+  .calc-display {
+    font-size: 78px;
+    font-weight: 200;
+    text-align: right;
+    padding: 30px 12px 18px;
+    min-height: 130px;
+    overflow: hidden;
+    word-wrap: break-word;
+    line-height: 1.05;
+    color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    user-select: none;
+  }
+  @media (max-width: 380px) { .calc-display { font-size: 60px; } }
+  .calc-pad {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 8px 4px 18px;
+  }
+  .calc-btn {
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 0;
+    font-size: 30px;
+    font-weight: 400;
+    cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    transition: filter 0.06s, transform 0.06s;
+    user-select: none; -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .calc-btn:active { filter: brightness(1.35); transform: scale(0.96); }
+  .calc-btn.num {
+    background: #333;
+    color: #fff;
+  }
+  .calc-btn.fn {
+    background: #a5a5a5;
+    color: #000;
+    font-size: 26px;
+  }
+  .calc-btn.op {
+    background: #ff9500;
+    color: #fff;
+    font-size: 34px;
+    font-weight: 500;
+  }
+  .calc-btn.op.active {
+    background: #fff;
+    color: #ff9500;
+  }
+  .calc-btn.zero {
+    grid-column: span 2;
+    aspect-ratio: auto;
+    border-radius: 999px;
+    text-align: left;
+    padding-left: 30px;
+  }
+
   /* ============ LOGIN ============ */
   .login-wrap { flex: 1; display: grid; place-items: center; padding: 24px; }
   .login-card {
@@ -131,6 +207,13 @@
   }
   .login-card h1 { margin: 0 0 6px 0; font-size: 24px; font-weight: 700; }
   .login-card .subtitle { color: var(--text-2); font-size: 14px; margin-bottom: 26px; }
+  .login-card .lock-hero {
+    width: 56px; height: 56px; border-radius: 16px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center;
+    margin: 0 auto 18px;
+    box-shadow: 0 10px 30px rgba(124, 92, 255, 0.35);
+  }
   .field { margin-bottom: 16px; }
   .field label {
     display: block; font-size: 12px; color: var(--text-2);
@@ -1026,11 +1109,44 @@
     </div>
   </header>
 
+  <!-- ========= CALCULATRICE (FAÇADE) ========= -->
+  <main class="calc-view" id="calcView">
+    <div class="calc-display" id="calcDisplay">0</div>
+    <div class="calc-pad">
+      <button class="calc-btn fn" data-act="clear">AC</button>
+      <button class="calc-btn fn" data-act="sign">+/−</button>
+      <button class="calc-btn fn" data-act="percent">%</button>
+      <button class="calc-btn op" data-op="/">÷</button>
+
+      <button class="calc-btn num" data-num="7">7</button>
+      <button class="calc-btn num" data-num="8">8</button>
+      <button class="calc-btn num" data-num="9">9</button>
+      <button class="calc-btn op" data-op="*">×</button>
+
+      <button class="calc-btn num" data-num="4">4</button>
+      <button class="calc-btn num" data-num="5">5</button>
+      <button class="calc-btn num" data-num="6">6</button>
+      <button class="calc-btn op" data-op="-">−</button>
+
+      <button class="calc-btn num" data-num="1">1</button>
+      <button class="calc-btn num" data-num="2">2</button>
+      <button class="calc-btn num" data-num="3">3</button>
+      <button class="calc-btn op" data-op="+">+</button>
+
+      <button class="calc-btn num zero" data-num="0">0</button>
+      <button class="calc-btn num" data-num=".">,</button>
+      <button class="calc-btn op" data-op="=">=</button>
+    </div>
+  </main>
+
   <!-- ========= LOGIN ========= -->
   <main class="login-wrap" id="loginView">
     <div class="login-card">
-      <h1>Connexion</h1>
-      <div class="subtitle">Messagerie privée chiffrée de bout en bout.</div>
+      <div class="lock-hero">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+      </div>
+      <h1 style="text-align:center;">Connexion</h1>
+      <div class="subtitle" style="text-align:center;">Messagerie privée chiffrée de bout en bout.</div>
 
       <form id="loginForm" autocomplete="off">
         <div class="field">
@@ -1123,6 +1239,10 @@
             <button class="action-btn video" id="btnVideoCall" title="Appel vidéo">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
             </button>
+            <button class="action-btn" id="btnAttach" title="Joindre un fichier chiffré">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+            </button>
+            <input type="file" id="attachFile" style="display:none" multiple />
             <button class="action-btn" id="btnMembers" title="Membres et confidentialité">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
             </button>
@@ -1348,6 +1468,13 @@
       </div>
       <span>Verrouillage auto</span>
       <span class="arrow" id="autolockLabel">5 min</span>
+    </button>
+    <button class="profile-item" id="profBio">
+      <div class="ic">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.041.054-.09A13.916 13.916 0 0 0 8 11a4 4 0 0 1 8 0c0 .595-.034 1.184-.101 1.766M12 11v.01M17.94 17.94c-1.142 1.142-2.467 2.108-3.94 2.866M7 6.418a8 8 0 0 1 10.5 1.582M3 11c0-2.143.624-4.18 1.78-5.9"/></svg>
+      </div>
+      <span>Touch ID / Face ID</span>
+      <span class="arrow" id="bioLabel">Activer</span>
     </button>
     <button class="profile-item" id="profClearLocal">
       <div class="ic">
@@ -1667,6 +1794,271 @@ const M = {
 };
 
 /* =======================================================================
+   CALCULATRICE FAÇADE — séquence secrète 2020 + 6 = 2026
+   ======================================================================= */
+const SECRET = { a: 2020, op: "+", b: 6 };
+
+const calc = {
+  display: "0",
+  accumulator: 0,
+  pendingOp: null,
+  justComputed: false,
+  prevB: null,   // pour détecter "a op b"
+  unlocked: false
+};
+
+function fmtNumber(n) {
+  if (n === undefined || n === null || Number.isNaN(n)) return "Erreur";
+  if (!Number.isFinite(n)) return "∞";
+  const s = (Math.abs(n) >= 1e16 || (Math.abs(n) < 1e-6 && n !== 0))
+    ? n.toExponential(6)
+    : String(Math.round(n * 1e10) / 1e10);
+  // virgule comme séparateur décimal
+  return s.replace(".", ",");
+}
+
+function updateCalcDisplay() {
+  const el = document.getElementById("calcDisplay");
+  if (!el) return;
+  if (calc.display.includes(".") || calc.display.includes("e")) {
+    el.textContent = calc.display.replace(".", ",");
+  } else {
+    // séparateurs de milliers
+    const n = parseFloat(calc.display);
+    el.textContent = Number.isFinite(n)
+      ? n.toLocaleString("fr-FR", { maximumFractionDigits: 10 })
+      : calc.display;
+  }
+  // Highlight l'opérateur courant
+  document.querySelectorAll(".calc-btn.op").forEach(b => {
+    b.classList.toggle("active",
+      !calc.justComputed && b.dataset.op === calc.pendingOp);
+  });
+}
+
+function calcInputDigit(d) {
+  if (calc.justComputed) { calc.display = "0"; calc.justComputed = false; }
+  if (d === ".") {
+    if (!calc.display.includes(".")) calc.display += ".";
+  } else if (calc.display === "0") {
+    calc.display = d;
+  } else if (calc.display.length < 16) {
+    calc.display += d;
+  }
+  updateCalcDisplay();
+}
+
+function evalOp(a, op, b) {
+  switch (op) {
+    case "+": return a + b;
+    case "-": return a - b;
+    case "*": return a * b;
+    case "/": return b === 0 ? NaN : a / b;
+  }
+  return b;
+}
+
+function calcInputOp(op) {
+  if (op === "=") {
+    if (calc.pendingOp == null) return;
+    const a = calc.accumulator;
+    const b = parseFloat(calc.display);
+    const r = evalOp(a, calc.pendingOp, b);
+
+    // Détection séquence secrète : a + b avec exactement les bons opérandes
+    if (a === SECRET.a && calc.pendingOp === SECRET.op && b === SECRET.b) {
+      calc.display = fmtNumber(r);
+      updateCalcDisplay();
+      setTimeout(unlockApp, 500);  // bref délai pour voir 2026
+      calc.pendingOp = null;
+      calc.justComputed = true;
+      return;
+    }
+
+    calc.display = fmtNumber(r);
+    calc.accumulator = r;
+    calc.pendingOp = null;
+    calc.justComputed = true;
+  } else {
+    if (calc.pendingOp && !calc.justComputed) {
+      const b = parseFloat(calc.display);
+      const r = evalOp(calc.accumulator, calc.pendingOp, b);
+      calc.accumulator = r;
+      calc.display = fmtNumber(r);
+    } else {
+      calc.accumulator = parseFloat(calc.display);
+    }
+    calc.pendingOp = op;
+    calc.justComputed = true;
+  }
+  updateCalcDisplay();
+}
+
+function calcAction(act) {
+  if (act === "clear") {
+    calc.display = "0"; calc.accumulator = 0;
+    calc.pendingOp = null; calc.justComputed = false;
+  } else if (act === "sign") {
+    if (calc.display !== "0") {
+      calc.display = calc.display.startsWith("-")
+        ? calc.display.slice(1) : "-" + calc.display;
+    }
+  } else if (act === "percent") {
+    calc.display = fmtNumber(parseFloat(calc.display) / 100).replace(",", ".");
+    calc.justComputed = true;
+  }
+  updateCalcDisplay();
+}
+
+function wireCalculator() {
+  document.querySelectorAll(".calc-btn[data-num]").forEach(b =>
+    b.addEventListener("click", () => calcInputDigit(b.dataset.num)));
+  document.querySelectorAll(".calc-btn[data-op]").forEach(b =>
+    b.addEventListener("click", () => calcInputOp(b.dataset.op)));
+  document.querySelectorAll(".calc-btn[data-act]").forEach(b =>
+    b.addEventListener("click", () => calcAction(b.dataset.act)));
+
+  // Support clavier physique
+  document.addEventListener("keydown", (e) => {
+    if (!document.body.classList.contains("calc")) return;
+    const k = e.key;
+    if (/^[0-9]$/.test(k)) calcInputDigit(k);
+    else if (k === "." || k === ",") calcInputDigit(".");
+    else if (k === "+" || k === "-" || k === "*" || k === "/") calcInputOp(k);
+    else if (k === "Enter" || k === "=") calcInputOp("=");
+    else if (k === "Escape" || k.toLowerCase() === "c") calcAction("clear");
+    else if (k === "%") calcAction("percent");
+  });
+}
+
+function showCalc() {
+  document.body.classList.add("calc");
+  document.getElementById("calcView").style.display = "flex";
+  document.getElementById("loginView").style.display = "none";
+  const main = document.getElementById("mainApp");
+  if (main) main.classList.remove("active");
+  // Reset état calculatrice
+  calc.display = "0"; calc.accumulator = 0;
+  calc.pendingOp = null; calc.justComputed = false;
+  calc.unlocked = false;
+  updateCalcDisplay();
+}
+
+/* =======================================================================
+   Touch ID / Face ID via WebAuthn (biométrie navigateur)
+   ======================================================================= */
+function bioCredKey() { return "sx_bio_credential"; }
+function hasBiometric() { return !!localStorage.getItem(bioCredKey()); }
+
+function b64FromBytes(arr) {
+  let s = ""; const b = new Uint8Array(arr);
+  for (let i = 0; i < b.length; i++) s += String.fromCharCode(b[i]);
+  return btoa(s);
+}
+function bytesFromB64(s) {
+  const bin = atob(s);
+  const u = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i);
+  return u;
+}
+
+async function registerBiometric(userId) {
+  if (!navigator.credentials || !window.PublicKeyCredential) {
+    toast("Biométrie non supportée par ce navigateur", "err");
+    return false;
+  }
+  try {
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const userIdBytes = new TextEncoder().encode(userId || "anon");
+    const cred = await navigator.credentials.create({
+      publicKey: {
+        challenge,
+        rp: { name: "Symbalyx", id: location.hostname },
+        user: {
+          id: userIdBytes,
+          name: userId || "user",
+          displayName: (userId || "user").replace(/^@/, "").split(":")[0]
+        },
+        pubKeyCredParams: [
+          { type: "public-key", alg: -7 },   // ES256
+          { type: "public-key", alg: -257 }  // RS256
+        ],
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",  // Touch ID / Face ID / Windows Hello
+          userVerification: "required",
+          residentKey: "preferred"
+        },
+        timeout: 60000,
+        attestation: "none"
+      }
+    });
+    if (!cred) return false;
+    localStorage.setItem(bioCredKey(), b64FromBytes(cred.rawId));
+    return true;
+  } catch (e) {
+    console.warn("biometric register failed", e);
+    return false;
+  }
+}
+
+async function verifyBiometric() {
+  if (!hasBiometric()) return true;  // pas configuré = on laisse passer
+  try {
+    const credIdB64 = localStorage.getItem(bioCredKey());
+    const challenge = crypto.getRandomValues(new Uint8Array(32));
+    const res = await navigator.credentials.get({
+      publicKey: {
+        challenge,
+        allowCredentials: [{ id: bytesFromB64(credIdB64), type: "public-key" }],
+        userVerification: "required",
+        timeout: 60000
+      }
+    });
+    return !!res;
+  } catch (e) {
+    console.warn("biometric verify failed", e);
+    return false;
+  }
+}
+
+/* =======================================================================
+   Déverrouillage de l'app depuis la calculatrice
+   ======================================================================= */
+async function unlockApp() {
+  if (calc.unlocked) return;
+  calc.unlocked = true;
+
+  // Touch ID si configuré
+  if (hasBiometric()) {
+    const ok = await verifyBiometric();
+    if (!ok) {
+      // Échec biométrie → on reste sur la calculatrice, RAZ silencieux
+      calc.display = "0"; calc.accumulator = 0;
+      calc.pendingOp = null; calc.justComputed = false;
+      calc.unlocked = false;
+      updateCalcDisplay();
+      return;
+    }
+  }
+
+  // Bascule sur l'app
+  document.body.classList.remove("calc");
+  document.getElementById("calcView").style.display = "none";
+
+  // Restaure une session si dispo
+  const raw = sessionStorage.getItem("symbalyx_token");
+  if (raw) {
+    try {
+      const s = JSON.parse(raw);
+      M.token = s.token; M.userId = s.userId; M.deviceId = s.deviceId;
+      const who = await M.whoami();
+      if (who && who.user_id) { enterApp(); return; }
+    } catch {}
+  }
+  showLogin();
+}
+
+/* =======================================================================
    UI state
    ======================================================================= */
 const state = {
@@ -1728,6 +2120,8 @@ const loginView  = $("#loginView");
 const mainApp    = $("#mainApp");
 
 function showLogin() {
+  document.body.classList.remove("calc");
+  document.getElementById("calcView").style.display = "none";
   loginView.style.display = "grid";
   mainApp.classList.remove("active");
   sessionStorage.removeItem("symbalyx_token");
@@ -1769,15 +2163,11 @@ $("#logoutBtn").addEventListener("click", async () => {
   showLogin();
 });
 
-/* Restore session on load */
-(function tryRestore() {
-  const raw = sessionStorage.getItem("symbalyx_token");
-  if (!raw) { showLogin(); return; }
-  try {
-    const s = JSON.parse(raw);
-    M.token = s.token; M.userId = s.userId; M.deviceId = s.deviceId;
-    M.whoami().then(enterApp).catch(() => showLogin());
-  } catch { showLogin(); }
+/* Boot : la calculatrice est l'écran d'accueil systématique.
+   Pour passer outre, taper 2020 + 6 = (+ Touch ID si configuré). */
+(function boot() {
+  wireCalculator();
+  showCalc();
 })();
 
 /* =======================================================================
@@ -1839,10 +2229,15 @@ function escapeHtml(s) {
   }[c]));
 }
 
-function selectRoom(roomId) {
-  state.currentRoomId = roomId;
+async function selectRoom(roomId) {
   const r = state.rooms.find(x => x.id === roomId);
   if (!r) return;
+  // Couche supplémentaire pour le niveau Maximum : Touch ID exigé à chaque ouverture
+  if (r.level === "max" && hasBiometric()) {
+    const ok = await verifyBiometric();
+    if (!ok) { toast("Accès refusé · biométrie requise", "err"); return; }
+  }
+  state.currentRoomId = roomId;
   $("#noRoomView").style.display = "none";
   $("#roomView").style.display   = "flex";
   const star = r.important ? "★ " : "";
@@ -2148,6 +2543,93 @@ function launchCall(audioOnly) {
   $("#callFrame").src = `${CONFIG.elementCall}/room/#?${hashParams.toString()}`;
   openModal("#callModal");
 }
+
+/* =======================================================================
+   Upload de fichier chiffré (format Matrix EncryptedFile · AES-CTR)
+   Le binaire est chiffré côté navigateur avant upload, la clé est
+   transmise dans l'event m.room.message (chiffré ensuite par Megolm
+   au niveau du salon E2E).
+   ======================================================================= */
+function b64UrlFromBytes(arr) {
+  return b64FromBytes(arr).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+async function encryptedUpload(file) {
+  // Génère clé AES-CTR 256 bits + IV 16o (8 premiers pour counter, le reste 0)
+  const rawKey = crypto.getRandomValues(new Uint8Array(32));
+  const iv     = new Uint8Array(16);
+  crypto.getRandomValues(iv.subarray(0, 8));   // counter prefix
+  const key = await crypto.subtle.importKey("raw", rawKey, "AES-CTR", true, ["encrypt"]);
+  const buf = await file.arrayBuffer();
+  const ct  = new Uint8Array(await crypto.subtle.encrypt(
+    { name: "AES-CTR", counter: iv, length: 64 }, key, buf));
+
+  // Hash SHA-256 du ciphertext (pour intégrité)
+  const hashBuf = await crypto.subtle.digest("SHA-256", ct);
+
+  // Upload vers Synapse media repo
+  const url = `${CONFIG.homeserver}/_matrix/media/v3/upload?filename=${encodeURIComponent(file.name)}`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${M.token}`,
+      "Content-Type": "application/octet-stream"
+    },
+    body: ct
+  });
+  if (!res.ok) throw new Error("Échec upload (" + res.status + ")");
+  const { content_uri } = await res.json();
+
+  // Construit l'event content au format Matrix EncryptedFile
+  const isImage = file.type.startsWith("image/");
+  const isVideo = file.type.startsWith("video/");
+  const isAudio = file.type.startsWith("audio/");
+  return {
+    msgtype: isImage ? "m.image" : isVideo ? "m.video" : isAudio ? "m.audio" : "m.file",
+    body: file.name,
+    info: { mimetype: file.type, size: file.size },
+    file: {
+      v: "v2",
+      url: content_uri,
+      mimetype: file.type,
+      key: {
+        kty: "oct",
+        alg: "A256CTR",
+        ext: true,
+        k: b64UrlFromBytes(rawKey),
+        key_ops: ["encrypt", "decrypt"]
+      },
+      iv: b64UrlFromBytes(iv),
+      hashes: { sha256: b64UrlFromBytes(new Uint8Array(hashBuf)) }
+    }
+  };
+}
+
+async function sendFile(file) {
+  if (!state.currentRoomId) return;
+  if (file.size > 50 * 1024 * 1024) {
+    toast("Fichier > 50 Mo, refusé par le serveur", "err");
+    return;
+  }
+  toast(`Chiffrement de "${file.name}"…`, "");
+  try {
+    const content = await encryptedUpload(file);
+    const txnId = "sx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+    await M.req("PUT",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(state.currentRoomId)}/send/m.room.message/${txnId}`,
+      content);
+    toast(`Envoyé · ${file.name}`, "ok");
+  } catch (e) {
+    toast("Échec : " + (e.message || "erreur"), "err");
+  }
+}
+
+$("#btnAttach").addEventListener("click", () => $("#attachFile").click());
+$("#attachFile").addEventListener("change", async (e) => {
+  const files = Array.from(e.target.files || []);
+  e.target.value = "";  // reset pour pouvoir re-sélectionner le même fichier
+  for (const f of files) await sendFile(f);
+});
 
 /* =======================================================================
    Membres + niveau de confidentialité par contact
@@ -2847,7 +3329,37 @@ function hideLockscreen() {
 ["mousemove","keydown","touchstart","scroll","click"].forEach(ev =>
   document.addEventListener(ev, resetAutolock, { passive: true })
 );
-$("#lockNowBtn").addEventListener("click", showLockscreen);
+/* "Verrouiller maintenant" = retour direct à la calculatrice façade */
+$("#lockNowBtn").addEventListener("click", () => {
+  $("#elementFrame").src = "about:blank";
+  showCalc();
+});
+
+/* Toggle Touch ID / Face ID depuis le menu profil */
+$("#profBio").addEventListener("click", async () => {
+  closeProfileMenu();
+  if (hasBiometric()) {
+    if (confirm("Désactiver Touch ID / Face ID ? L'app s'ouvrira sans biométrie après le code calculatrice.")) {
+      localStorage.removeItem(bioCredKey());
+      $("#bioLabel").textContent = "Activer";
+      toast("Biométrie désactivée", "ok");
+    }
+  } else {
+    const ok = await registerBiometric(M.userId);
+    if (ok) {
+      $("#bioLabel").textContent = "Désactiver";
+      toast("Touch ID / Face ID activé", "ok");
+    } else {
+      toast("Impossible d'activer la biométrie sur ce navigateur", "err");
+    }
+  }
+});
+
+const origOpenProfileMenu3 = openProfileMenu;
+openProfileMenu = function () {
+  origOpenProfileMenu3();
+  $("#bioLabel").textContent = hasBiometric() ? "Désactiver" : "Activer";
+};
 
 $("#unlockForm").addEventListener("submit", async (e) => {
   e.preventDefault();
