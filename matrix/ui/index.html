@@ -2217,10 +2217,7 @@ loginForm.addEventListener("submit", async (e) => {
   }
 });
 
-$("#logoutBtn").addEventListener("click", async () => {
-  await M.logout();
-  showLogin();
-});
+/* logout géré par #profLogout dans le menu profil */
 
 /* Boot : la calculatrice est l'écran d'accueil systématique.
    Pour passer outre, taper 2020 + 6 = (+ Touch ID si configuré). */
