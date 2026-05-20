@@ -125,6 +125,7 @@
   }
   body.calc::before { opacity: 0; }
   body.calc .topbar { display: none; }
+  body.calc .install-hint { display: none !important; }
 
   .calc-view {
     flex: 1; display: flex; flex-direction: column;
@@ -132,7 +133,6 @@
     color: #fff;
     padding: 14px;
     max-width: 480px; margin: 0 auto; width: 100%;
-    min-height: 100vh;
     justify-content: flex-end;
   }
   .calc-display {
@@ -196,7 +196,7 @@
   }
 
   /* ============ LOGIN ============ */
-  .login-wrap { flex: 1; display: grid; place-items: center; padding: 24px; }
+  .login-wrap { flex: 1; display: none; place-items: center; padding: 24px; }
   .login-card {
     width: 100%; max-width: 420px;
     background: var(--glass);
@@ -1107,7 +1107,7 @@
   }
 </style>
 </head>
-<body>
+<body class="calc">
 <div class="app">
 
   <!-- ========= TOP BAR ========= -->
@@ -1116,8 +1116,8 @@
       <button class="icon-btn mobile-only" id="toggleSidebar" style="display:none">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <div class="brand-logo" id="brandLogo">S</div>
-      <div class="brand-name" id="brandName">Symbalyx<span>· secure</span></div>
+      <div class="brand-logo" id="brandLogo"></div>
+      <div class="brand-name" id="brandName"></div>
     </div>
 
     <div style="display:flex; align-items:center; gap:10px;">
@@ -1313,7 +1313,7 @@
 <!-- ========= PWA install hint ========= -->
 <div class="install-hint" id="installHint">
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-  <span>Installer Symbalyx</span>
+  <span>Installer l'application</span>
   <button id="installDismiss" title="Plus tard">×</button>
 </div>
 
