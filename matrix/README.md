@@ -10,6 +10,12 @@ chiffrement E2E natif (Megolm + MatrixRTC), jusqu'à 10 utilisateurs.
 - ✅ Appels voix et vidéo de groupe E2EE (Element Call + LiveKit SFU, jusqu'à 8 participants)
 - ✅ Recherche d'utilisateurs / invitations
 - ✅ UI custom dark/glassmorphism inspirée Signal (sidebar, badges chiffrement, actions rapides)
+- ✅ **Coffre** : conversations masquées accessibles uniquement via code PIN secret (bouton secret dans le profil)
+- ✅ **Mode discret** : push silencieux global, read receipts désactivés, typing notifications désactivés
+- ✅ **Auto-verrouillage** : session verrouillée après inactivité (1/5/15/30 min), réauth par mot de passe
+- ✅ **Sortie de secours** : panic button (logout + effacement local + redirection vers about:blank), raccourci `Ctrl+Shift+Q`
+- ✅ **Menu contextuel** sur les rooms (clic droit / long-press mobile) : masquer, couper notifs, quitter
+- ✅ Présence (online/last_active) désactivée côté serveur · URL previews désactivés · profils restreints aux salons communs · redactions purgées · devices stales nettoyés
 - ✅ Responsive mobile, accès LAN possible
 
 ---
@@ -206,6 +212,65 @@ docker exec -it symbalyx_synapse register_new_matrix_user -u iris   -p MotDePass
 3. Choisissez la durée (1h / 6h / 24h / 7j / 30j) → **Appliquer**
 
 Le badge `Auto-suppression Xh` apparaît sous le nom du groupe. Le serveur purge les anciens events à chaque cycle (1×/jour).
+
+### Conversations masquées (Coffre)
+
+Symbalyx propose un **mode coffre** : certaines conversations sont entièrement cachées de la sidebar et accessibles uniquement après avoir entré un code PIN secret.
+
+**Comment masquer une conversation**
+
+1. Dans la sidebar, **clic droit** sur la conversation à masquer (ou **long-press** sur mobile)
+2. Cliquer **Masquer la conversation**
+
+La conversation disparaît immédiatement de la liste visible. Elle n'est plus accessible qu'en ouvrant le coffre.
+
+**Comment ouvrir le coffre**
+
+Deux gestes secrets équivalents (au choix) :
+
+- **Long-press 2 secondes** sur votre avatar (gros rond coloré dans le menu profil)
+- **5 taps rapides** sur la mention « Symbalyx · v1 » tout en bas du menu profil
+
+Au premier accès, vous choisissez un code à 4 chiffres. Aux suivants, vous le saisissez.
+
+> Le code est stocké **hashé en SHA-256, salé avec votre user_id, en localStorage**. Personne d'autre que vous ne peut le récupérer. Si vous l'oubliez : effacez les données locales depuis le menu profil → vous pouvez en créer un nouveau, mais perdrez l'accès rapide aux conversations masquées (elles restent accessibles via Element Web qui ignore le tag custom).
+
+Quand le coffre est ouvert :
+- L'interface bascule en thème rouge/orange discret
+- Un badge **Coffre** apparaît à côté du badge Chiffré E2E
+- La sidebar n'affiche **que** les conversations masquées
+- Pour quitter : re-long-press l'avatar (ou 5 taps secret zone)
+
+> **Limite honnête** : ce verrou protège l'écran de Symbalyx UI. Si quelqu'un accède à Element Web (`localhost:8080`) sur la même machine et se connecte avec votre compte, il verra toutes les conversations. Pour aller plus loin, créez un compte Matrix dédié pour les conversations sensibles.
+
+### Mode discret
+
+Menu profil → **Mode discret** (toggle).
+
+Lorsqu'il est actif :
+- Une règle push globale `dont_notify` est ajoutée → aucune notification système
+- Element n'envoie ni read receipts ni typing notifications (les autres ne voient pas que vous avez lu / que vous tapez)
+
+### Verrouillage automatique
+
+Menu profil → **Verrouillage auto** (cycle : Désactivé / 1 / 5 / 15 / 30 min).
+
+Après le délai d'inactivité (souris, clavier, scroll), un écran de verrouillage couvre toute l'application. Pour déverrouiller, ressaisissez votre mot de passe Matrix.
+
+Bouton **cadenas** à côté de votre avatar = verrouiller manuellement.
+
+### Sortie de secours (panic)
+
+Trois moyens de déclencher :
+- Menu profil → **Sortie de secours**
+- Raccourci clavier **Ctrl+Shift+Q** (depuis n'importe où dans l'app)
+- (Documenté seulement ici : le panic n'a pas de bouton visible, par discrétion)
+
+Effets :
+- Logout via API (invalide le token côté serveur)
+- `localStorage` vidé (sauf le hash du code coffre, gardé pour la prochaine session)
+- `sessionStorage` vidé
+- Redirection vers `about:blank` (la page Symbalyx disparaît de l'historique récent)
 
 ### Lancer un appel voix ou vidéo de groupe (chiffré)
 

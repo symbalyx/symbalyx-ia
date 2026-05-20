@@ -497,6 +497,249 @@
     .modal { max-width: 95vw; }
     .timer-grid { grid-template-columns: repeat(2, 1fr); }
   }
+
+  /* ============ VAULT MODE (hidden conversations) ============ */
+  body.vault {
+    background:
+      radial-gradient(1200px 800px at 10% -10%, rgba(255, 84, 112, 0.15), transparent 60%),
+      radial-gradient(900px 600px at 110% 110%, rgba(255, 179, 71, 0.10), transparent 60%),
+      linear-gradient(180deg, #0a0507, #120709 40%, #0a0507);
+  }
+  body.vault .brand-logo {
+    background: linear-gradient(135deg, var(--danger), var(--warn));
+    box-shadow: 0 6px 22px rgba(255, 84, 112, 0.45);
+  }
+  body.vault .secure-pill {
+    background: rgba(255, 84, 112, 0.10);
+    border-color: rgba(255, 84, 112, 0.35);
+    color: #ffc7d1;
+  }
+  body.vault .secure-pill .dot {
+    background: var(--danger);
+    box-shadow: 0 0 10px var(--danger);
+  }
+  .vault-badge {
+    display: none;
+    align-items: center; gap: 6px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    background: rgba(255, 84, 112, 0.15);
+    border: 1px solid rgba(255, 84, 112, 0.4);
+    color: #ffc7d1;
+    font-size: 11px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  body.vault .vault-badge { display: inline-flex; }
+
+  /* ============ PROFILE MENU ============ */
+  .profile-menu {
+    position: fixed;
+    bottom: 70px; left: 12px;
+    width: 290px;
+    background: rgba(20, 20, 32, 0.96);
+    backdrop-filter: blur(22px);
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    z-index: 900;
+    overflow: hidden;
+    display: none;
+    animation: slideUp .15s ease-out;
+  }
+  .profile-menu.show { display: block; }
+  .profile-header {
+    padding: 18px;
+    display: flex; align-items: center; gap: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .profile-header .avatar-lg {
+    width: 48px; height: 48px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--signal-blue));
+    display: grid; place-items: center;
+    font-size: 18px; font-weight: 700;
+    user-select: none; -webkit-user-select: none;
+    cursor: pointer;
+    transition: transform .15s;
+    flex-shrink: 0;
+  }
+  .profile-header .avatar-lg:active { transform: scale(0.95); }
+  .profile-header .info { min-width: 0; }
+  .profile-header .name {
+    font-size: 15px; font-weight: 600;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .profile-header .mxid {
+    font-size: 11px; color: var(--text-2); margin-top: 2px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .profile-section { padding: 6px; }
+  .profile-section + .profile-section { border-top: 1px solid var(--border); }
+  .profile-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 14px;
+    cursor: pointer;
+    color: var(--text-1);
+    transition: background .12s, color .12s;
+    border: 0; background: transparent; width: 100%; font-family: inherit;
+    text-align: left;
+  }
+  .profile-item:hover { background: var(--glass-strong); color: var(--text-0); }
+  .profile-item .ic {
+    width: 22px; height: 22px;
+    display: grid; place-items: center;
+    color: var(--text-2); flex-shrink: 0;
+  }
+  .profile-item .arrow { margin-left: auto; color: var(--text-3); }
+  .profile-item.danger { color: #ff9aa8; }
+  .profile-item.danger:hover { background: rgba(255, 84, 112, 0.12); color: var(--danger); }
+  .profile-item .toggle {
+    margin-left: auto;
+    width: 36px; height: 20px; border-radius: 999px;
+    background: var(--border-strong); position: relative;
+    transition: background .15s;
+  }
+  .profile-item .toggle::after {
+    content: ""; position: absolute;
+    top: 2px; left: 2px;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: #fff;
+    transition: transform .15s;
+  }
+  .profile-item .toggle.on { background: var(--ok); }
+  .profile-item .toggle.on::after { transform: translateX(16px); }
+
+  /* discreet "secret" hint - just a small dot in profile menu corner */
+  .profile-secret-zone {
+    padding: 14px 18px 16px;
+    text-align: center;
+    font-size: 10px; color: var(--text-3);
+    border-top: 1px solid var(--border);
+    cursor: default; user-select: none;
+    letter-spacing: 0.5px;
+  }
+  .profile-secret-zone .dot-row {
+    display: inline-flex; gap: 6px; margin-top: 6px;
+  }
+  .profile-secret-zone .dot-row span {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: var(--border-strong);
+    transition: background .2s, transform .2s;
+  }
+  .profile-secret-zone.charging .dot-row span {
+    background: var(--accent);
+    animation: dotFill 2s linear;
+  }
+  @keyframes dotFill { 0% { transform: scale(1); } 50% { transform: scale(1.4); } 100% { transform: scale(1); } }
+
+  /* ============ PIN MODAL ============ */
+  .pin-display {
+    display: flex; justify-content: center; gap: 12px;
+    margin: 28px 0;
+  }
+  .pin-dot {
+    width: 14px; height: 14px; border-radius: 50%;
+    background: var(--border-strong);
+    transition: background .15s, transform .15s;
+  }
+  .pin-dot.filled {
+    background: var(--accent);
+    transform: scale(1.15);
+  }
+  .pin-pad {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    max-width: 280px; margin: 0 auto;
+  }
+  .pin-btn {
+    aspect-ratio: 1.4;
+    background: var(--glass-strong);
+    border: 1px solid var(--border-strong);
+    color: var(--text-0);
+    font-size: 22px; font-weight: 500;
+    border-radius: 12px; cursor: pointer;
+    transition: background .12s, transform .08s;
+    font-family: inherit;
+    display: grid; place-items: center;
+  }
+  .pin-btn:hover { background: rgba(255,255,255,0.10); }
+  .pin-btn:active { transform: scale(0.95); }
+  .pin-btn.fn {
+    background: transparent;
+    color: var(--text-2);
+    font-size: 14px;
+  }
+  .pin-error {
+    text-align: center; color: var(--danger);
+    font-size: 13px; min-height: 18px; margin-top: 8px;
+    opacity: 0; transition: opacity .15s;
+  }
+  .pin-error.show { opacity: 1; }
+  .pin-title {
+    text-align: center; color: var(--text-2);
+    font-size: 13px; margin-top: -6px; margin-bottom: 0;
+  }
+
+  /* ============ CONTEXT MENU ============ */
+  .ctx-menu {
+    position: fixed;
+    background: rgba(20, 20, 32, 0.98);
+    backdrop-filter: blur(20px);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    padding: 6px;
+    min-width: 200px;
+    z-index: 950;
+    display: none;
+    animation: slideUp .12s ease-out;
+  }
+  .ctx-menu.show { display: block; }
+  .ctx-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    font-size: 13px; color: var(--text-1);
+    cursor: pointer; transition: background .1s, color .1s;
+    border: 0; background: transparent; width: 100%; font-family: inherit;
+    text-align: left;
+  }
+  .ctx-item:hover { background: var(--glass-strong); color: var(--text-0); }
+  .ctx-item .ic { width: 18px; height: 18px; display: grid; place-items: center; color: var(--text-2); }
+  .ctx-item.danger { color: #ff9aa8; }
+  .ctx-item.danger:hover { background: rgba(255, 84, 112, 0.12); color: var(--danger); }
+  .ctx-divider { height: 1px; background: var(--border); margin: 4px 6px; }
+
+  /* ============ LOCK SCREEN ============ */
+  .lockscreen {
+    position: fixed; inset: 0;
+    background: rgba(5, 5, 10, 0.95);
+    backdrop-filter: blur(20px);
+    z-index: 9000;
+    display: none;
+    flex-direction: column; align-items: center; justify-content: center;
+    padding: 30px;
+    animation: fadeIn .2s ease-out;
+  }
+  .lockscreen.show { display: flex; }
+  .lockscreen .lock-icon {
+    width: 72px; height: 72px; border-radius: 22px;
+    background: linear-gradient(135deg, var(--accent), var(--signal-blue));
+    display: grid; place-items: center;
+    margin-bottom: 18px;
+    box-shadow: 0 14px 40px rgba(124, 92, 255, 0.35);
+  }
+  .lockscreen h2 { margin: 0 0 6px; font-size: 20px; }
+  .lockscreen p { margin: 0 0 22px; color: var(--text-2); font-size: 13px; text-align: center; }
+  .lockscreen .lock-form { width: 100%; max-width: 320px; }
+
+  /* hidden room display in sidebar (when vault unlocked) */
+  .room-item.hidden-room .room-meta::before {
+    content: ""; display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--danger);
+    margin-right: 2px;
+  }
 </style>
 </head>
 <body>
@@ -513,6 +756,10 @@
     </div>
 
     <div style="display:flex; align-items:center; gap:10px;">
+      <div class="vault-badge" id="vaultBadge">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/></svg>
+        Coffre
+      </div>
       <div class="secure-pill" title="Chiffrement de bout en bout actif">
         <span class="dot"></span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
@@ -568,12 +815,12 @@
       </div>
 
       <div class="sidebar-foot">
-        <div class="me">
+        <div class="me" id="meTrigger" style="cursor:pointer; flex:1;">
           <div class="avatar" id="myAvatar">?</div>
           <div class="label" id="myLabel">…</div>
         </div>
-        <button class="icon-btn" id="logoutBtn" title="Déconnexion">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        <button class="icon-btn" id="lockNowBtn" title="Verrouiller maintenant">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </button>
       </div>
     </aside>
@@ -749,6 +996,135 @@
       <iframe id="callFrame" src="about:blank" allow="camera; microphone; display-capture; autoplay; clipboard-read; clipboard-write"></iframe>
     </div>
   </div>
+</div>
+
+<!-- ========= MENU PROFIL ========= -->
+<div class="profile-menu" id="profileMenu">
+  <div class="profile-header">
+    <div class="avatar-lg" id="profileAvatar">?</div>
+    <div class="info">
+      <div class="name" id="profileName">…</div>
+      <div class="mxid" id="profileMxid">…</div>
+    </div>
+  </div>
+
+  <div class="profile-section">
+    <button class="profile-item" id="profStealth">
+      <div class="ic">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+      </div>
+      <span>Mode discret</span>
+      <div class="toggle" id="stealthToggle"></div>
+    </button>
+    <button class="profile-item" id="profAutolock">
+      <div class="ic">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+      </div>
+      <span>Verrouillage auto</span>
+      <span class="arrow" id="autolockLabel">5 min</span>
+    </button>
+    <button class="profile-item" id="profClearLocal">
+      <div class="ic">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+      </div>
+      <span>Effacer les données locales</span>
+    </button>
+  </div>
+
+  <div class="profile-section">
+    <button class="profile-item danger" id="profPanic">
+      <div class="ic">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      </div>
+      <span>Sortie de secours</span>
+    </button>
+    <button class="profile-item" id="profLogout">
+      <div class="ic">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+      </div>
+      <span>Déconnexion</span>
+    </button>
+  </div>
+
+  <div class="profile-secret-zone" id="profSecretZone">
+    <div>Symbalyx · v1</div>
+    <div class="dot-row"><span></span><span></span><span></span></div>
+  </div>
+</div>
+
+<!-- ========= PIN MODAL ========= -->
+<div class="modal-overlay" id="pinModal">
+  <div class="modal" style="max-width: 360px;">
+    <div class="modal-head">
+      <h3 id="pinTitle">Coffre</h3>
+      <button class="close-btn" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p class="pin-title" id="pinSubtitle">Entrez votre code à 4 chiffres</p>
+      <div class="pin-display" id="pinDisplay">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+      <div class="pin-error" id="pinError">&nbsp;</div>
+      <div class="pin-pad">
+        <button class="pin-btn" data-d="1">1</button>
+        <button class="pin-btn" data-d="2">2</button>
+        <button class="pin-btn" data-d="3">3</button>
+        <button class="pin-btn" data-d="4">4</button>
+        <button class="pin-btn" data-d="5">5</button>
+        <button class="pin-btn" data-d="6">6</button>
+        <button class="pin-btn" data-d="7">7</button>
+        <button class="pin-btn" data-d="8">8</button>
+        <button class="pin-btn" data-d="9">9</button>
+        <button class="pin-btn fn" id="pinReset">Reset</button>
+        <button class="pin-btn" data-d="0">0</button>
+        <button class="pin-btn fn" id="pinBack">←</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========= LOCK SCREEN (auto-lock après inactivité) ========= -->
+<div class="lockscreen" id="lockscreen">
+  <div class="lock-icon">
+    <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+  </div>
+  <h2>Session verrouillée</h2>
+  <p>Réauthentifiez-vous pour accéder à vos conversations.</p>
+  <form id="unlockForm" class="lock-form">
+    <div class="field">
+      <input id="unlockPass" type="password" placeholder="Mot de passe Matrix" autofocus />
+    </div>
+    <button class="btn full" type="submit" id="unlockBtn">Déverrouiller</button>
+    <div class="error-msg" id="unlockError"></div>
+  </form>
+</div>
+
+<!-- ========= CONTEXT MENU (room actions) ========= -->
+<div class="ctx-menu" id="ctxMenu">
+  <button class="ctx-item" data-act="hide">
+    <div class="ic">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+    </div>
+    <span id="ctxHideLabel">Masquer la conversation</span>
+  </button>
+  <button class="ctx-item" data-act="mute">
+    <div class="ic">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5L6 9H2v6h4l5 4V5z"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+    </div>
+    <span id="ctxMuteLabel">Couper les notifications</span>
+  </button>
+  <div class="ctx-divider"></div>
+  <button class="ctx-item danger" data-act="leave">
+    <div class="ic">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    </div>
+    <span>Quitter la conversation</span>
+  </button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -1386,6 +1762,533 @@ refreshMobile();
 $("#toggleSidebar").addEventListener("click", () => {
   $("#sidebar").classList.toggle("hidden-mobile");
 });
+
+/* =======================================================================
+   Tags API (rooms cachés)
+   ======================================================================= */
+const HIDDEN_TAG = "u.symbalyx.hidden";
+
+Object.assign(M, {
+  async tagRoom(roomId, tag, order = 0) {
+    return this.req("PUT",
+      `/_matrix/client/v3/user/${encodeURIComponent(this.userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`,
+      { order });
+  },
+  async untagRoom(roomId, tag) {
+    return this.req("DELETE",
+      `/_matrix/client/v3/user/${encodeURIComponent(this.userId)}/rooms/${encodeURIComponent(roomId)}/tags/${encodeURIComponent(tag)}`);
+  },
+  async getRoomTags(roomId) {
+    const d = await this.req("GET",
+      `/_matrix/client/v3/user/${encodeURIComponent(this.userId)}/rooms/${encodeURIComponent(roomId)}/tags`,
+      null, { silent: true });
+    return d?.tags || {};
+  },
+  async leaveRoom(roomId) {
+    return this.req("POST",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/leave`, {});
+  },
+  async forgetRoom(roomId) {
+    return this.req("POST",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/forget`, {});
+  },
+  async setPushRule(scope, kind, ruleId, body) {
+    return this.req("PUT",
+      `/_matrix/client/v3/pushrules/${scope}/${kind}/${encodeURIComponent(ruleId)}`, body);
+  }
+});
+
+/* =======================================================================
+   PIN (vault unlock) — stocké hashé en localStorage, salé avec user_id
+   ======================================================================= */
+async function sha256(s) {
+  const buf = new TextEncoder().encode(s);
+  const h   = await crypto.subtle.digest("SHA-256", buf);
+  return Array.from(new Uint8Array(h))
+    .map(b => b.toString(16).padStart(2, "0")).join("");
+}
+function pinKey()       { return `sx_pin_${M.userId || "anon"}`; }
+function hasPinSet()    { return !!localStorage.getItem(pinKey()); }
+async function pinMatches(pin) {
+  const stored = localStorage.getItem(pinKey());
+  if (!stored) return false;
+  const h = await sha256(`${M.userId}:${pin}`);
+  return h === stored;
+}
+async function setPin(pin) {
+  const h = await sha256(`${M.userId}:${pin}`);
+  localStorage.setItem(pinKey(), h);
+}
+function clearPin() { localStorage.removeItem(pinKey()); }
+
+/* =======================================================================
+   Vault state — re-filtre la sidebar
+   ======================================================================= */
+state.vault = false;        // true = on affiche UNIQUEMENT les rooms cachées
+state.hiddenRooms = new Set();
+
+const origLoadRooms = loadRooms;
+loadRooms = async function () {
+  try {
+    const ids = await M.joinedRooms();
+    const rooms = [];
+    state.hiddenRooms.clear();
+    for (const id of ids) {
+      const [name, members, retention, tags] = await Promise.all([
+        M.roomName(id),
+        M.roomMembers(id),
+        M.roomRetention(id),
+        M.getRoomTags(id)
+      ]);
+      const hidden = !!tags[HIDDEN_TAG];
+      if (hidden) state.hiddenRooms.add(id);
+      rooms.push({ id, name: name || "Conversation", members, retention, hidden });
+    }
+    rooms.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    state.rooms = rooms;
+    renderRooms();
+  } catch (err) {
+    console.error(err); toast("Erreur de chargement", "err");
+  }
+};
+
+const origRenderRooms = renderRooms;
+renderRooms = function () {
+  const list = $("#roomsList");
+  const filtered = state.rooms.filter(r => state.vault ? r.hidden : !r.hidden);
+  if (!filtered.length) {
+    list.innerHTML = `<div class="rooms-empty">
+      ${state.vault
+        ? "Le coffre est vide.<br>Masquez une conversation depuis le menu contextuel."
+        : "Aucune conversation pour l'instant.<br>Créez un groupe privé pour démarrer."}
+    </div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(r => `
+    <div class="room-item ${r.id === state.currentRoomId ? "active" : ""} ${r.hidden ? "hidden-room" : ""}"
+         data-id="${r.id}">
+      <div class="room-avatar">${initials(r.name)}</div>
+      <div class="room-info">
+        <div class="room-name">${escapeHtml(r.name)}</div>
+        <div class="room-meta">
+          <span class="lock-mini">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <span>${r.members.length} membre${r.members.length > 1 ? "s" : ""}</span>
+          ${r.retention ? `<span class="timer-mini">· ${fmtRetention(r.retention)}</span>` : ""}
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  $$("#roomsList .room-item").forEach(el => {
+    el.addEventListener("click", (e) => {
+      if (e.target.closest("[data-ctx]")) return;
+      selectRoom(el.dataset.id);
+    });
+    el.addEventListener("contextmenu", (e) => {
+      e.preventDefault();
+      openCtxMenu(el.dataset.id, e.clientX, e.clientY);
+    });
+    // long-press for mobile
+    let lpTimer = null;
+    el.addEventListener("touchstart", (e) => {
+      const t = e.touches[0];
+      lpTimer = setTimeout(() => {
+        openCtxMenu(el.dataset.id, t.clientX, t.clientY);
+      }, 550);
+    }, { passive: true });
+    el.addEventListener("touchend", () => clearTimeout(lpTimer));
+    el.addEventListener("touchmove", () => clearTimeout(lpTimer));
+  });
+};
+
+function toggleVault(on) {
+  state.vault = on;
+  document.body.classList.toggle("vault", on);
+  state.currentRoomId = null;
+  $("#noRoomView").style.display = "flex";
+  $("#roomView").style.display = "none";
+  $("#elementFrame").src = "about:blank";
+  renderRooms();
+}
+
+/* =======================================================================
+   PIN modal (setup + verify)
+   ======================================================================= */
+const pinState = { buf: "", mode: "verify", confirm: "", onSuccess: null };
+
+function openPinModal(mode, onSuccess) {
+  pinState.buf = ""; pinState.mode = mode; pinState.confirm = ""; pinState.onSuccess = onSuccess;
+  $("#pinTitle").textContent = mode === "setup" ? "Créer un code coffre" : "Coffre";
+  $("#pinSubtitle").textContent = mode === "setup"
+    ? "Choisissez un code à 4 chiffres"
+    : "Entrez votre code à 4 chiffres";
+  updatePinDisplay();
+  $("#pinError").classList.remove("show");
+  openModal("#pinModal");
+}
+
+function updatePinDisplay() {
+  $$("#pinDisplay .pin-dot").forEach((d, i) => {
+    d.classList.toggle("filled", i < pinState.buf.length);
+  });
+}
+
+async function submitPin() {
+  if (pinState.mode === "setup") {
+    if (!pinState.confirm) {
+      pinState.confirm = pinState.buf;
+      pinState.buf = "";
+      $("#pinSubtitle").textContent = "Confirmez le code";
+      updatePinDisplay();
+      return;
+    }
+    if (pinState.confirm !== pinState.buf) {
+      $("#pinError").textContent = "Les codes ne correspondent pas";
+      $("#pinError").classList.add("show");
+      pinState.buf = ""; pinState.confirm = "";
+      $("#pinSubtitle").textContent = "Choisissez un code à 4 chiffres";
+      updatePinDisplay();
+      return;
+    }
+    await setPin(pinState.buf);
+    closeModal("#pinModal");
+    toast("Code coffre créé", "ok");
+    if (pinState.onSuccess) pinState.onSuccess();
+  } else {
+    if (await pinMatches(pinState.buf)) {
+      closeModal("#pinModal");
+      if (pinState.onSuccess) pinState.onSuccess();
+    } else {
+      $("#pinError").textContent = "Code incorrect";
+      $("#pinError").classList.add("show");
+      pinState.buf = "";
+      updatePinDisplay();
+    }
+  }
+}
+
+$$("#pinModal .pin-btn[data-d]").forEach(b => {
+  b.addEventListener("click", () => {
+    if (pinState.buf.length >= 4) return;
+    pinState.buf += b.dataset.d;
+    updatePinDisplay();
+    $("#pinError").classList.remove("show");
+    if (pinState.buf.length === 4) setTimeout(submitPin, 150);
+  });
+});
+$("#pinBack").addEventListener("click", () => {
+  pinState.buf = pinState.buf.slice(0, -1);
+  updatePinDisplay();
+});
+$("#pinReset").addEventListener("click", () => {
+  pinState.buf = ""; pinState.confirm = "";
+  $("#pinSubtitle").textContent = pinState.mode === "setup"
+    ? "Choisissez un code à 4 chiffres"
+    : "Entrez votre code à 4 chiffres";
+  updatePinDisplay();
+  $("#pinError").classList.remove("show");
+});
+
+/* =======================================================================
+   Profile menu
+   ======================================================================= */
+const profileMenu = $("#profileMenu");
+
+function openProfileMenu() {
+  const short = M.userId.replace(/^@/, "").split(":")[0];
+  $("#profileAvatar").textContent = initials(short);
+  $("#profileName").textContent   = short;
+  $("#profileMxid").textContent   = M.userId;
+  // refresh toggles
+  $("#stealthToggle").classList.toggle("on", !!settings.stealth);
+  $("#autolockLabel").textContent = autolockLabel(settings.autolockMs);
+  profileMenu.classList.add("show");
+}
+function closeProfileMenu() { profileMenu.classList.remove("show"); }
+
+document.addEventListener("click", (e) => {
+  if (profileMenu.classList.contains("show")
+      && !profileMenu.contains(e.target)
+      && !$("#meTrigger").contains(e.target)) {
+    closeProfileMenu();
+  }
+});
+
+$("#meTrigger").addEventListener("click", (e) => {
+  e.stopPropagation();
+  profileMenu.classList.contains("show") ? closeProfileMenu() : openProfileMenu();
+});
+
+/* Avatar in profile menu = long-press 2s → vault */
+let avatarLpTimer = null, avatarCharging = false;
+function startAvatarLp() {
+  if (avatarCharging) return;
+  avatarCharging = true;
+  $("#profileAvatar").style.transform = "scale(0.92)";
+  avatarLpTimer = setTimeout(triggerVault, 2000);
+}
+function cancelAvatarLp() {
+  avatarCharging = false;
+  $("#profileAvatar").style.transform = "";
+  clearTimeout(avatarLpTimer);
+}
+["mousedown","touchstart"].forEach(ev =>
+  $("#profileAvatar").addEventListener(ev, (e) => { e.preventDefault(); startAvatarLp(); })
+);
+["mouseup","mouseleave","touchend","touchcancel"].forEach(ev =>
+  $("#profileAvatar").addEventListener(ev, cancelAvatarLp)
+);
+
+/* Secret zone in profile menu = 5 taps on the version row */
+let tapCount = 0, tapTimer = null;
+$("#profSecretZone").addEventListener("click", () => {
+  tapCount++;
+  $("#profSecretZone").classList.add("charging");
+  clearTimeout(tapTimer);
+  tapTimer = setTimeout(() => {
+    tapCount = 0;
+    $("#profSecretZone").classList.remove("charging");
+  }, 1500);
+  if (tapCount >= 5) {
+    tapCount = 0;
+    $("#profSecretZone").classList.remove("charging");
+    triggerVault();
+  }
+});
+
+function triggerVault() {
+  closeProfileMenu();
+  if (state.vault) { toggleVault(false); toast("Coffre verrouillé", "ok"); return; }
+  if (!hasPinSet()) {
+    openPinModal("setup", () => toggleVault(true));
+  } else {
+    openPinModal("verify", () => {
+      toggleVault(true);
+      toast("Coffre ouvert", "ok");
+    });
+  }
+}
+
+/* =======================================================================
+   Settings (stealth, auto-lock)
+   ======================================================================= */
+const settings = {
+  stealth: localStorage.getItem("sx_stealth") === "1",
+  autolockMs: parseInt(localStorage.getItem("sx_autolock") || "300000", 10)  // 5 min default
+};
+function saveSettings() {
+  localStorage.setItem("sx_stealth", settings.stealth ? "1" : "0");
+  localStorage.setItem("sx_autolock", String(settings.autolockMs));
+}
+function autolockLabel(ms) {
+  if (ms === 0) return "Désactivé";
+  if (ms < 60000) return `${ms/1000}s`;
+  return `${ms/60000} min`;
+}
+
+$("#profStealth").addEventListener("click", async () => {
+  settings.stealth = !settings.stealth;
+  saveSettings();
+  $("#stealthToggle").classList.toggle("on", settings.stealth);
+  // Set a global override push rule when stealth is on (silent for all rooms)
+  try {
+    if (settings.stealth) {
+      await M.setPushRule("global", "override", "symbalyx_stealth", {
+        conditions: [],
+        actions: ["dont_notify"]
+      });
+    } else {
+      await M.req("DELETE",
+        `/_matrix/client/v3/pushrules/global/override/${encodeURIComponent("symbalyx_stealth")}`,
+        null, { silent: true });
+    }
+    toast(settings.stealth ? "Mode discret activé" : "Mode discret désactivé", "ok");
+  } catch (err) {
+    toast("Mode discret : appliqué localement", "ok");
+  }
+});
+
+$("#profAutolock").addEventListener("click", () => {
+  const opts = [0, 60000, 300000, 900000, 1800000];
+  const cur = opts.indexOf(settings.autolockMs);
+  settings.autolockMs = opts[(cur + 1) % opts.length];
+  saveSettings();
+  $("#autolockLabel").textContent = autolockLabel(settings.autolockMs);
+  resetAutolock();
+  toast(`Verrouillage auto : ${autolockLabel(settings.autolockMs)}`, "ok");
+});
+
+$("#profClearLocal").addEventListener("click", () => {
+  if (!confirm("Effacer toutes les données locales (codes coffre, préférences, session) ?")) return;
+  localStorage.clear();
+  sessionStorage.clear();
+  toast("Données locales effacées", "ok");
+  setTimeout(() => location.reload(), 600);
+});
+
+$("#profLogout").addEventListener("click", async () => {
+  await M.logout();
+  sessionStorage.clear();
+  closeProfileMenu();
+  showLogin();
+});
+
+/* =======================================================================
+   Panic / Sortie de secours
+   ======================================================================= */
+async function panic() {
+  try { await M.logout(); } catch {}
+  sessionStorage.clear();
+  // garder le PIN si l'user veut, mais effacer le reste
+  Object.keys(localStorage).forEach(k => {
+    if (!k.startsWith("sx_pin_")) localStorage.removeItem(k);
+  });
+  document.body.innerHTML = "";
+  document.title = "";
+  location.replace("about:blank");
+}
+$("#profPanic").addEventListener("click", () => {
+  if (confirm("Sortie de secours : déconnexion + effacement des données locales. Continuer ?")) panic();
+});
+window.addEventListener("keydown", (e) => {
+  if (e.ctrlKey && e.shiftKey && e.key.toLowerCase() === "q") {
+    e.preventDefault(); panic();
+  }
+});
+
+/* =======================================================================
+   Auto-lock après inactivité
+   ======================================================================= */
+let autolockTimer = null;
+function resetAutolock() {
+  clearTimeout(autolockTimer);
+  if (!settings.autolockMs || !M.token) return;
+  autolockTimer = setTimeout(showLockscreen, settings.autolockMs);
+}
+function showLockscreen() {
+  if (!mainApp.classList.contains("active")) return;
+  $("#lockscreen").classList.add("show");
+  $("#unlockPass").value = "";
+  setTimeout(() => $("#unlockPass").focus(), 100);
+}
+function hideLockscreen() {
+  $("#lockscreen").classList.remove("show");
+  resetAutolock();
+}
+["mousemove","keydown","touchstart","scroll","click"].forEach(ev =>
+  document.addEventListener(ev, resetAutolock, { passive: true })
+);
+$("#lockNowBtn").addEventListener("click", showLockscreen);
+
+$("#unlockForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  $("#unlockError").classList.remove("show");
+  const pass = $("#unlockPass").value;
+  const btn  = $("#unlockBtn");
+  btn.disabled = true; btn.textContent = "Vérification…";
+  try {
+    const userHandle = M.userId.replace(/^@/, "").split(":")[0];
+    // Re-login : valide le mot de passe sans casser la session courante
+    const r = await fetch(`${CONFIG.homeserver}/_matrix/client/v3/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type: "m.login.password",
+        identifier: { type: "m.id.user", user: userHandle },
+        password: pass
+      })
+    });
+    if (!r.ok) throw new Error("Mot de passe incorrect");
+    const data = await r.json();
+    // Logout de cette session de vérification pour ne pas accumuler les devices
+    try {
+      await fetch(`${CONFIG.homeserver}/_matrix/client/v3/logout`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${data.access_token}` }
+      });
+    } catch {}
+    hideLockscreen();
+  } catch (err) {
+    $("#unlockError").textContent = err.message || "Erreur";
+    $("#unlockError").classList.add("show");
+  } finally {
+    btn.disabled = false; btn.textContent = "Déverrouiller";
+  }
+});
+
+/* =======================================================================
+   Context menu sur les rooms
+   ======================================================================= */
+const ctxMenu = $("#ctxMenu");
+let ctxRoomId = null;
+
+function openCtxMenu(roomId, x, y) {
+  ctxRoomId = roomId;
+  const r = state.rooms.find(x => x.id === roomId);
+  $("#ctxHideLabel").textContent = r?.hidden
+    ? "Sortir du coffre"
+    : "Masquer la conversation";
+  ctxMenu.style.left = `${Math.min(x, window.innerWidth - 220)}px`;
+  ctxMenu.style.top  = `${Math.min(y, window.innerHeight - 180)}px`;
+  ctxMenu.classList.add("show");
+}
+function closeCtxMenu() { ctxMenu.classList.remove("show"); ctxRoomId = null; }
+
+document.addEventListener("click", (e) => {
+  if (ctxMenu.classList.contains("show") && !ctxMenu.contains(e.target)) closeCtxMenu();
+});
+window.addEventListener("scroll", closeCtxMenu, true);
+window.addEventListener("resize", closeCtxMenu);
+
+$$("#ctxMenu .ctx-item").forEach(item => {
+  item.addEventListener("click", async () => {
+    const act = item.dataset.act;
+    const id  = ctxRoomId;
+    closeCtxMenu();
+    if (!id) return;
+    const r = state.rooms.find(x => x.id === id);
+    try {
+      if (act === "hide") {
+        if (r?.hidden) {
+          await M.untagRoom(id, HIDDEN_TAG);
+          toast("Conversation visible", "ok");
+        } else {
+          await M.tagRoom(id, HIDDEN_TAG);
+          toast("Conversation masquée", "ok");
+        }
+        await loadRooms();
+      } else if (act === "mute") {
+        await M.req("PUT",
+          `/_matrix/client/v3/pushrules/global/room/${encodeURIComponent(id)}`,
+          { actions: ["dont_notify"] });
+        toast("Notifications coupées", "ok");
+      } else if (act === "leave") {
+        if (!confirm("Quitter cette conversation définitivement ?")) return;
+        await M.leaveRoom(id);
+        try { await M.forgetRoom(id); } catch {}
+        toast("Conversation quittée", "ok");
+        if (state.currentRoomId === id) {
+          state.currentRoomId = null;
+          $("#noRoomView").style.display = "flex";
+          $("#roomView").style.display   = "none";
+          $("#elementFrame").src = "about:blank";
+        }
+        await loadRooms();
+      }
+    } catch (err) {
+      toast(err.message || "Erreur", "err");
+    }
+  });
+});
+
+/* Bootstrap autolock once logged in */
+const origEnterApp = enterApp;
+enterApp = function () {
+  origEnterApp();
+  resetAutolock();
+};
 </script>
 </body>
 </html>
