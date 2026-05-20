@@ -5,6 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="theme-color" content="#0a0a14" />
 <title>Symbalyx · Messagerie chiffrée</title>
+<link rel="manifest" href="manifest.json" />
+<link rel="icon" type="image/svg+xml" href="icon.svg" />
+<link rel="apple-touch-icon" href="icon.svg" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Symbalyx" />
+<meta name="mobile-web-app-capable" content="yes" />
 <style>
   :root {
     --bg-0: #07070d;
@@ -740,6 +747,136 @@
     background: var(--danger);
     margin-right: 2px;
   }
+
+  /* ============ DECOY MODE (fausses conversations) ============ */
+  body.decoy {
+    background:
+      radial-gradient(1200px 800px at 10% -10%, rgba(124, 92, 255, 0.18), transparent 60%),
+      linear-gradient(180deg, var(--bg-0), var(--bg-1) 40%, var(--bg-0));
+  }
+  body.decoy .secure-pill { background: rgba(74,214,138,0.05); }
+  body.decoy .vault-badge { display: none !important; }
+  /* Aucun signe visuel "vous êtes en leurre" pour l'inconnu */
+
+  .decoy-chat {
+    flex: 1; display: flex; flex-direction: column;
+    background: var(--bg-2);
+    border-radius: var(--radius);
+    margin: 12px 18px 18px 18px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+    min-height: 0;
+  }
+  .decoy-msgs {
+    flex: 1; overflow-y: auto;
+    padding: 18px 14px;
+    display: flex; flex-direction: column;
+    gap: 4px;
+  }
+  .decoy-day {
+    text-align: center;
+    font-size: 11px; color: var(--text-2);
+    margin: 14px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .decoy-msg {
+    max-width: 75%;
+    padding: 9px 13px;
+    border-radius: 16px;
+    font-size: 14px; line-height: 1.4;
+    word-wrap: break-word; white-space: pre-wrap;
+    position: relative;
+    animation: msgIn .15s ease-out;
+  }
+  @keyframes msgIn { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+  .decoy-msg.them {
+    background: var(--glass-strong);
+    color: var(--text-0);
+    border-bottom-left-radius: 4px;
+    align-self: flex-start;
+  }
+  .decoy-msg.me {
+    background: linear-gradient(135deg, var(--signal-blue), var(--accent));
+    color: #fff;
+    border-bottom-right-radius: 4px;
+    align-self: flex-end;
+  }
+  .decoy-time {
+    font-size: 10px;
+    color: var(--text-2);
+    margin-top: 2px;
+    padding: 0 6px;
+    align-self: flex-end;
+  }
+  .decoy-msg.them + .decoy-time { align-self: flex-start; }
+  .decoy-typing {
+    align-self: flex-start;
+    background: var(--glass-strong);
+    padding: 12px 16px;
+    border-radius: 16px;
+    border-bottom-left-radius: 4px;
+    display: none;
+  }
+  .decoy-typing.show { display: inline-block; }
+  .decoy-typing span {
+    display: inline-block;
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--text-2);
+    margin: 0 2px;
+    animation: typingDot 1.2s infinite;
+  }
+  .decoy-typing span:nth-child(2) { animation-delay: 0.2s; }
+  .decoy-typing span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes typingDot {
+    0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+    30% { transform: translateY(-4px); opacity: 1; }
+  }
+  .decoy-input-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--border);
+    background: rgba(0,0,0,0.2);
+  }
+  .decoy-input-bar input {
+    flex: 1; padding: 10px 14px;
+    background: var(--glass-strong);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    color: var(--text-0); font-size: 14px;
+    outline: none; font-family: inherit;
+  }
+  .decoy-input-bar input:focus { border-color: var(--accent); }
+  .decoy-send {
+    width: 38px; height: 38px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--signal-blue), var(--accent));
+    border: 0; color: #fff;
+    display: grid; place-items: center; cursor: pointer;
+    transition: transform .1s;
+  }
+  .decoy-send:active { transform: scale(0.92); }
+
+  /* ============ PWA INSTALL HINT ============ */
+  .install-hint {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: linear-gradient(135deg, var(--signal-blue), var(--accent));
+    color: #fff; padding: 12px 18px; border-radius: 14px;
+    font-size: 13px; font-weight: 600;
+    display: none; gap: 10px; align-items: center;
+    box-shadow: 0 14px 40px rgba(58, 118, 240, 0.4);
+    z-index: 800;
+    cursor: pointer;
+  }
+  .install-hint.show { display: flex; }
+  .install-hint button {
+    background: rgba(255,255,255,0.2);
+    border: 0; color: #fff;
+    width: 22px; height: 22px; border-radius: 50%;
+    cursor: pointer;
+    display: grid; place-items: center;
+    font-family: inherit;
+  }
 </style>
 </head>
 <body>
@@ -865,20 +1002,71 @@
             <button class="action-btn video" id="btnVideoCall" title="Appel vidéo">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
             </button>
+            <button class="action-btn" id="btnSummary" title="Résumé / transcription">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+            </button>
             <button class="action-btn" id="btnInvite" title="Inviter des membres">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
             </button>
           </div>
         </div>
 
-        <div class="chat-frame-container">
+        <div class="chat-frame-container" id="elementFrameWrap">
           <iframe id="elementFrame" src="about:blank" allow="camera; microphone; display-capture; autoplay; clipboard-read; clipboard-write"></iframe>
+        </div>
+
+        <!-- Decoy fake chat — remplace l'iframe Element en mode leurre -->
+        <div class="decoy-chat" id="decoyChat" style="display:none">
+          <div class="decoy-msgs" id="decoyMsgs"></div>
+          <div class="decoy-typing" id="decoyTyping">
+            <span></span><span></span><span></span>
+          </div>
+          <div class="decoy-input-bar">
+            <input id="decoyInput" type="text" placeholder="Message" autocomplete="off" />
+            <button class="decoy-send" id="decoySend">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
         </div>
       </div>
 
     </div>
   </section>
 
+</div>
+
+<!-- ========= PWA install hint ========= -->
+<div class="install-hint" id="installHint">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+  <span>Installer Symbalyx</span>
+  <button id="installDismiss" title="Plus tard">×</button>
+</div>
+
+<!-- ========= Summary / transcription modal ========= -->
+<div class="modal-overlay" id="summaryModal">
+  <div class="modal" style="max-width: 580px;">
+    <div class="modal-head">
+      <h3>Résumé · Transcription</h3>
+      <button class="close-btn" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body" id="summaryBody">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom: 16px;">
+        <button class="btn ghost" id="btnTranscribeLast">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          Transcrire le dernier vocal
+        </button>
+        <button class="btn ghost" id="btnSummarizeCall">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+          Enregistrer & résumer
+        </button>
+      </div>
+      <div id="summaryOutput" style="min-height: 100px; padding: 14px; background: var(--bg-1); border-radius: 12px; font-size: 13px; line-height: 1.5; color: var(--text-1); white-space: pre-wrap;">
+        Aucun contenu pour l'instant.
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ========= MODALES ========= -->
@@ -1032,6 +1220,16 @@
   </div>
 
   <div class="profile-section">
+    <button class="profile-item" id="profDecoy">
+      <div class="ic">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </div>
+      <span>Mode visiteur</span>
+      <span class="arrow" id="decoyLabel">Configurer</span>
+    </button>
+  </div>
+
+  <div class="profile-section">
     <button class="profile-item danger" id="profPanic">
       <div class="ic">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
@@ -1129,6 +1327,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="decoy-data.js"></script>
 <script>
 /* =======================================================================
    Symbalyx UI — config
@@ -1140,6 +1339,7 @@ const CONFIG = {
   homeserver:   "http://localhost:8008",
   elementUrl:   "http://localhost:8080",
   elementCall:  "http://localhost:8181",
+  whisperUrl:   "http://localhost:9000",
   serverName:   "localhost"
 };
 
@@ -2289,6 +2489,379 @@ enterApp = function () {
   origEnterApp();
   resetAutolock();
 };
+
+/* =======================================================================
+   DECOY MODE — fausses conversations crédibles
+   ======================================================================= */
+const decoy = {
+  active: false,
+  currentId: null,
+  msgs: {}   // id => array de messages (modifications locales volatiles)
+};
+
+function decoyPinKey() { return `sx_decoy_pin_${M.userId || "anon"}`; }
+function hasDecoyPin() { return !!localStorage.getItem(decoyPinKey()); }
+async function setDecoyPin(pin) {
+  const h = await sha256(`${M.userId}:decoy:${pin}`);
+  localStorage.setItem(decoyPinKey(), h);
+}
+async function decoyPinMatches(pin) {
+  const stored = localStorage.getItem(decoyPinKey());
+  if (!stored) return false;
+  return (await sha256(`${M.userId}:decoy:${pin}`)) === stored;
+}
+
+function enterDecoy() {
+  decoy.active = true;
+  decoy.msgs  = {};
+  document.body.classList.add("decoy");
+  closeProfileMenu();
+  // Coupe le sync, ferme l'iframe Element (rien ne fuite)
+  if (syncTimer) { clearInterval(syncTimer); syncTimer = null; }
+  $("#elementFrame").src = "about:blank";
+  $("#elementFrameWrap").style.display = "none";
+  $("#decoyChat").style.display = "none";
+
+  // Remplace la sidebar avec les fausses conversations
+  renderDecoyRooms();
+
+  // Cache les actions Matrix qui pourraient révéler l'app
+  $("#btnTimer").style.display     = "none";
+  $("#btnSummary").style.display   = "none";
+  $("#btnInvite").style.display    = "none";
+  $("#btnVoiceCall").style.display = "";
+  $("#btnVideoCall").style.display = "";
+
+  // Avatar et label "ordinaires"
+  $("#myAvatar").textContent = window.DECOY_DATA.myAvatar;
+  $("#myLabel").textContent  = window.DECOY_DATA.myName;
+
+  $("#noRoomView").style.display = "flex";
+  $("#roomView").style.display   = "none";
+  toast("Mode visiteur activé", "ok");
+}
+
+function exitDecoy() {
+  decoy.active = false;
+  decoy.currentId = null;
+  decoy.msgs = {};
+  document.body.classList.remove("decoy");
+  $("#decoyChat").style.display = "none";
+  $("#elementFrameWrap").style.display = "";
+  $("#btnTimer").style.display     = "";
+  $("#btnSummary").style.display   = "";
+  $("#btnInvite").style.display    = "";
+
+  // Restaurer le vrai user
+  const short = (M.userId || "").replace(/^@/, "").split(":")[0];
+  $("#myAvatar").textContent = initials(short);
+  $("#myLabel").textContent  = short;
+
+  // Reprendre le sync normal
+  if (M.token) {
+    loadRooms();
+    startSyncLoop();
+  }
+  toast("Retour au mode normal", "ok");
+}
+
+function renderDecoyRooms() {
+  const list = $("#roomsList");
+  const convs = window.DECOY_DATA.conversations;
+  const pinned = convs.filter(c => c.pinned);
+  const rest   = convs.filter(c => !c.pinned);
+  const ordered = pinned.concat(rest);
+
+  list.innerHTML = ordered.map(c => {
+    const last = c.messages[c.messages.length - 1] || {};
+    const preview = (last.text || "").slice(0, 38) + (last.text && last.text.length > 38 ? "…" : "");
+    return `
+      <div class="room-item ${c.id === decoy.currentId ? "active" : ""}" data-decoy-id="${c.id}">
+        <div class="room-avatar" style="background:${c.color}">${escapeHtml(c.avatar)}</div>
+        <div class="room-info">
+          <div class="room-name">${escapeHtml(c.name)}${c.pinned ? " 📌" : ""}${c.muted ? " 🔕" : ""}</div>
+          <div class="room-meta">
+            <span>${escapeHtml(preview)}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  $$("#roomsList .room-item").forEach(el => {
+    el.addEventListener("click", () => openDecoyConv(el.dataset.decoyId));
+  });
+}
+
+function openDecoyConv(id) {
+  const conv = window.DECOY_DATA.conversations.find(c => c.id === id);
+  if (!conv) return;
+  decoy.currentId = id;
+  if (!decoy.msgs[id]) decoy.msgs[id] = conv.messages.slice();
+
+  $("#noRoomView").style.display = "none";
+  $("#roomView").style.display = "flex";
+  $("#elementFrameWrap").style.display = "none";
+  $("#decoyChat").style.display = "flex";
+
+  $("#curRoomName").textContent = conv.name;
+  $("#curRoomAvatar").textContent = conv.avatar;
+  $("#curRoomAvatar").style.background = conv.color;
+  $("#curRoomMembers").textContent = `· ${conv.lastSeen || ""}`;
+  $("#curRoomTimer").style.display = "none";
+
+  renderDecoyMessages();
+  renderDecoyRooms();
+
+  if (window.innerWidth <= 760) $("#sidebar").classList.add("hidden-mobile");
+
+  setTimeout(() => $("#decoyInput").focus(), 60);
+}
+
+function renderDecoyMessages() {
+  if (!decoy.currentId) return;
+  const wrap = $("#decoyMsgs");
+  const msgs = decoy.msgs[decoy.currentId] || [];
+  let html = "";
+  let lastDay = null;
+  for (const m of msgs) {
+    if (m.day && m.day !== lastDay) {
+      html += `<div class="decoy-day">${escapeHtml(m.day)}</div>`;
+      lastDay = m.day;
+    }
+    html += `<div class="decoy-msg ${m.from === "me" ? "me" : "them"}">${escapeHtml(m.text)}</div>`;
+    html += `<div class="decoy-time">${escapeHtml(m.time || "")}</div>`;
+  }
+  wrap.innerHTML = html;
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function decoySend() {
+  if (!decoy.currentId) return;
+  const input = $("#decoyInput");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+
+  const now = new Date();
+  const time = `${String(now.getHours()).padStart(2,"0")}:${String(now.getMinutes()).padStart(2,"0")}`;
+  decoy.msgs[decoy.currentId].push({ from: "me", text, time });
+  renderDecoyMessages();
+  renderDecoyRooms();
+
+  // Auto-reply scripté ?
+  const conv = window.DECOY_DATA.conversations.find(c => c.id === decoy.currentId);
+  const autoreply = (conv.autoreply || []).find(r => r.match.test(text));
+  if (autoreply) {
+    $("#decoyTyping").classList.add("show");
+    $("#decoyMsgs").scrollTop = $("#decoyMsgs").scrollHeight;
+    setTimeout(() => {
+      $("#decoyTyping").classList.remove("show");
+      const now2 = new Date();
+      const time2 = `${String(now2.getHours()).padStart(2,"0")}:${String(now2.getMinutes()).padStart(2,"0")}`;
+      decoy.msgs[decoy.currentId].push({ from: "them", text: autoreply.reply, time: time2 });
+      renderDecoyMessages();
+      renderDecoyRooms();
+    }, autoreply.delay || 2500);
+  }
+}
+
+$("#decoySend").addEventListener("click", decoySend);
+$("#decoyInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); decoySend(); }
+});
+
+/* Configuration / activation du mode visiteur depuis le profil */
+$("#profDecoy").addEventListener("click", async () => {
+  closeProfileMenu();
+  if (!hasDecoyPin()) {
+    const pin = prompt("Créer un code à 4 chiffres pour le mode visiteur :");
+    if (!pin) return;
+    if (!/^\d{4}$/.test(pin)) { toast("Code invalide (4 chiffres requis)", "err"); return; }
+    await setDecoyPin(pin);
+    $("#decoyLabel").textContent = "Activer";
+    toast("Code de leurre enregistré", "ok");
+  } else {
+    if (confirm("Activer le mode visiteur ? Les vraies conversations seront masquées.")) {
+      enterDecoy();
+    }
+  }
+});
+// Met à jour le label "Configurer / Activer" à l'ouverture du menu
+const origOpenProfileMenu = openProfileMenu;
+openProfileMenu = function () {
+  origOpenProfileMenu();
+  $("#decoyLabel").textContent = hasDecoyPin() ? "Activer" : "Configurer";
+};
+
+/* Geste secret : 5 taps sur le pill "Chiffré E2E" */
+let pillTaps = 0, pillTimer = null;
+document.querySelector(".secure-pill").addEventListener("click", () => {
+  pillTaps++;
+  clearTimeout(pillTimer);
+  pillTimer = setTimeout(() => { pillTaps = 0; }, 1500);
+  if (pillTaps >= 5) {
+    pillTaps = 0;
+    if (!decoy.active) {
+      if (!hasDecoyPin()) {
+        // Pas configuré : prompt rapide
+        const pin = prompt("Créer un code à 4 chiffres pour le mode visiteur :");
+        if (pin && /^\d{4}$/.test(pin)) {
+          setDecoyPin(pin).then(() => {
+            toast("Code créé", "ok");
+            enterDecoy();
+          });
+        }
+      } else {
+        enterDecoy();
+      }
+    } else {
+      // Sortie du leurre : demander le PIN normal (vault) si configuré, sinon le mot de passe
+      const pin = prompt("Code pour quitter le mode visiteur (4 chiffres) :");
+      if (pin) {
+        decoyPinMatches(pin).then(ok => {
+          if (ok || !hasPinSet()) exitDecoy();
+          else {
+            pinMatches(pin).then(ok2 => {
+              if (ok2) exitDecoy();
+              else toast("Code incorrect", "err");
+            });
+          }
+        });
+      }
+    }
+  }
+});
+
+/* =======================================================================
+   SUMMARY / TRANSCRIPTION (Whisper)
+   ======================================================================= */
+$("#btnSummary").addEventListener("click", () => {
+  $("#summaryOutput").textContent = "Aucun contenu pour l'instant.";
+  openModal("#summaryModal");
+});
+
+$("#btnTranscribeLast").addEventListener("click", async () => {
+  if (!state.currentRoomId) return;
+  const out = $("#summaryOutput");
+  out.textContent = "Recherche du dernier message vocal…";
+  try {
+    const data = await M.req("GET",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(state.currentRoomId)}/messages?dir=b&limit=40`);
+    const audio = (data.chunk || []).find(e =>
+      e.type === "m.room.message" &&
+      (e.content?.msgtype === "m.audio" || e.content?.info?.mimetype?.startsWith("audio"))
+    );
+    if (!audio) { out.textContent = "Aucun message vocal trouvé dans les 40 derniers messages."; return; }
+
+    let url = audio.content.url || audio.content.file?.url;
+    if (!url) { out.textContent = "Impossible de récupérer l'audio (peut-être chiffré sans clé partagée à Symbalyx)."; return; }
+    if (url.startsWith("mxc://")) {
+      const [, server, mediaId] = url.match(/^mxc:\/\/([^/]+)\/(.+)$/);
+      url = `${CONFIG.homeserver}/_matrix/client/v1/media/download/${server}/${mediaId}`;
+    }
+
+    out.textContent = "Téléchargement…";
+    const audioRes = await fetch(url, { headers: { Authorization: `Bearer ${M.token}` } });
+    if (!audioRes.ok) throw new Error("Téléchargement échoué");
+    const blob = await audioRes.blob();
+
+    out.textContent = "Transcription en cours (local)…";
+    const fd = new FormData();
+    fd.append("audio_file", blob, "audio.ogg");
+    const w = await fetch(`${CONFIG.whisperUrl}/asr?task=transcribe&language=fr&output=json`, {
+      method: "POST", body: fd
+    });
+    if (!w.ok) throw new Error("Service Whisper indisponible");
+    const j = await w.json();
+    out.textContent = j.text || "(transcription vide)";
+  } catch (err) {
+    out.textContent = `Erreur : ${err.message}`;
+  }
+});
+
+/* Enregistrement local + transcription + résumé d'appel */
+let recState = { recorder: null, chunks: [], stream: null };
+$("#btnSummarizeCall").addEventListener("click", async () => {
+  const out = $("#summaryOutput");
+  const btn = $("#btnSummarizeCall");
+  if (!recState.recorder || recState.recorder.state === "inactive") {
+    try {
+      recState.stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      recState.recorder = new MediaRecorder(recState.stream, { mimeType: "audio/webm" });
+      recState.chunks = [];
+      recState.recorder.ondataavailable = (e) => { if (e.data.size > 0) recState.chunks.push(e.data); };
+      recState.recorder.onstop = async () => {
+        try { recState.stream.getTracks().forEach(t => t.stop()); } catch {}
+        const blob = new Blob(recState.chunks, { type: "audio/webm" });
+        out.textContent = "Transcription…";
+        const fd = new FormData();
+        fd.append("audio_file", blob, "call.webm");
+        const w = await fetch(`${CONFIG.whisperUrl}/asr?task=transcribe&language=fr&output=json`, {
+          method: "POST", body: fd
+        });
+        if (!w.ok) { out.textContent = "Whisper indisponible. Démarrez le service avec : docker compose up -d whisper"; return; }
+        const j = await w.json();
+        const text = j.text || "";
+        const summary = simpleSummary(text);
+        out.textContent =
+          `── Résumé ──\n${summary}\n\n── Transcription complète ──\n${text}`;
+      };
+      recState.recorder.start();
+      btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12" rx="1"/></svg> Arrêter et résumer`;
+      out.textContent = "🔴 Enregistrement en cours…";
+    } catch (e) {
+      out.textContent = `Micro indisponible : ${e.message}`;
+    }
+  } else {
+    recState.recorder.stop();
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg> Enregistrer & résumer`;
+  }
+});
+
+function simpleSummary(text) {
+  if (!text || text.length < 50) return "Pas assez de contenu pour un résumé.";
+  // Heuristique : 3 premières phrases significatives + bullet topics simples
+  const sentences = text.split(/(?<=[.!?])\s+/).filter(s => s.trim().length > 12);
+  const intro = sentences.slice(0, 2).join(" ");
+  // Mots-clés grossiers (compte des noms communs > 4 lettres, hors stop-words)
+  const stop = new Set("alors avoir ainsi après aussi celui cette chez comme dans depuis donc elle entre étais étant étant être fait faire faut leur leurs mais même moi mon mes nous parce plus pour quand quel quelle quels quoi sans sera serait sont sous tout tous toute toutes très vers votre vous voilà voici sait voir hein juste plutôt".split(/\s+/));
+  const words = text.toLowerCase().match(/\b[a-zà-ÿ]{5,}\b/g) || [];
+  const freq = {};
+  for (const w of words) if (!stop.has(w)) freq[w] = (freq[w] || 0) + 1;
+  const top = Object.entries(freq).sort((a,b) => b[1]-a[1]).slice(0, 5).map(e => e[0]);
+  return `${intro}\n\nSujets clés : ${top.join(", ") || "—"}`;
+}
+
+/* =======================================================================
+   PWA — registration du service worker + prompt d'installation
+   ======================================================================= */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
+  });
+}
+let deferredPrompt = null;
+window.addEventListener("beforeinstallprompt", (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  $("#installHint").classList.add("show");
+});
+$("#installHint").addEventListener("click", async (e) => {
+  if (e.target.id === "installDismiss") {
+    $("#installHint").classList.remove("show");
+    return;
+  }
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  $("#installHint").classList.remove("show");
+});
+$("#installDismiss").addEventListener("click", (e) => {
+  e.stopPropagation();
+  $("#installHint").classList.remove("show");
+});
 </script>
 </body>
 </html>

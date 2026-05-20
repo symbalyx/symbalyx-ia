@@ -8,6 +8,10 @@ chiffrement E2E natif (Megolm + MatrixRTC), jusqu'à 10 utilisateurs.
 - ✅ Groupes privés créés depuis la UI custom (preset `private_chat` + encryption forcée + history `invited` + guests interdits)
 - ✅ Messages éphémères (rétention serveur via `m.room.retention`, configurable par groupe : 1h → 30j)
 - ✅ Appels voix et vidéo de groupe E2EE (Element Call + LiveKit SFU, jusqu'à 8 participants)
+- ✅ **Mode visiteur (leurre)** : fausses conversations crédibles avec auto-réponses scriptées, quand on passe le téléphone à un inconnu. Activation discrète via 5 taps sur le badge "Chiffré E2E". Aucune connexion réseau pendant le leurre.
+- ✅ **Transcription locale** des messages vocaux et **résumé d'appels** via Whisper (100% local, zéro cloud)
+- ✅ **PWA installable** sur iOS et Android (manifest + service worker, ajout à l'écran d'accueil)
+- ✅ Messages vocaux supportés nativement (Element)
 - ✅ Recherche d'utilisateurs / invitations
 - ✅ UI custom dark/glassmorphism inspirée Signal (sidebar, badges chiffrement, actions rapides)
 - ✅ **Coffre** : conversations masquées accessibles uniquement via code PIN secret (bouton secret dans le profil)
@@ -141,7 +145,7 @@ Premier lancement : ~1 Go d'images (Synapse + Element + Element Call + LiveKit +
 docker compose ps
 ```
 
-8 conteneurs attendus, tous `running` / `healthy` :
+9 conteneurs attendus, tous `running` / `healthy` :
 
 | Conteneur                 | Rôle                                  |
 | ------------------------- | ------------------------------------- |
@@ -152,6 +156,7 @@ docker compose ps
 | `symbalyx_lk_jwt`         | bridge auth Matrix ↔ LiveKit          |
 | `symbalyx_element_call`   | client appel vidéo groupe E2EE        |
 | `symbalyx_coturn`         | TURN/STUN appels 1-1                  |
+| `symbalyx_whisper`        | transcription vocale locale           |
 | `symbalyx_ui`             | UI custom Symbalyx                    |
 
 Tests rapides :
@@ -213,6 +218,43 @@ docker exec -it symbalyx_synapse register_new_matrix_user -u iris   -p MotDePass
 
 Le badge `Auto-suppression Xh` apparaît sous le nom du groupe. Le serveur purge les anciens events à chaque cycle (1×/jour).
 
+### Mode visiteur (leurre) — quand on passe le téléphone à un inconnu
+
+Pensé pour les moments où quelqu'un te demande "ton téléphone pour appeler" / "regarder une info". Tu actives le mode visiteur **en 1 seconde** et l'appli affiche **uniquement des fausses conversations crédibles** (Maman, Léo, le pressing, le club de yoga, etc.) avec un fake chat fonctionnel.
+
+**Activation (2 méthodes au choix)** :
+- **5 taps rapides** sur le badge « Chiffré E2E » en haut à droite (le plus discret)
+- Menu profil → **Mode visiteur**
+
+**Au 1er usage** : un prompt demande un code à 4 chiffres pour le mode (différent du code coffre). C'est ce code qui servira aussi à **sortir** du mode visiteur.
+
+**Pendant le mode visiteur** :
+- Sidebar : 8 conversations factices (Maman, Léo, Amélie, Pressing, Yoga, Banque, Pharmacie, Équipe projet)
+- Tu peux **ouvrir n'importe laquelle, lire des messages crédibles, taper et envoyer un message** — il s'affiche normalement, comme dans une vraie messagerie
+- Certains contacts répondent automatiquement à des mots-clés (auto-replies scriptés, ex : "merci" → "De rien 😘")
+- **Aucune connexion réseau vers Matrix** : tout est local. Impossible que l'inconnu tombe sur tes vraies conversations.
+- Le menu profil, l'avatar, le label de l'utilisateur affichent un nom factice (configurable dans `ui/decoy-data.js` → `myName`)
+- Pas de badge "Coffre" visible (rien ne révèle l'existence du mode normal)
+
+**Pour sortir du mode visiteur** (toi seul) :
+- 5 taps sur le badge "Chiffré E2E" → prompt code → entrer le code de leurre ou le code coffre
+
+**Personnaliser les fausses conversations** :
+
+Édite `matrix/ui/decoy-data.js`. Le fichier est documenté ; tu peux :
+- Changer ton "nom" en mode visiteur (`myName`, `myAvatar`)
+- Modifier les contacts (nom, couleur, dernière activité)
+- Modifier les messages (texte, expéditeur, heure)
+- Ajouter des auto-réponses par regex (`autoreply`)
+
+Plus c'est cohérent avec ta vie réelle, plus c'est indétectable.
+
+> **Conseil de crédibilité** : pré-remplir avec des conversations qui ressemblent à ta vie. Un inconnu qui regarderait la liste cherche des incohérences (langue, ton, dates). Les messages factices fournis sont volontairement banals et datés (hier, semaine dernière) pour ne pas paraître "trop frais".
+
+`docker compose restart ui` après modification du fichier.
+
+---
+
 ### Conversations masquées (Coffre)
 
 Symbalyx propose un **mode coffre** : certaines conversations sont entièrement cachées de la sidebar et accessibles uniquement après avoir entré un code PIN secret.
@@ -271,6 +313,51 @@ Effets :
 - `localStorage` vidé (sauf le hash du code coffre, gardé pour la prochaine session)
 - `sessionStorage` vidé
 - Redirection vers `about:blank` (la page Symbalyx disparaît de l'historique récent)
+
+### Transcription vocale & résumé d'appel (Whisper local)
+
+Un service Docker `whisper` (image `onerahmet/openai-whisper-asr-webservice`, modèle `small` par défaut) tourne sur le port `9000` en local. Tout transit reste sur ta machine.
+
+**Transcrire un message vocal** :
+1. Dans une conversation, clique l'icône **document** (à côté de l'horloge) dans le header
+2. **Transcrire le dernier vocal** → l'app récupère le dernier `m.audio` du salon, le télécharge, le passe à Whisper, affiche le texte
+
+**Enregistrer + résumer un appel** :
+1. Pendant l'appel (ou juste après), icône **document** → **Enregistrer & résumer**
+2. Autorise le micro la 1ère fois
+3. À la fin, clique **Arrêter et résumer**
+4. Whisper transcrit → un résumé heuristique (intro + mots-clés) s'affiche dans la modale
+5. Tu peux copier-coller dans la conversation
+
+> **Modèle plus précis** : édite `docker-compose.yml`, change `ASR_MODEL: "small"` en `"medium"` ou `"large-v3"`. Compromis : plus précis = plus lent et plus de RAM (`small` ~1 Go, `large-v3` ~6 Go).
+
+> **Résumé par LLM local** : la version actuelle utilise une heuristique simple (sujet + mots-clés). Pour un vrai résumé en langage naturel, on peut ajouter Ollama (Mistral 7B ou Llama 3.1 8B). À demander si tu veux que je l'ajoute.
+
+---
+
+### Installer l'app sur ton téléphone (PWA)
+
+L'app Symbalyx est installable comme une vraie app sur iOS, Android et desktop, sans passer par un store.
+
+**iOS (Safari)** :
+1. Ouvre `http://IP_PC:8090` dans Safari
+2. Appuie sur **Partager** → **Sur l'écran d'accueil**
+3. L'icône Symbalyx apparaît sur ton écran d'accueil, comme une vraie app
+
+**Android (Chrome)** :
+1. Ouvre `http://IP_PC:8090` dans Chrome
+2. Un bandeau "Installer Symbalyx" apparaît en bas → clique-le
+3. Ou : menu ⋮ → "Ajouter à l'écran d'accueil"
+
+**Desktop (Chrome/Edge)** :
+1. Ouvre l'URL
+2. Icône d'installation dans la barre d'URL (à droite) → clique
+
+L'app installée s'ouvre **sans barre de navigateur**, comme une app native. Plus discrète. Le service worker met en cache l'UI ; les conversations restent toujours fetched live depuis le serveur.
+
+> **Limite iOS** : Apple bride certaines fonctions PWA (notifications push, accès micro en background). Pour caméra/micro pendant les appels, il faut HTTPS (voir section dédiée plus bas).
+
+---
 
 ### Lancer un appel voix ou vidéo de groupe (chiffré)
 

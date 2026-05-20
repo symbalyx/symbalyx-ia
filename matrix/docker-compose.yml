@@ -120,6 +120,22 @@ services:
       - ./config/turnserver.conf:/etc/coturn/turnserver.conf:ro
 
   # ------------------------------------------------------------
+  # Whisper ASR — transcription locale des messages vocaux
+  # et des appels (zéro cloud). Modèle "small" par défaut.
+  # ~1 Go d'image, 1-2 Go RAM. Tournage CPU only.
+  # ------------------------------------------------------------
+  whisper:
+    image: onerahmet/openai-whisper-asr-webservice:latest
+    container_name: symbalyx_whisper
+    restart: unless-stopped
+    environment:
+      ASR_MODEL: "small"
+      ASR_ENGINE: "openai_whisper"
+    ports:
+      - "9000:9000"
+    networks: [symbalyx_net]
+
+  # ------------------------------------------------------------
   # UI Symbalyx — interface custom (sidebar, groupes,
   # timer messages éphémères, lancement d'appels).
   # ------------------------------------------------------------
