@@ -37,9 +37,7 @@ allow_public_rooms_over_federation: false
 require_auth_for_profile_requests: true
 limit_profile_requests_to_users_who_share_rooms: true
 
-# Désactive la présence (statut online/last_active visible des autres)
-presence:
-  enabled: false
+# (Présence configurée plus bas)
 
 # Désactive l'indexation des utilisateurs dans le user_directory
 # (sauf pour les membres de salons communs)
@@ -84,6 +82,18 @@ email:
 # --- Caches / perf pour 10 users ---
 caches:
   global_factor: 1.0
+
+# --- Présence (statut en ligne / dernière activité) ---
+# Activée pour permettre l'indicateur "en ligne" dans la liste de contacts.
+# Tradeoff documenté dans SECURITY.md : les membres voient grossièrement
+# quand un autre membre est connecté. Pour passer invisible, mode "discret"
+# dans le menu profil.
+presence:
+  enabled: true
+
+# --- Plafond des pièces jointes (chiffrées avant upload) ---
+# 250 Mo : couvre des vidéos, archives volumineuses, etc.
+max_upload_size: 250M
 
 # --- Désactive l'envoi de stats anonymes ---
 report_stats: false

@@ -251,6 +251,10 @@ Quand vous tapez `2020 + 6 =`, **rien n'apparaît côté Symbalyx**. Le téléph
 ✅ **Voir une fois** : pièce jointe qui s'efface 60 secondes après envoi  
 ✅ **Note à moi-même** : conversation privée avec soi  
 ✅ **Faux contacts** qui répondent de manière naturelle (délais 1-45 min, parfois sans réponse)  
+✅ **Photo de profil** personnalisable  
+✅ **Indicateur en ligne** : point vert sur l'avatar des contacts connectés  
+✅ **Fichiers jusqu'à 250 Mo** (au lieu de 50 Mo), chiffrés avant envoi  
+✅ **Façade calculatrice** vraiment indistinguable : title, icône PWA, prompt Touch ID, manifest — tout dit "Calculatrice"  
 
 ---
 

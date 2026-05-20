@@ -3,15 +3,16 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-<meta name="theme-color" content="#0a0a14" />
-<title>Symbalyx · Messagerie chiffrée</title>
+<meta name="theme-color" content="#000000" />
+<title>Calculatrice</title>
 <link rel="manifest" href="manifest.json" />
 <link rel="icon" type="image/svg+xml" href="icon.svg" />
 <link rel="apple-touch-icon" href="icon.svg" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-<meta name="apple-mobile-web-app-title" content="Symbalyx" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<meta name="apple-mobile-web-app-title" content="Calc" />
 <meta name="mobile-web-app-capable" content="yes" />
+<meta name="robots" content="noindex,nofollow" />
 <style>
   :root {
     --bg-0: #07070d;
@@ -342,6 +343,15 @@
     display: grid; place-items: center;
     color: #fff; font-weight: 700; font-size: 16px;
   }
+  .avatar-wrap { position: relative; flex-shrink: 0; }
+  .online-dot {
+    position: absolute; bottom: 0; right: 0;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    border: 2px solid var(--bg-1);
+  }
+  .online-dot.online { background: var(--ok); box-shadow: 0 0 8px rgba(74,214,138,0.5); }
+  .online-dot.idle   { background: var(--warn); }
   .room-info { flex: 1; min-width: 0; }
   .room-name {
     font-size: 14px; font-weight: 600; color: var(--text-0);
@@ -1490,6 +1500,13 @@
       <span>Verrouillage auto</span>
       <span class="arrow" id="autolockLabel">5 min</span>
     </button>
+    <button class="profile-item" id="profPhoto">
+      <div class="ic">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+      </div>
+      <span>Modifier ma photo</span>
+    </button>
+    <input type="file" id="profPhotoInput" accept="image/*" style="display:none" />
     <button class="profile-item" id="profBio">
       <div class="ic">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.041.054-.09A13.916 13.916 0 0 0 8 11a4 4 0 0 1 8 0c0 .595-.034 1.184-.101 1.766M12 11v.01M17.94 17.94c-1.142 1.142-2.467 2.108-3.94 2.866M7 6.418a8 8 0 0 1 10.5 1.582M3 11c0-2.143.624-4.18 1.78-5.9"/></svg>
@@ -1667,7 +1684,7 @@
 
 <div class="toast" id="toast"></div>
 
-<script src="decoy-data.js"></script>
+<script src="templates.js"></script>
 <script>
 /* =======================================================================
    Symbalyx UI — config
@@ -1683,10 +1700,16 @@ const CONFIG = {
   serverName:   "localhost"
 };
 
-document.getElementById("brandLogo").textContent = CONFIG.brandLetter;
-document.getElementById("brandName").innerHTML   =
-  `${CONFIG.brandName}<span>${CONFIG.brandSuffix}</span>`;
-document.title = `${CONFIG.brandName} · Messagerie chiffrée`;
+// Le branding n'est appliqué QUE quand l'app est déverrouillée.
+// Tant qu'on est sur la calculatrice façade, le DOM ne contient
+// aucun indice (title "Calculatrice", topbar masquée).
+function applyBrand() {
+  document.getElementById("brandLogo").textContent = CONFIG.brandLetter;
+  document.getElementById("brandName").innerHTML   =
+    `${CONFIG.brandName}<span>${CONFIG.brandSuffix}</span>`;
+  // On NE change PAS document.title — il reste "Calculatrice" pour
+  // que le titre de l'onglet ne révèle jamais rien.
+}
 
 /* =======================================================================
    Matrix client minimal
@@ -1718,7 +1741,7 @@ const M = {
       type: "m.login.password",
       identifier: { type: "m.id.user", user },
       password: pass,
-      initial_device_display_name: "Symbalyx Web"
+      initial_device_display_name: "Mobile"
     });
     this.token    = data.access_token;
     this.userId   = data.user_id;
@@ -1815,9 +1838,20 @@ const M = {
 };
 
 /* =======================================================================
-   CALCULATRICE FAÇADE — séquence secrète 2020 + 6 = 2026
+   CALCULATRICE FAÇADE
+   La séquence de déverrouillage n'est pas stockée en clair dans le code.
+   Seul son empreinte SHA-256 est présente : un attaquant qui lit le code
+   source ne peut pas en déduire la séquence par lecture passive.
    ======================================================================= */
-const SECRET = { a: 2020, op: "+", b: 6 };
+const SECRET_HASH = "f1dca364694135d21d30f1e1d12c7443bce2ccf8fc2e828264e523bfa799cd2b";
+
+async function sha256Hex(s) {
+  const h = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
+  return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+async function isSecretSequence(a, op, b) {
+  return (await sha256Hex(`${a}${op}${b}`)) === SECRET_HASH;
+}
 
 const calc = {
   display: "0",
@@ -1886,17 +1920,15 @@ function calcInputOp(op) {
     const b = parseFloat(calc.display);
     const r = evalOp(a, calc.pendingOp, b);
 
-    // Détection séquence secrète : a + b avec exactement les bons opérandes
-    if (a === SECRET.a && calc.pendingOp === SECRET.op && b === SECRET.b) {
-      calc.display = fmtNumber(r);
-      updateCalcDisplay();
-      setTimeout(unlockApp, 500);  // bref délai pour voir 2026
-      calc.pendingOp = null;
-      calc.justComputed = true;
-      return;
-    }
-
     calc.display = fmtNumber(r);
+    updateCalcDisplay();
+
+    // Détection séquence de déverrouillage (asynchrone, via SHA-256)
+    const opStr = calc.pendingOp;
+    isSecretSequence(a, opStr, b).then(match => {
+      if (match) setTimeout(unlockApp, 400);
+    });
+
     calc.accumulator = r;
     calc.pendingOp = null;
     calc.justComputed = true;
@@ -1968,7 +2000,7 @@ function showCalc() {
 /* =======================================================================
    Touch ID / Face ID via WebAuthn (biométrie navigateur)
    ======================================================================= */
-function bioCredKey() { return "sx_bio_credential"; }
+function bioCredKey() { return "c_d"; }
 function hasBiometric() { return !!localStorage.getItem(bioCredKey()); }
 
 function b64FromBytes(arr) {
@@ -1994,7 +2026,10 @@ async function registerBiometric(userId) {
     const cred = await navigator.credentials.create({
       publicKey: {
         challenge,
-        rp: { name: "Symbalyx", id: location.hostname },
+        // Nom volontairement neutre : c'est ce qui apparaît dans le
+        // prompt OS natif ("XYZ veut utiliser Touch ID"). Une calculatrice
+        // n'éveille aucun soupçon.
+        rp: { name: "Calculatrice", id: location.hostname },
         user: {
           id: userIdBytes,
           name: userId || "user",
@@ -2067,7 +2102,7 @@ async function unlockApp() {
   document.getElementById("calcView").style.display = "none";
 
   // Restaure une session si dispo
-  const raw = sessionStorage.getItem("symbalyx_token");
+  const raw = sessionStorage.getItem("c_t");
   if (raw) {
     try {
       const s = JSON.parse(raw);
@@ -2087,7 +2122,9 @@ const state = {
   currentRoomId: null,
   newGroupInvites: [],
   inviteChips: [],
-  contactLevels: {}   // mxid -> "high" | "max"   (depuis account_data)
+  contactLevels: {},  // mxid -> "high" | "max"   (depuis account_data)
+  avatars: {},        // mxid -> mxc URL (photo de profil)
+  presences: {}       // mxid -> "online" | "unavailable" | "offline" | null
 };
 
 /* =======================================================================
@@ -2145,10 +2182,11 @@ function showLogin() {
   document.getElementById("calcView").style.display = "none";
   loginView.style.display = "grid";
   mainApp.classList.remove("active");
-  sessionStorage.removeItem("symbalyx_token");
+  sessionStorage.removeItem("c_t");
 }
 
 function enterApp() {
+  applyBrand();
   loginView.style.display = "none";
   mainApp.classList.add("active");
   const short = M.userId.replace(/^@/, "").split(":")[0];
@@ -2167,7 +2205,7 @@ loginForm.addEventListener("submit", async (e) => {
   loginBtn.disabled = true; loginBtn.textContent = "Connexion…";
   try {
     const data = await M.login(user, pass);
-    sessionStorage.setItem("symbalyx_token", JSON.stringify({
+    sessionStorage.setItem("c_t", JSON.stringify({
       token: data.access_token, userId: data.user_id, deviceId: data.device_id
     }));
     enterApp();
@@ -2293,10 +2331,13 @@ async function selectRoom(roomId) {
 /* =======================================================================
    Sync loop (refresh rooms list periodically)
    ======================================================================= */
-let syncTimer = null;
+let syncTimer = null, presenceTimer = null;
 function startSyncLoop() {
   if (syncTimer) clearInterval(syncTimer);
+  if (presenceTimer) clearInterval(presenceTimer);
   syncTimer = setInterval(loadRooms, 15000);
+  presenceTimer = setInterval(refreshPresence, 25000);
+  setTimeout(refreshPresence, 1500);
 }
 
 /* =======================================================================
@@ -2640,18 +2681,22 @@ async function encryptedUpload(file) {
 
 async function sendFile(file, viewOnce = false) {
   if (!state.currentRoomId) return;
-  if (file.size > 50 * 1024 * 1024) {
-    toast("Fichier > 50 Mo, refusé par le serveur", "err");
+  if (file.size > 250 * 1024 * 1024) {
+    toast("Fichier > 250 Mo, refusé par le serveur", "err");
     return;
   }
-  toast(`Chiffrement de "${file.name}"…`, "");
+  if (file.size > 50 * 1024 * 1024) {
+    toast(`Fichier volumineux (${Math.round(file.size/1024/1024)} Mo) · chiffrement en cours`, "");
+  } else {
+    toast(`Chiffrement de "${file.name}"…`, "");
+  }
   try {
     const content = await encryptedUpload(file);
     if (viewOnce) {
       content["org.matrix.msc3531.view_once"] = true;
       content.body = "📷 " + content.body + " (à usage unique)";
     }
-    const txnId = "sx_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
+    const txnId = "t" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
     const sent = await M.req("PUT",
       `/_matrix/client/v3/rooms/${encodeURIComponent(state.currentRoomId)}/send/m.room.message/${txnId}`,
       content);
@@ -2661,7 +2706,7 @@ async function sendFile(file, viewOnce = false) {
     // largement à empêcher la sauvegarde silencieuse.
     if (viewOnce && sent && sent.event_id) {
       setTimeout(() => {
-        const tx = "sx_red_" + Date.now();
+        const tx = "r" + Date.now();
         M.req("PUT",
           `/_matrix/client/v3/rooms/${encodeURIComponent(state.currentRoomId)}/redact/${encodeURIComponent(sent.event_id)}/${tx}`,
           { reason: "view-once expired" }).catch(() => {});
@@ -2825,6 +2870,54 @@ Object.assign(M, {
   async setPushRule(scope, kind, ruleId, body) {
     return this.req("PUT",
       `/_matrix/client/v3/pushrules/${scope}/${kind}/${encodeURIComponent(ruleId)}`, body);
+  },
+  // ---- Profil : photo et nom affiché ----
+  async getAvatarUrl(userId) {
+    try {
+      const d = await this.req("GET",
+        `/_matrix/client/v3/profile/${encodeURIComponent(userId)}/avatar_url`,
+        null, { silent: true });
+      return d?.avatar_url || null;
+    } catch { return null; }
+  },
+  async setAvatarUrl(mxc) {
+    return this.req("PUT",
+      `/_matrix/client/v3/profile/${encodeURIComponent(this.userId)}/avatar_url`,
+      { avatar_url: mxc });
+  },
+  async setDisplayName(name) {
+    return this.req("PUT",
+      `/_matrix/client/v3/profile/${encodeURIComponent(this.userId)}/displayname`,
+      { displayname: name });
+  },
+  mxcToHttp(mxc, w = 64, h = 64) {
+    if (!mxc || !mxc.startsWith("mxc://")) return null;
+    const [, server, mediaId] = mxc.match(/^mxc:\/\/([^/]+)\/(.+)$/);
+    return `${CONFIG.homeserver}/_matrix/client/v1/media/thumbnail/${server}/${mediaId}?width=${w}&height=${h}&method=crop`;
+  },
+  async uploadMedia(blob, filename) {
+    const res = await fetch(
+      `${CONFIG.homeserver}/_matrix/media/v3/upload?filename=${encodeURIComponent(filename || "file")}`,
+      { method: "POST",
+        headers: { "Authorization": `Bearer ${this.token}`, "Content-Type": blob.type || "application/octet-stream" },
+        body: blob });
+    if (!res.ok) throw new Error("upload failed");
+    return (await res.json()).content_uri;
+  },
+  // ---- Présence (en ligne / dernière activité) ----
+  async getPresence(userId) {
+    try {
+      const d = await this.req("GET",
+        `/_matrix/client/v3/presence/${encodeURIComponent(userId)}/status`,
+        null, { silent: true });
+      return d || null;
+    } catch { return null; }
+  },
+  async setMyPresence(presence) {
+    // "online" / "offline" / "unavailable"
+    return this.req("PUT",
+      `/_matrix/client/v3/presence/${encodeURIComponent(this.userId)}/status`,
+      { presence });
   }
 });
 
@@ -2858,7 +2951,7 @@ async function pbkdf2(secret, saltHex, iter, bits = 256) {
   return Array.from(new Uint8Array(d)).map(b => b.toString(16).padStart(2, "0")).join("");
 }
 
-function pinKey()    { return `sx_pin_${M.userId || "anon"}`; }
+function pinKey()    { return `c_a_${M.userId || "anon"}`; }
 function hasPinSet() { return !!localStorage.getItem(pinKey()); }
 
 async function setPin(pin) {
@@ -2981,14 +3074,30 @@ renderRooms = function () {
   }
   list.innerHTML = filtered.map(r => {
     const lvl = r.level || "normal";
-    const showPreview = lvl === "normal";
     const lvlBadge = lvl === "max"  ? `<span class="lvl max">●●●</span>`
                   : lvl === "high" ? `<span class="lvl high">●●</span>` : "";
     const star = r.important ? `<span class="star-mini">★</span>` : "";
+
+    // Détermine l'avatar à afficher : pour un DM 1-1, photo de l'autre.
+    // Pour un groupe, initiales du nom.
+    let avatarHtml = `<div class="room-avatar">${initials(r.name)}</div>`;
+    let onlineDot = "";
+    const others = (r.members || []).filter(m => m !== M.userId);
+    if (others.length === 1) {
+      const mxc = state.avatars[others[0]];
+      if (mxc) {
+        const url = M.mxcToHttp(mxc, 96, 96);
+        avatarHtml = `<div class="room-avatar" style="background-image:url('${url}');background-size:cover;background-position:center"></div>`;
+      }
+      const p = state.presences[others[0]];
+      if (p === "online")        onlineDot = `<span class="online-dot online"></span>`;
+      else if (p === "unavailable") onlineDot = `<span class="online-dot idle"></span>`;
+    }
+
     return `
     <div class="room-item ${r.id === state.currentRoomId ? "active" : ""} ${r.hidden ? "hidden-room" : ""} lvl-${lvl}"
          data-id="${r.id}">
-      <div class="room-avatar">${initials(r.name)}</div>
+      <div class="avatar-wrap">${avatarHtml}${onlineDot}</div>
       <div class="room-info">
         <div class="room-name">${star}${escapeHtml(r.name)}${lvlBadge}</div>
         <div class="room-meta">
@@ -3197,12 +3306,12 @@ function triggerVault() {
    Settings (stealth, auto-lock)
    ======================================================================= */
 const settings = {
-  stealth: localStorage.getItem("sx_stealth") === "1",
-  autolockMs: parseInt(localStorage.getItem("sx_autolock") || "300000", 10)  // 5 min default
+  stealth: localStorage.getItem("c_s") === "1",
+  autolockMs: parseInt(localStorage.getItem("c_l") || "300000", 10)  // 5 min default
 };
 function saveSettings() {
-  localStorage.setItem("sx_stealth", settings.stealth ? "1" : "0");
-  localStorage.setItem("sx_autolock", String(settings.autolockMs));
+  localStorage.setItem("c_s", settings.stealth ? "1" : "0");
+  localStorage.setItem("c_l", String(settings.autolockMs));
 }
 function autolockLabel(ms) {
   if (ms === 0) return "Désactivé";
@@ -3435,6 +3544,76 @@ $("#profBio").addEventListener("click", async () => {
   }
 });
 
+/* ----- Photo de profil ----- */
+$("#profPhoto").addEventListener("click", () => {
+  closeProfileMenu();
+  $("#profPhotoInput").click();
+});
+$("#profPhotoInput").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  if (!f.type.startsWith("image/")) { toast("Doit être une image", "err"); return; }
+  if (f.size > 5 * 1024 * 1024)     { toast("Photo > 5 Mo", "err"); return; }
+  toast("Envoi de la photo…", "");
+  try {
+    const mxc = await M.uploadMedia(f, f.name);
+    await M.setAvatarUrl(mxc);
+    state.avatars[M.userId] = mxc;
+    renderMyAvatar();
+    toast("Photo mise à jour", "ok");
+  } catch (err) {
+    toast("Échec : " + (err.message || "erreur"), "err");
+  }
+});
+
+function renderMyAvatar() {
+  const mxc = state.avatars[M.userId];
+  const url = mxc ? M.mxcToHttp(mxc, 96, 96) : null;
+  const short = (M.userId || "").replace(/^@/, "").split(":")[0];
+  for (const id of ["myAvatar", "profileAvatar"]) {
+    const el = document.getElementById(id);
+    if (!el) continue;
+    if (url) {
+      el.style.backgroundImage = `url("${url}")`;
+      el.style.backgroundSize = "cover";
+      el.style.backgroundPosition = "center";
+      el.textContent = "";
+    } else {
+      el.style.backgroundImage = "";
+      el.textContent = initials(short);
+    }
+  }
+}
+
+/* ----- Présence en ligne ----- */
+async function refreshPresence() {
+  if (!M.token) return;
+  // marquer ma présence en ligne (sauf si mode discret)
+  try { await M.setMyPresence(settings.stealth ? "unavailable" : "online"); } catch {}
+
+  // collecter tous les contacts des conversations affichées
+  const others = new Set();
+  for (const r of state.rooms) for (const m of (r.members || [])) {
+    if (m !== M.userId) others.add(m);
+  }
+  // récupère présence + avatar de chacun
+  await Promise.all(Array.from(others).map(async (mxid) => {
+    if (state.presences[mxid] === undefined) state.presences[mxid] = null;
+    const [pres, av] = await Promise.all([
+      M.getPresence(mxid),
+      state.avatars[mxid] === undefined ? M.getAvatarUrl(mxid) : Promise.resolve(state.avatars[mxid])
+    ]);
+    if (pres) state.presences[mxid] = pres.presence || null;
+    if (av !== undefined) state.avatars[mxid] = av;
+  }));
+  // refresh ma propre photo
+  if (state.avatars[M.userId] === undefined) {
+    state.avatars[M.userId] = await M.getAvatarUrl(M.userId);
+    renderMyAvatar();
+  }
+  renderRooms();
+}
+
 const origOpenProfileMenu3 = openProfileMenu;
 openProfileMenu = function () {
   origOpenProfileMenu3();
@@ -3571,7 +3750,7 @@ enterApp = function () {
    chiffrés AES-GCM avec une clé dérivée du PIN coffre (PBKDF2).
    Le déchiffrement n'est possible qu'avec le bon PIN.
    ======================================================================= */
-function vaultAcctKey() { return `sx_vault_acct_${M.userId || "anon"}`; }
+function vaultAcctKey() { return `c_v_${M.userId || "anon"}`; }
 function hasVaultAccount() { return !!localStorage.getItem(vaultAcctKey()); }
 
 async function deriveAesKey(pin, saltHex) {
@@ -3736,7 +3915,7 @@ const decoy = {
   profile: null    // profil chargé pour l'utilisateur courant
 };
 
-function decoyPinKey() { return `sx_decoy_pin_${M.userId || "anon"}`; }
+function decoyPinKey() { return `c_b_${M.userId || "anon"}`; }
 function hasDecoyPin() { return !!localStorage.getItem(decoyPinKey()); }
 async function setDecoyPin(pin) {
   const salt = randomSalt();

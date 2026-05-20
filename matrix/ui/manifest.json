@@ -1,13 +1,13 @@
 {
-  "name": "Symbalyx",
-  "short_name": "Symbalyx",
-  "description": "Messagerie privée chiffrée de bout en bout",
+  "name": "Calculatrice",
+  "short_name": "Calc",
+  "description": "Calculatrice",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#07070d",
-  "theme_color": "#0a0a14",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "lang": "fr",
   "icons": [
     {
@@ -17,5 +17,5 @@
       "purpose": "any maskable"
     }
   ],
-  "categories": ["communication", "social"]
+  "categories": ["utilities"]
 }

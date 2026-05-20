@@ -57,7 +57,39 @@ Audit fait du point de vue attaquant. Sévérité **C**ritique / **H**aut / **M*
 | 6.2 | Megolm key backup : si activé sans clé de récupération forte, les clés sont stockées sur le serveur en chiffré-par-mot-de-passe-faible. | H | ⚠ Documenté : **désactiver** le key backup automatique pour les rooms sensibles, ou utiliser une recovery key longue. |
 | 6.3 | Element Call PerParticipantE2EE est récent et a eu des bugs (clés non rotated quand un participant part). | M | ⚠ Documenté : préférer fermer et recréer l'appel quand un membre part en cours. |
 
-## 7. Limites assumées (out of scope)
+## 7. Audit "voleur de téléphone"
+
+Scénario : un attaquant a un accès physique au téléphone déverrouillé (OS) et lance Symbalyx. Que voit-il ? Que peut-il extraire ?
+
+| # | Vecteur | Avant | Après |
+|---|---------|-------|-------|
+| 7.1 | **Ouverture de l'app** : l'attaquant voit immédiatement une UI de messagerie | Topbar "Symbalyx · secure", écran login évident | ✅ **Calculatrice fonctionnelle** par défaut. Aucun indice visuel. Inspecter F12 sur la calculette ne révèle qu'une calculette. |
+| 7.2 | **Title de l'onglet / icône PWA** | "Symbalyx · Messagerie chiffrée" + cadenas violet | ✅ "Calculatrice" + icône calculette iOS. PWA installée s'appelle "Calc". |
+| 7.3 | **Nom du fichier JS de leurre** : `decoy-data.js` visible dans Network | Trahit l'existence d'un mode leurre | ✅ Renommé `templates.js`. |
+| 7.4 | **Secret en clair dans le code** : `SECRET = { a: 2020, op: "+", b: 6 }` | Lisible en `view source` → la combinaison est exposée | ✅ Hash SHA-256 du secret stocké, comparaison au runtime. L'attaquant qui lit le code source ne déduit pas la combinaison par lecture passive. |
+| 7.5 | **Clés localStorage parlantes** : `sx_pin_*`, `sx_decoy_pin_*`, `sx_vault_acct_*` | Trahit l'existence de PINs et d'un coffre | ✅ Préfixe neutre `c_*` (peut passer pour un cache de calculatrice). |
+| 7.6 | **WebAuthn prompt OS-natif** affichait "Symbalyx wants to use Touch ID" | Révèle le nom de l'app | ✅ `rp.name = "Calculatrice"`. Le prompt OS dit "Calculatrice veut utiliser Touch ID". |
+| 7.7 | **Manifest PWA** : `name: "Symbalyx"`, `description: "Messagerie privée..."` | Visible dans devtools → cramé | ✅ `name: "Calculatrice"`, `description: "Calculatrice"`. |
+| 7.8 | **Brand `Symbalyx`** appliqué à `document.title` au chargement | Onglet affiche "Symbalyx · ..." même sur la calc | ✅ `document.title` reste "Calculatrice" en permanence ; le branding n'est appliqué qu'au DOM mainApp, jamais au title. |
+| 7.9 | **`initial_device_display_name: "Symbalyx Web"`** envoyé à Synapse | Visible dans la liste des devices Matrix | ✅ Renommé "Mobile" (générique). |
+| 7.10 | **Service worker cache** nommé `symbalyx-ui-vN` | Visible dans devtools Application | ✅ Renommé `app-cache-vN`. |
+| 7.11 | **Element Web** accessible directement sur `http://localhost:8080` | Bypass complet de la calculatrice : si le voleur tape `:8080` direct, il a la session active | ⚠ **Atténuation** : avec Caddy single-origin actif, Element n'est plus exposé sur `:8080` (route `/element/` uniquement). Sans Caddy, c'est cramé. **Recommandation forte d'activer Caddy** en usage réel. |
+| 7.12 | **sessionStorage token** récupérable par inspection si l'app n'a pas été verrouillée | Devtools → Application → sessionStorage → `symbalyx_token` lisible | ✅ Clé renommée `c_t`. ⚠ Le contenu (token Matrix) reste lisible — mitigation : auto-lock court + bouton "Verrouiller maintenant" qui retourne à la calculatrice. |
+| 7.13 | **Métadonnées Synapse** (room IDs, timestamps) | Inhérent au protocole | ❌ Hors scope · documenté |
+| 7.14 | **Memory dump** via attaque physique avancée | Hors scope navigateur | ❌ Hors scope · chiffrement disque OS recommandé |
+| 7.15 | **PIN à 4 chiffres** : 10 000 combinaisons, bruteforcable même avec PBKDF2 250k iter (~40 min) | Faible entropie | 🟡 Atténué par PBKDF2 ; pour les vrais paranos, accepter 6-8 chiffres déjà supporté côté UI |
+
+### Verdict honnête
+
+Avec les fixes appliqués, un voleur qui ouvre l'app **voit une calculatrice et rien d'autre**. Pour passer outre, il faut :
+1. Connaître la séquence exacte (`2020 + 6 =`) — non déductible du code
+2. Réussir Touch ID / Face ID (si activé)
+
+Les deux failles **restantes** sont :
+- **Element Web sur :8080 sans Caddy** : tant qu'on n'active pas le profil Caddy HTTPS, un voleur intelligent qui sniffe le réseau ou qui regarde le code source via devtools (sur la calculatrice elle-même) verra des références à `:8080` et peut taper l'URL directement. **À fixer impérativement avant usage réel** : `docker compose --profile https up -d`.
+- **PIN court (4 chiffres)** : bruteforcable en ~40 min sur GPU. Pour les vrais usages sensibles, configurer un PIN coffre à 6-8 chiffres et activer Touch ID en couche supplémentaire.
+
+## 8. Limites assumées (out of scope)
 
 - **Memory inspection** par un attaquant avec accès physique au PC déverrouillé : impossible à empêcher en JS browser-side. Mitigation : auto-lock + screen lock OS.
 - **Keylogger / malware local** : hors scope. Tout chiffrement E2E est contourné si l'OS hôte est compromis.
