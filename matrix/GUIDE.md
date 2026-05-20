@@ -53,7 +53,7 @@ Quand vous ouvrez l'app, vous voyez **une calculatrice complète, fonctionnelle*
 
 **Pour activer Touch ID / Face ID** : Menu profil → **Touch ID / Face ID** → **Activer**. Le téléphone enregistre votre empreinte/visage. Désormais, après le `2020 + 6 =`, il faudra votre doigt/visage pour ouvrir.
 
-**Sécurité supplémentaire pour les conversations niveau Maximum** : même si vous êtes déjà dans l'app, quand vous cliquez sur une conversation marquée "Maximum", Touch ID / Face ID est redemandé. C'est une double protection : pour la voir, il faut avoir passé la calculatrice ET refaire son empreinte/visage à chaque accès.
+**Sécurité supplémentaire pour les conversations niveau Maximum** : ces conversations utilisent un **chiffrement renforcé**. Les clés qui servent à déchiffrer les messages sont **changées toutes les heures et tous les 10 messages** (au lieu d'une fois par semaine pour les conversations normales). Si jamais une clé venait à fuiter, la quantité de messages exposés serait réduite à environ 150 fois moins. Pas besoin de redemander la biométrie à chaque clic, le verrou est cryptographique.
 
 ### A. Messagerie privée
 
@@ -146,6 +146,7 @@ Vous tapez 5 fois rapidement sur la pastille "Chiffré E2E" en haut → l'app **
 - 4 profils factices différents : un cadre administratif, un consultant, un étudiant, un entrepreneur
 - Chaque utilisateur de l'app voit un profil différent → si deux personnes se prêtent leur téléphone le même jour, l'inconnu ne voit pas les mêmes "amis" sur les deux, ce qui éviterait des soupçons
 - Ton volontairement banal, neutre, sans rien de remarquable
+- **Les contacts répondent naturellement, pas instantanément** : selon le contact, les réponses arrivent **entre 1 et 45 minutes plus tard**. Certains contacts ont seulement **30% de chance de répondre** (services, pharmacie, banque). Maman répond plus souvent que le pressing. L'indicateur "écrit…" n'apparaît qu'à la toute fin (10s avant la réponse), pas dès le premier mot tapé — comme dans la vraie vie. Bref : si l'inconnu écrit à "Maman" et qu'elle ne répond pas tout de suite, c'est normal. Elle peut répondre 15 minutes plus tard, ou pas du tout
 - Pour sortir du mode visiteur : 5 tapes sur la pastille + votre code PIN
 
 ### J. TOUT SUPPRIMER · Annihilation
@@ -208,6 +209,25 @@ Le destinataire reçoit le fichier, sa messagerie le déchiffre automatiquement.
 
 **Image** : c'est comme envoyer un dossier dans une mallette à code. Vous mettez le dossier dedans, vous fermez à clé, vous envoyez la mallette par la poste, et vous envoyez le code séparément au destinataire via un canal sécurisé. Si la mallette est interceptée, le voleur ne peut rien faire avec.
 
+### N. Voir une fois (inspiré WhatsApp / Signal)
+
+À côté du trombone, une **icône œil**. Cliquez dessus avant de joindre votre fichier : le fichier sera marqué "à usage unique" et **s'efface automatiquement 60 secondes après l'envoi**. Le destinataire a le temps de le voir, après il disparaît, vous ne pouvez plus revenir le récupérer non plus.
+
+**Image** : c'est comme la photo qu'un détective regarde puis brûle.
+
+### O. Note à moi-même (inspiré WhatsApp / Signal)
+
+Bouton **Note à moi-même** dans la sidebar (sous "Nouveau groupe privé"). Crée une conversation où vous êtes seul. Pratique pour :
+- Vous noter une info entre deux appareils (l'app sur l'ordi pour écrire, sur le téléphone pour relire)
+- Sauvegarder un fichier important qui sera chiffré comme un message
+- Faire des brouillons
+
+**Image** : c'est comme un Post-it que vous vous laissez à vous-même, mais protégé par le même chiffrement que vos vraies conversations.
+
+### P. Le Touch ID / Face ID est silencieux
+
+Quand vous tapez `2020 + 6 =`, **rien n'apparaît côté Symbalyx**. Le téléphone affiche son propre prompt natif (le rond avec l'empreinte ou Face ID, exactement comme quand vous déverrouillez votre téléphone). Si la biométrie échoue, la calculatrice se remet à zéro sans message — pas le moindre indice qu'il y avait autre chose derrière.
+
 ## 6. Ce qui marche bien aujourd'hui
 
 ✅ Échanger des messages texte chiffrés à 10 personnes  
@@ -228,6 +248,9 @@ Le destinataire reçoit le fichier, sa messagerie le déchiffre automatiquement.
 ✅ **Touch ID / Face ID** après le code calculatrice  
 ✅ **Touch ID redemandé** à l'ouverture d'une conversation niveau Maximum  
 ✅ **Joindre un fichier** chiffré (jusqu'à 50 Mo : photo, document, vidéo, audio)  
+✅ **Voir une fois** : pièce jointe qui s'efface 60 secondes après envoi  
+✅ **Note à moi-même** : conversation privée avec soi  
+✅ **Faux contacts** qui répondent de manière naturelle (délais 1-45 min, parfois sans réponse)  
 
 ---
 

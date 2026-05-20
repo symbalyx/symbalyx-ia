@@ -63,9 +63,10 @@ const profileA = {
         { from: "them", text: "Bonne journée. À samedi.", time: "07:45" }
       ],
       autoreply: [
-        { match: /merci/i,             reply: "De rien.",                                delay: 3500 },
-        { match: /\boui\b|d.accord|ok/i, reply: "Bien noté.",                            delay: 2400 },
-        { match: /demain|samedi|dimanche/i, reply: "Je te confirme demain matin.",      delay: 3200 }
+        { match: /merci/i,               replies: ["De rien.", "Avec plaisir.", "C'est normal."] },
+        { match: /\boui\b|d.accord|ok/i, replies: ["Bien noté.", "Parfait.", "OK.", "Très bien.", "C'est noté."] },
+        { match: /demain|samedi|dimanche/i, replies: ["Je te confirme demain matin.", "Je te tiens au courant.", "Je te redis ça."] },
+        { match: /comment ça va|comment vas/i, replies: ["Ça va, et toi ?", "Pas mal. Et toi ?"] }
       ]
     },
     {
@@ -86,9 +87,10 @@ const profileA = {
         { from: "them", text: "Tu peux acheter du café en passant ?", time: "13:20" }
       ],
       autoreply: [
-        { match: /oui|ok|d.accord/i, reply: "OK.",                                       delay: 2200 },
-        { match: /resto|restaurant/i, reply: "On pourrait essayer le nouveau italien de la rue Saint-Marc.", delay: 3500 },
-        { match: /weekend|samedi|dimanche/i, reply: "On peut aller marcher au parc samedi matin si tu veux.", delay: 4000 }
+        { match: /oui|ok|d.accord/i,         replies: ["OK", "ok 👍", "Parfait", "Très bien"] },
+        { match: /resto|restaurant/i,        replies: ["On pourrait essayer l'italien de Saint-Marc.", "Tu choisis, je te suis.", "Pourquoi pas le japonais d'à côté ?"] },
+        { match: /weekend|samedi|dimanche/i, replies: ["On peut aller marcher au parc samedi matin.", "Je suis libre samedi, dimanche je verrai.", "À voir avec tes parents."] },
+        { match: /\b(bisou|love|t.aime)/i,   replies: ["Bisous ❤️", "À ce soir"] }
       ]
     },
     {
