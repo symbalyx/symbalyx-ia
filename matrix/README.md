@@ -1,15 +1,25 @@
 # Symbalyx · Messagerie chiffrée locale
 
-Stack Matrix Synapse + Element Web + UI custom, 100% locale, chiffrement E2E natif, jusqu'à 10 utilisateurs, appels voix/vidéo.
+Stack Matrix Synapse + Element Web + Element Call + UI custom, 100% locale,
+chiffrement E2E natif (Megolm + MatrixRTC), jusqu'à 10 utilisateurs.
+
+**Features livrées :**
+- ✅ Messagerie 1-1 et groupe E2E (Olm/Megolm)
+- ✅ Groupes privés créés depuis la UI custom (preset `private_chat` + encryption forcée + history `invited` + guests interdits)
+- ✅ Messages éphémères (rétention serveur via `m.room.retention`, configurable par groupe : 1h → 30j)
+- ✅ Appels voix et vidéo de groupe E2EE (Element Call + LiveKit SFU, jusqu'à 8 participants)
+- ✅ Recherche d'utilisateurs / invitations
+- ✅ UI custom dark/glassmorphism inspirée Signal (sidebar, badges chiffrement, actions rapides)
+- ✅ Responsive mobile, accès LAN possible
 
 ---
 
 ## Prérequis
 
 - Windows 10/11
-- Docker Desktop **démarré** (icône baleine active dans le systray)
-- PowerShell ouvert **en administrateur**
-- Connaître l'IP locale de votre PC (`ipconfig` → `Adresse IPv4`)
+- Docker Desktop **démarré**
+- PowerShell en administrateur
+- Connaître votre IP locale (`ipconfig` → `Adresse IPv4`)
 
 ---
 
@@ -21,15 +31,11 @@ git clone https://github.com/symbalyx/symbalyx-ia.git
 cd symbalyx-ia\matrix
 ```
 
-> Si Git n'est pas installé : téléchargez le dossier `matrix/` depuis le repo et placez-le dans `%USERPROFILE%\symbalyx-ia\matrix`.
-
-**Validation :** `dir` doit afficher `docker-compose.yml`, `element/`, `ui/`, `config/`.
+**Validation :** `dir` affiche `docker-compose.yml`, `element/`, `element-call/`, `ui/`, `config/`.
 
 ---
 
 ## ÉTAPE 2 — Générer la configuration Synapse
-
-Cette commande crée `homeserver.yaml`, les clés de signature et la base.
 
 ```powershell
 docker run -it --rm `
@@ -39,13 +45,13 @@ docker run -it --rm `
   matrixdotorg/synapse:latest generate
 ```
 
-**Validation :** un fichier `data\synapse\homeserver.yaml` est créé.
+**Validation :** `data\synapse\homeserver.yaml` existe.
 
 ---
 
 ## ÉTAPE 3 — Patcher homeserver.yaml
 
-Ouvrez `data\synapse\homeserver.yaml` dans le Bloc-notes et **remplacez intégralement la section `database`** par :
+### 3a. Remplacez la section `database` par :
 
 ```yaml
 database:
@@ -60,16 +66,15 @@ database:
     cp_max: 10
 ```
 
-Puis **ajoutez ces lignes à la fin du fichier** :
+### 3b. Ajoutez ce bloc à la fin du fichier :
 
 ```yaml
-# === Symbalyx overrides ===
+# === Symbalyx base overrides ===
 enable_registration: false
 enable_registration_without_verification: false
 password_config:
   enabled: true
 
-# Écoute publique (utile pour accès LAN/téléphone)
 listeners:
   - port: 8008
     tls: false
@@ -80,28 +85,39 @@ listeners:
       - names: [client, federation]
         compress: false
 
-# Chiffrement E2E activé par défaut dans toutes les conversations
 encryption_enabled_by_default_for_room_type: all
-
-# Pas de fédération avec d'autres serveurs Matrix
 federation_domain_whitelist: []
-
-# CORS pour autoriser l'UI custom
 serve_server_wellknown: true
 
-# TURN (appels audio/vidéo) — IP à remplacer par celle de votre PC
 turn_uris: ["turn:VOTRE_IP_LOCALE:3478?transport=udp"]
 turn_shared_secret: "symbalyx_turn_secret_change_me"
 turn_user_lifetime: 86400000
 turn_allow_guests: false
 
-# Limites raisonnables pour 10 users
 max_upload_size: 50M
 ```
 
-> Remplacez `VOTRE_IP_LOCALE` par votre IPv4 (ex : `192.168.1.42`). Pour un usage purement localhost sans appels, vous pouvez laisser les 4 lignes `turn_*` commentées.
+> Remplacez `VOTRE_IP_LOCALE` par votre IPv4 (ex `192.168.1.42`).
 
-**Validation :** le fichier contient bien le bloc `# === Symbalyx overrides ===`.
+### 3c. Ajoutez **aussi** le contenu de `config/synapse-overrides-v2.yaml` à la fin :
+
+```powershell
+Get-Content config\synapse-overrides-v2.yaml | Add-Content data\synapse\homeserver.yaml
+```
+
+Ce bloc active :
+- l'annonce du focus MatrixRTC (Element Call) via `.well-known/matrix/client`
+- la rétention serveur des messages (`m.room.retention`)
+- le durcissement vie privée (profils restreints, salons publics fédérés interdits)
+
+**Validation :**
+
+```powershell
+Select-String -Path data\synapse\homeserver.yaml -Pattern "rtc_foci"
+Select-String -Path data\synapse\homeserver.yaml -Pattern "retention"
+```
+
+Les deux doivent renvoyer une ligne.
 
 ---
 
@@ -111,7 +127,7 @@ max_upload_size: 50M
 docker compose up -d
 ```
 
-Le premier lancement télécharge ~600 Mo d'images (1-3 minutes).
+Premier lancement : ~1 Go d'images (Synapse + Element + Element Call + LiveKit + lk-jwt-service + Postgres + coturn + nginx). 2-5 min selon votre connexion.
 
 **Validation :**
 
@@ -119,20 +135,26 @@ Le premier lancement télécharge ~600 Mo d'images (1-3 minutes).
 docker compose ps
 ```
 
-Les 5 conteneurs doivent être en `running` ou `healthy` :
-- `symbalyx_postgres`
-- `symbalyx_synapse`
-- `symbalyx_element`
-- `symbalyx_coturn`
-- `symbalyx_ui`
+8 conteneurs attendus, tous `running` / `healthy` :
 
-Test rapide :
+| Conteneur                 | Rôle                                  |
+| ------------------------- | ------------------------------------- |
+| `symbalyx_postgres`       | base Matrix                           |
+| `symbalyx_synapse`        | homeserver Matrix                     |
+| `symbalyx_element`        | client Element Web                    |
+| `symbalyx_livekit`        | SFU média (appels groupe)             |
+| `symbalyx_lk_jwt`         | bridge auth Matrix ↔ LiveKit          |
+| `symbalyx_element_call`   | client appel vidéo groupe E2EE        |
+| `symbalyx_coturn`         | TURN/STUN appels 1-1                  |
+| `symbalyx_ui`             | UI custom Symbalyx                    |
+
+Tests rapides :
 
 ```powershell
-curl http://localhost:8008/health
+curl http://localhost:8008/health         # OK
+curl http://localhost:8008/.well-known/matrix/client   # JSON avec rtc_foci
+curl http://localhost:8881/healthz        # OK (lk-jwt-service)
 ```
-
-Doit répondre `OK`.
 
 ---
 
@@ -140,20 +162,13 @@ Doit répondre `OK`.
 
 L'enregistrement public est désactivé : on crée chaque compte via la CLI admin du conteneur.
 
-**Compte admin (1er) :**
-
 ```powershell
+# Admin
 docker exec -it symbalyx_synapse register_new_matrix_user `
-  -u admin `
-  -p ChangeMoiAdmin2026 `
-  -a `
-  -c /data/homeserver.yaml `
-  http://localhost:8008
-```
+  -u admin -p ChangeMoiAdmin2026 -a `
+  -c /data/homeserver.yaml http://localhost:8008
 
-**Comptes utilisateurs (à exécuter 9 fois en changeant `-u` et `-p`) :**
-
-```powershell
+# 9 utilisateurs
 docker exec -it symbalyx_synapse register_new_matrix_user -u alice  -p MotDePasseFort1 --no-admin -c /data/homeserver.yaml http://localhost:8008
 docker exec -it symbalyx_synapse register_new_matrix_user -u bob    -p MotDePasseFort2 --no-admin -c /data/homeserver.yaml http://localhost:8008
 docker exec -it symbalyx_synapse register_new_matrix_user -u carol  -p MotDePasseFort3 --no-admin -c /data/homeserver.yaml http://localhost:8008
@@ -165,127 +180,166 @@ docker exec -it symbalyx_synapse register_new_matrix_user -u henry  -p MotDePass
 docker exec -it symbalyx_synapse register_new_matrix_user -u iris   -p MotDePasseFort9 --no-admin -c /data/homeserver.yaml http://localhost:8008
 ```
 
-**Validation :** chaque commande affiche `Sending registration request... Success.`
-
 ---
 
-## ÉTAPE 6 — Accéder à l'interface
-
-3 entrées possibles :
+## ÉTAPE 6 — Utiliser la messagerie
 
 | URL                          | Quoi                          |
 | ---------------------------- | ----------------------------- |
-| `http://localhost:8090`      | **UI custom Symbalyx**        |
-| `http://localhost:8080`      | Element Web (officiel)        |
-| `http://localhost:8008`      | API Synapse (santé/admin)     |
+| **`http://localhost:8090`**  | **UI custom Symbalyx**        |
+| `http://localhost:8080`      | Element Web officiel          |
+| `http://localhost:8181`      | Element Call standalone       |
+| `http://localhost:8008`      | API Synapse                   |
 
-Connectez-vous avec un identifiant créé à l'étape 5 (`alice` / `MotDePasseFort1`).
+### Créer un groupe privé chiffré
 
-**Validation :** vous arrivez sur l'écran de connexion Symbalyx, vous vous connectez, l'iframe Element se charge.
+1. Connectez-vous sur `http://localhost:8090` avec `alice / MotDePasseFort1`
+2. Cliquez **+ Nouveau groupe privé**
+3. Saisissez un nom (ex `Équipe`)
+4. Tapez les pseudos à inviter (`bob`, `carol`, …) — autocomplétion via le user directory
+5. **Créer le groupe** → chiffrement E2E activé automatiquement
+
+### Activer les messages éphémères sur un groupe
+
+1. Sélectionnez le groupe dans la sidebar
+2. Cliquez l'icône **horloge** dans le header
+3. Choisissez la durée (1h / 6h / 24h / 7j / 30j) → **Appliquer**
+
+Le badge `Auto-suppression Xh` apparaît sous le nom du groupe. Le serveur purge les anciens events à chaque cycle (1×/jour).
+
+### Lancer un appel voix ou vidéo de groupe (chiffré)
+
+1. Sélectionnez le groupe
+2. Icône **téléphone** = appel voix, icône **caméra** = appel vidéo
+3. Une fenêtre Element Call s'ouvre, demandez aux autres membres de cliquer le même bouton de leur côté
+4. Jusqu'à 8 participants simultanés, flux E2EE bout-en-bout (LiveKit ne voit que du chiffré)
 
 ---
 
 ## ÉTAPE 7 — Accès depuis un téléphone (même WiFi)
 
-1. Récupérez l'IP de votre PC :
+1. IP du PC :
 
    ```powershell
    ipconfig | findstr IPv4
    ```
 
-   Exemple : `192.168.1.42`.
-
-2. Autorisez les ports 8008, 8080, 8090, 3478 dans le pare-feu Windows :
+2. Ouvrir le pare-feu :
 
    ```powershell
-   New-NetFirewallRule -DisplayName "Symbalyx Matrix" -Direction Inbound -Protocol TCP -LocalPort 8008,8080,8090 -Action Allow
-   New-NetFirewallRule -DisplayName "Symbalyx TURN UDP" -Direction Inbound -Protocol UDP -LocalPort 3478,49152-49172 -Action Allow
+   New-NetFirewallRule -DisplayName "Symbalyx HTTP" -Direction Inbound -Protocol TCP -LocalPort 8008,8080,8090,8181,8881 -Action Allow
+   New-NetFirewallRule -DisplayName "Symbalyx LiveKit" -Direction Inbound -Protocol TCP -LocalPort 7880,7881 -Action Allow
+   New-NetFirewallRule -DisplayName "Symbalyx Media UDP" -Direction Inbound -Protocol UDP -LocalPort 3478,49152-49172,50000-60000 -Action Allow
    ```
 
-3. Modifiez `matrix\ui\index.html` ligne `CONFIG` :
+3. Remplacer `localhost` par votre IP locale dans :
+   - `ui/index.html` → bloc `CONFIG` (3 URLs : `homeserver`, `elementUrl`, `elementCall`)
+   - `element/config.json` → `base_url`
+   - `element-call/config.json` → `base_url` et `livekit_service_url`
+   - `data/synapse/homeserver.yaml` → `extra_well_known_client_content.org.matrix.msc4143.rtc_foci[0].livekit_service_url`
 
-   ```js
-   homeserver: "http://192.168.1.42:8008",
-   elementUrl: "http://192.168.1.42:8080"
-   ```
-
-4. Et `matrix\element\config.json` :
-
-   ```json
-   "base_url": "http://192.168.1.42:8008"
-   ```
-
-5. Relancez :
+4. Relancer :
 
    ```powershell
-   docker compose restart element ui
+   docker compose restart synapse element element-call ui
    ```
 
-6. Sur le téléphone, ouvrez le navigateur : `http://192.168.1.42:8090`
+5. Sur le téléphone : `http://VOTRE_IP:8090`
 
-> Limite : sans HTTPS, certains navigateurs mobiles bloqueront la caméra/micro. Pour les appels vidéo depuis mobile, voir la section "HTTPS local" en bas.
-
-**Validation :** la page Symbalyx s'affiche sur le téléphone, login fonctionne.
+> **Limite** : sans HTTPS, les navigateurs mobiles refusent l'accès caméra/micro pour les appels vidéo. Pour les appels vidéo depuis mobile, voir la section HTTPS plus bas.
 
 ---
 
-## ÉTAPE 8 — Vérifier que le chiffrement E2E fonctionne
+## ÉTAPE 8 — Vérifier que tout est chiffré
 
-1. Connectez **alice** et **bob** dans deux navigateurs distincts (ou un navigateur + une fenêtre privée).
-2. Avec alice → **Nouvelle conversation directe** → inviter `@bob:localhost`.
-3. Dans la conversation, regardez l'icône en haut à droite (Element) : un **cadenas vert** doit apparaître.
-4. Cliquez le cadenas → "Chiffrement de bout en bout activé".
-5. Envoyez un message → il s'affiche avec une **icône cadenas** à côté.
+### Vérif messages (Megolm)
 
-**Test serveur (preuve technique) :**
+1. Connectez `alice` et `bob` dans deux navigateurs
+2. Alice crée un groupe privé avec bob
+3. Échangez des messages
+4. Vérification serveur :
 
-```powershell
-docker exec -it symbalyx_postgres psql -U synapse -d synapse -c "SELECT type, content::text FROM events WHERE type='m.room.encrypted' ORDER BY received_ts DESC LIMIT 3;"
-```
+   ```powershell
+   docker exec -it symbalyx_postgres psql -U synapse -d synapse -c `
+     "SELECT type, content::text FROM events WHERE type='m.room.encrypted' ORDER BY received_ts DESC LIMIT 3;"
+   ```
 
-Le contenu des messages dans la base est de la forme `{"algorithm":"m.megolm.v1.aes-sha2","ciphertext":"AwgAEnA..."}` — du **chiffré illisible**. Le serveur n'a aucun moyen de lire les messages.
+   Les contenus sont du type `{"algorithm":"m.megolm.v1.aes-sha2","ciphertext":"AwgAEnA..."}` — chiffré illisible.
 
-**Vérification croisée (signature des appareils) :**
+### Vérif appels (MatrixRTC + PerParticipantE2EE)
 
-Dans Element → **Profil → Sécurité et confidentialité → Vérifier cet appareil** entre alice et bob, en scannant le QR ou comparant les emojis. Une fois fait, un **bouclier vert** s'affiche à côté du nom.
+1. Lancez un appel vidéo entre alice et bob
+2. Dans la fenêtre Element Call, cliquez l'icône **i** ou regardez le bandeau du haut : doit afficher "End-to-end encrypted"
+3. Vérification serveur LiveKit :
+
+   ```powershell
+   docker logs symbalyx_livekit --tail 20
+   ```
+
+   Les logs montrent les sessions WebRTC mais aucun contenu média n'est déchiffrable côté serveur (clés Megolm partagées hors-bande entre participants Matrix).
+
+### Vérif rétention
+
+1. Activez `1 heure` sur un groupe
+2. Vérification de l'event state :
+
+   ```powershell
+   docker exec -it symbalyx_postgres psql -U synapse -d synapse -c `
+     "SELECT room_id, content::text FROM events WHERE type='m.room.retention' ORDER BY received_ts DESC LIMIT 3;"
+   ```
+
+   Vous voyez `{"max_lifetime": 3600000}`.
+
+3. Synapse purge les events anciens à chaque exécution du job (1×/jour par défaut, configurable).
 
 ---
 
 ## Commandes utiles
 
 ```powershell
-# Voir les logs
+# Logs
 docker compose logs -f synapse
-docker compose logs -f element
+docker compose logs -f element-call
+docker compose logs -f livekit
 
-# Arrêter la stack
+# Stop / restart
 docker compose down
+docker compose up -d
+docker compose restart synapse
 
-# Tout supprimer (⚠ efface aussi les comptes et messages)
+# Reset total (⚠ efface comptes + messages)
 docker compose down -v
 Remove-Item -Recurse -Force .\data\
 
-# Redémarrer après modif config
-docker compose restart synapse
-
-# Lister les utilisateurs
+# Liste users
 docker exec -it symbalyx_postgres psql -U synapse -d synapse -c "SELECT name FROM users;"
+
+# Forcer un purge de rétention immédiat
+docker exec -it symbalyx_synapse curl -X POST `
+  -H "Authorization: Bearer TOKEN_ADMIN" `
+  "http://localhost:8008/_synapse/admin/v1/purge_history/!ROOMID:localhost" `
+  -d '{"delete_local_events": true, "purge_up_to_ts": 0}'
 ```
 
 ---
 
-## HTTPS local (optionnel, requis pour appels vidéo mobile)
+## HTTPS local (requis pour appels vidéo mobile)
 
-Pour les appels vidéo depuis téléphone, les navigateurs exigent HTTPS. Solution rapide : `mkcert` + reverse proxy Caddy.
+Les navigateurs Chrome/Safari/Firefox refusent l'accès caméra/micro hors HTTPS (sauf `localhost`). Pour passer en HTTPS local :
 
 ```powershell
-# Installer mkcert via Scoop
+# 1. Installer mkcert
 scoop install mkcert
 mkcert -install
-mkcert 192.168.1.42 localhost
+
+# 2. Générer les certificats
+mkdir certs
+cd certs
+mkcert 192.168.1.42 localhost 127.0.0.1
+cd ..
 ```
 
-Puis ajoutez un service `caddy` dans `docker-compose.yml` qui sert les ports 8008/8080/8090 en HTTPS avec les certificats générés. À demander à Claude lorsque vous serez prêt à passer en HTTPS.
+Puis ajoutez un service `caddy` au compose (peut être demandé à Claude au moment où vous êtes prêt à passer en HTTPS).
 
 ---
 
@@ -295,14 +349,44 @@ Puis ajoutez un service `caddy` dans `docker-compose.yml` qui sert les ports 800
 
 ```js
 const CONFIG = {
-  brandName:   "VotreNom",
-  brandSuffix: "· chiffré",
-  brandLetter: "V",
-  homeserver:  "http://localhost:8008",
-  elementUrl:  "http://localhost:8080"
+  brandName:    "VotreNom",
+  brandSuffix:  "· chiffré",
+  brandLetter:  "V",
+  homeserver:   "http://localhost:8008",
+  elementUrl:   "http://localhost:8080",
+  elementCall:  "http://localhost:8181",
+  serverName:   "localhost"
 };
 ```
 
-Pour changer les couleurs : variables CSS `--accent` et `--accent-2` en haut du `<style>`.
+Couleurs : variables CSS `--accent`, `--accent-2`, `--signal-blue` en haut du `<style>`.
 
-Pas besoin de rebuild : `docker compose restart ui` suffit (ou rechargez la page).
+Pas besoin de rebuild : `docker compose restart ui` (ou recharger la page).
+
+---
+
+## Architecture
+
+```
+┌─────────────────┐
+│  UI Symbalyx    │ :8090
+│  (sidebar +     │
+│   actions)      │
+└────────┬────────┘
+         │
+         ├──► API Matrix ────► Synapse :8008 ────► Postgres
+         │    (login, rooms,
+         │     retention,
+         │     invitations)
+         │
+         ├──► iframe Element :8080 (chat E2E)
+         │
+         └──► iframe Element Call :8181
+                 │
+                 ├──► lk-jwt-service :8881 (auth Matrix → JWT)
+                 │
+                 └──► LiveKit SFU :7880 (relais média chiffré)
+```
+
+Tous les flux restent locaux. Aucun port n'est exposé sur Internet.
+Le chiffrement Megolm (messages) et PerParticipantE2EE (média) s'effectue dans le navigateur ; les serveurs ne relayent que du chiffré.

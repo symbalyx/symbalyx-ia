@@ -10,6 +10,7 @@
     --bg-0: #07070d;
     --bg-1: #0d0d18;
     --bg-2: #12121f;
+    --bg-3: #181826;
     --glass: rgba(255, 255, 255, 0.04);
     --glass-strong: rgba(255, 255, 255, 0.08);
     --border: rgba(255, 255, 255, 0.08);
@@ -17,17 +18,21 @@
     --text-0: #f5f5fa;
     --text-1: #c9c9d4;
     --text-2: #8a8a9a;
+    --text-3: #5a5a6a;
     --accent: #7c5cff;
     --accent-2: #4ad6c4;
+    --signal-blue: #3a76f0;
     --danger: #ff5470;
     --ok: #4ad68a;
+    --warn: #ffb347;
     --radius: 16px;
+    --radius-sm: 10px;
     --shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
     --font: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   }
 
   * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; height: 100%; }
+  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
   body {
     font-family: var(--font);
     color: var(--text-0);
@@ -36,32 +41,31 @@
       radial-gradient(900px 600px at 110% 110%, rgba(74, 214, 196, 0.12), transparent 60%),
       linear-gradient(180deg, var(--bg-0), var(--bg-1) 40%, var(--bg-0));
     min-height: 100vh;
-    overflow: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
-  /* Grain subtil */
   body::before {
-    content: "";
-    position: fixed; inset: 0;
-    pointer-events: none;
+    content: ""; position: fixed; inset: 0; pointer-events: none;
     background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.06'/></svg>");
-    mix-blend-mode: overlay;
-    opacity: 0.4;
-    z-index: 0;
+    mix-blend-mode: overlay; opacity: 0.4; z-index: 0;
   }
-
   .app { position: relative; z-index: 1; height: 100vh; display: flex; flex-direction: column; }
 
-  /* ========== TOP BAR ========== */
+  /* ============ SCROLLBAR ============ */
+  *::-webkit-scrollbar { width: 8px; height: 8px; }
+  *::-webkit-scrollbar-track { background: transparent; }
+  *::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 4px; }
+  *::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+  /* ============ TOP BAR ============ */
   .topbar {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 14px 22px;
+    padding: 12px 22px;
     background: var(--glass);
     backdrop-filter: blur(18px) saturate(140%);
     -webkit-backdrop-filter: blur(18px) saturate(140%);
     border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
   }
   .brand { display: flex; align-items: center; gap: 12px; }
   .brand-logo {
@@ -69,8 +73,7 @@
     background: linear-gradient(135deg, var(--accent), var(--accent-2));
     box-shadow: 0 6px 22px rgba(124, 92, 255, 0.45);
     display: grid; place-items: center;
-    color: #fff; font-weight: 800; font-size: 16px;
-    letter-spacing: 0.5px;
+    color: #fff; font-weight: 800; font-size: 16px; letter-spacing: 0.5px;
   }
   .brand-name { font-weight: 700; letter-spacing: 0.3px; font-size: 16px; }
   .brand-name span { color: var(--text-2); font-weight: 500; margin-left: 6px; }
@@ -82,69 +85,91 @@
     border: 1px solid rgba(74, 214, 138, 0.28);
     color: #b6f0cf;
     border-radius: 999px;
-    font-size: 12px; font-weight: 600;
-    letter-spacing: 0.3px;
+    font-size: 12px; font-weight: 600; letter-spacing: 0.3px;
   }
   .secure-pill .dot {
     width: 8px; height: 8px; border-radius: 50%;
-    background: var(--ok);
-    box-shadow: 0 0 10px var(--ok);
+    background: var(--ok); box-shadow: 0 0 10px var(--ok);
     animation: pulse 2.2s ease-in-out infinite;
   }
   @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
 
-  /* ========== LOGIN ========== */
-  .login-wrap {
-    flex: 1; display: grid; place-items: center;
-    padding: 24px;
+  .user-chip {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 10px 6px 6px;
+    background: var(--glass-strong);
+    border: 1px solid var(--border-strong);
+    border-radius: 999px;
+    font-size: 13px; cursor: pointer;
+    transition: background .15s;
   }
+  .user-chip:hover { background: rgba(255,255,255,0.1); }
+  .user-chip .avatar {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--signal-blue));
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+  }
+
+  /* ============ LOGIN ============ */
+  .login-wrap { flex: 1; display: grid; place-items: center; padding: 24px; }
   .login-card {
     width: 100%; max-width: 420px;
     background: var(--glass);
     backdrop-filter: blur(22px) saturate(140%);
     -webkit-backdrop-filter: blur(22px) saturate(140%);
     border: 1px solid var(--border-strong);
-    border-radius: 22px;
-    padding: 32px 28px;
+    border-radius: 22px; padding: 32px 28px;
     box-shadow: var(--shadow);
   }
-  .login-card h1 {
-    margin: 0 0 6px 0; font-size: 24px; font-weight: 700;
-  }
-  .login-card .subtitle {
-    color: var(--text-2); font-size: 14px; margin-bottom: 26px;
-  }
+  .login-card h1 { margin: 0 0 6px 0; font-size: 24px; font-weight: 700; }
+  .login-card .subtitle { color: var(--text-2); font-size: 14px; margin-bottom: 26px; }
   .field { margin-bottom: 16px; }
   .field label {
     display: block; font-size: 12px; color: var(--text-2);
     margin-bottom: 8px; letter-spacing: 0.3px; text-transform: uppercase;
   }
-  .field input {
+  .field input, .field textarea, .field select {
     width: 100%; padding: 13px 14px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid var(--border);
     border-radius: 12px;
-    color: var(--text-0); font-size: 15px;
-    font-family: inherit;
+    color: var(--text-0); font-size: 15px; font-family: inherit;
     transition: border-color .15s, background .15s, box-shadow .15s;
-    outline: none;
+    outline: none; resize: vertical;
   }
-  .field input:focus {
+  .field input:focus, .field textarea:focus, .field select:focus {
     border-color: var(--accent);
     background: rgba(124, 92, 255, 0.06);
     box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.15);
   }
   .btn {
-    width: 100%; padding: 14px;
+    padding: 12px 18px;
     background: linear-gradient(135deg, var(--accent), #5c7cff);
     color: #fff; border: 0; border-radius: 12px;
-    font-size: 15px; font-weight: 600; cursor: pointer;
+    font-size: 14px; font-weight: 600; cursor: pointer;
     transition: transform .1s, box-shadow .15s, filter .15s;
-    box-shadow: 0 10px 30px rgba(124, 92, 255, 0.35);
+    box-shadow: 0 8px 22px rgba(124, 92, 255, 0.32);
+    font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   }
   .btn:hover { filter: brightness(1.08); }
   .btn:active { transform: translateY(1px); }
-  .btn[disabled] { opacity: 0.6; cursor: not-allowed; }
+  .btn[disabled] { opacity: 0.55; cursor: not-allowed; filter: none; }
+  .btn.full { width: 100%; padding: 14px; font-size: 15px; }
+  .btn.ghost {
+    background: transparent; border: 1px solid var(--border-strong);
+    color: var(--text-1); box-shadow: none;
+  }
+  .btn.ghost:hover { background: var(--glass-strong); color: var(--text-0); }
+  .btn.danger {
+    background: linear-gradient(135deg, var(--danger), #ff7a5c);
+    box-shadow: 0 8px 22px rgba(255, 84, 112, 0.32);
+  }
+  .btn.signal {
+    background: linear-gradient(135deg, var(--signal-blue), #5a8fff);
+    box-shadow: 0 8px 22px rgba(58, 118, 240, 0.32);
+  }
 
   .login-foot {
     margin-top: 22px; text-align: center;
@@ -152,71 +177,325 @@
     display: flex; align-items: center; justify-content: center; gap: 8px;
   }
   .login-foot svg { width: 14px; height: 14px; opacity: 0.85; }
-
   .error-msg {
     margin-top: 14px; padding: 10px 12px;
     background: rgba(255, 84, 112, 0.08);
     border: 1px solid rgba(255, 84, 112, 0.35);
-    color: #ffb3c0;
-    border-radius: 10px; font-size: 13px;
-    display: none;
+    color: #ffb3c0; border-radius: 10px; font-size: 13px; display: none;
   }
   .error-msg.show { display: block; }
 
-  /* ========== CHAT ========== */
-  .chat-wrap { flex: 1; display: none; }
-  .chat-wrap.active { display: flex; }
+  /* ============ MAIN APP ============ */
+  .main-app { flex: 1; display: none; min-height: 0; overflow: hidden; }
+  .main-app.active { display: flex; }
+
+  /* ============ SIDEBAR ============ */
+  .sidebar {
+    width: 320px; flex-shrink: 0;
+    background: rgba(13, 13, 24, 0.6);
+    backdrop-filter: blur(18px);
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    min-height: 0;
+  }
+  .sidebar-head {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sidebar-head h2 {
+    margin: 0 0 12px 0; font-size: 14px;
+    text-transform: uppercase; letter-spacing: 1px;
+    color: var(--text-2); font-weight: 600;
+  }
+  .new-group-btn {
+    width: 100%; padding: 12px 14px;
+    background: linear-gradient(135deg, var(--signal-blue), var(--accent));
+    color: #fff; border: 0; border-radius: 12px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    transition: filter .15s, transform .1s;
+    box-shadow: 0 8px 22px rgba(58, 118, 240, 0.32);
+    font-family: inherit;
+  }
+  .new-group-btn:hover { filter: brightness(1.1); }
+  .new-group-btn:active { transform: translateY(1px); }
+
+  .rooms-list { flex: 1; overflow-y: auto; padding: 8px; min-height: 0; }
+  .room-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px; border-radius: 12px;
+    cursor: pointer; transition: background .12s;
+    margin-bottom: 4px;
+  }
+  .room-item:hover { background: var(--glass-strong); }
+  .room-item.active {
+    background: rgba(124, 92, 255, 0.15);
+    border: 1px solid rgba(124, 92, 255, 0.35);
+  }
+  .room-avatar {
+    width: 42px; height: 42px; border-radius: 50%;
+    flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center;
+    color: #fff; font-weight: 700; font-size: 16px;
+  }
+  .room-info { flex: 1; min-width: 0; }
+  .room-name {
+    font-size: 14px; font-weight: 600; color: var(--text-0);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .room-meta {
+    font-size: 11px; color: var(--text-2); margin-top: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .room-meta .lock-mini { color: var(--ok); }
+  .room-meta .timer-mini { color: var(--warn); }
+
+  .rooms-empty {
+    padding: 40px 20px; text-align: center; color: var(--text-2);
+    font-size: 13px; line-height: 1.5;
+  }
+
+  .sidebar-foot {
+    padding: 12px 16px; border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 10px;
+  }
+  .sidebar-foot .me {
+    display: flex; align-items: center; gap: 10px; min-width: 0;
+  }
+  .sidebar-foot .me .avatar {
+    width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, var(--accent), var(--signal-blue));
+    display: grid; place-items: center;
+    font-size: 13px; font-weight: 700;
+  }
+  .sidebar-foot .me .label {
+    font-size: 13px; min-width: 0;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .icon-btn {
+    background: transparent; border: 1px solid var(--border-strong);
+    color: var(--text-1); width: 32px; height: 32px;
+    border-radius: 10px; cursor: pointer;
+    display: grid; place-items: center;
+    transition: background .15s, color .15s;
+  }
+  .icon-btn:hover { background: var(--glass-strong); color: var(--text-0); }
+
+  /* ============ CHAT PANEL ============ */
+  .chat-panel { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+
+  .chat-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 18px;
+    background: rgba(13, 13, 24, 0.5);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0; gap: 12px;
+  }
+  .chat-header-left { display: flex; align-items: center; gap: 12px; min-width: 0; }
+  .chat-header-name { font-size: 15px; font-weight: 600; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chat-header-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; display: flex; align-items: center; gap: 8px; }
+  .chat-header-sub .ok { color: var(--ok); }
+  .chat-header-sub .warn { color: var(--warn); }
+  .chat-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .action-btn {
+    background: var(--glass-strong); border: 1px solid var(--border-strong);
+    color: var(--text-1); width: 38px; height: 38px;
+    border-radius: 12px; cursor: pointer;
+    display: grid; place-items: center;
+    transition: all .15s;
+  }
+  .action-btn:hover { background: rgba(255,255,255,0.12); color: var(--text-0); border-color: rgba(255,255,255,0.22); }
+  .action-btn.call:hover { background: rgba(74, 214, 138, 0.15); color: var(--ok); border-color: var(--ok); }
+  .action-btn.video:hover { background: rgba(58, 118, 240, 0.15); color: var(--signal-blue); border-color: var(--signal-blue); }
+  .action-btn.timer.on { background: rgba(255, 179, 71, 0.15); color: var(--warn); border-color: var(--warn); }
 
   .chat-frame-container {
     flex: 1; position: relative;
-    margin: 14px 18px 18px 18px;
+    margin: 12px 18px 18px 18px;
     border-radius: var(--radius);
     overflow: hidden;
     border: 1px solid var(--border);
     background: var(--bg-2);
     box-shadow: var(--shadow);
+    min-height: 0;
   }
-  .chat-frame-container iframe {
-    width: 100%; height: 100%; border: 0; display: block;
+  .chat-frame-container iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--bg-2); }
+
+  .no-room-placeholder {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px; text-align: center;
+  }
+  .no-room-placeholder .icon {
+    width: 80px; height: 80px; border-radius: 22px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center;
+    margin-bottom: 20px;
+    box-shadow: 0 14px 40px rgba(124, 92, 255, 0.35);
+  }
+  .no-room-placeholder h2 { margin: 0 0 8px 0; font-size: 22px; }
+  .no-room-placeholder p { margin: 0; color: var(--text-2); max-width: 360px; line-height: 1.55; }
+
+  /* ============ MODALES ============ */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(5, 5, 10, 0.7);
+    backdrop-filter: blur(8px);
+    z-index: 1000;
+    display: none; align-items: center; justify-content: center;
+    padding: 20px;
+    animation: fadeIn .15s ease-out;
+  }
+  .modal-overlay.active { display: flex; }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  .modal {
+    width: 100%; max-width: 480px;
     background: var(--bg-2);
+    border: 1px solid var(--border-strong);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    animation: slideUp .2s ease-out;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-full { max-width: 95vw; height: 90vh; display: flex; flex-direction: column; }
+  .modal-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 22px; border-bottom: 1px solid var(--border);
+  }
+  .modal-head h3 { margin: 0; font-size: 17px; font-weight: 600; }
+  .modal-body { padding: 22px; max-height: 70vh; overflow-y: auto; }
+  .modal-full .modal-body { flex: 1; padding: 0; max-height: none; }
+  .modal-foot {
+    display: flex; gap: 10px; justify-content: flex-end;
+    padding: 16px 22px; border-top: 1px solid var(--border);
   }
 
-  .chat-overlay-banner {
-    position: absolute; top: 12px; left: 50%; transform: translateX(-50%);
-    z-index: 5;
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 8px 14px;
-    background: rgba(10, 10, 18, 0.75);
-    backdrop-filter: blur(14px);
-    border: 1px solid var(--border-strong);
-    color: var(--text-1);
-    border-radius: 999px; font-size: 12px;
-    pointer-events: none;
-  }
-  .chat-overlay-banner .lock {
-    width: 14px; height: 14px; color: var(--ok);
-  }
-
-  .logout-btn {
-    background: transparent; color: var(--text-1);
-    border: 1px solid var(--border-strong);
-    padding: 7px 14px; border-radius: 999px;
-    font-size: 12px; cursor: pointer; font-family: inherit;
+  .close-btn {
+    background: transparent; border: 0; color: var(--text-2);
+    width: 34px; height: 34px; border-radius: 10px;
+    cursor: pointer; display: grid; place-items: center;
     transition: background .15s, color .15s;
   }
-  .logout-btn:hover { background: var(--glass-strong); color: var(--text-0); }
+  .close-btn:hover { background: var(--glass-strong); color: var(--text-0); }
 
-  /* ========== RESPONSIVE ========== */
-  @media (max-width: 640px) {
-    .topbar { padding: 12px 14px; }
-    .brand-name { font-size: 14px; }
+  .chip-list {
+    display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 10px; border-radius: 999px;
+    background: var(--glass-strong);
+    border: 1px solid var(--border-strong);
+    font-size: 13px;
+  }
+  .chip button {
+    background: transparent; border: 0; color: var(--text-2);
+    cursor: pointer; padding: 0; display: grid; place-items: center;
+    width: 18px; height: 18px; border-radius: 50%;
+  }
+  .chip button:hover { color: var(--danger); background: rgba(255,84,112,0.12); }
+
+  .user-suggestions {
+    margin-top: 10px;
+    max-height: 180px; overflow-y: auto;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: rgba(0,0,0,0.2);
+    display: none;
+  }
+  .user-suggestions.show { display: block; }
+  .user-suggestion {
+    padding: 10px 14px; cursor: pointer; font-size: 14px;
+    display: flex; align-items: center; gap: 10px;
+    transition: background .12s;
+  }
+  .user-suggestion:hover, .user-suggestion.focused { background: var(--glass-strong); }
+  .user-suggestion .avatar {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--signal-blue));
+    display: grid; place-items: center;
+    font-size: 12px; font-weight: 700;
+  }
+
+  /* timer options */
+  .timer-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+    margin-top: 6px;
+  }
+  .timer-opt {
+    padding: 14px 10px; text-align: center;
+    background: var(--glass-strong);
+    border: 1px solid var(--border-strong);
+    border-radius: 12px; cursor: pointer;
+    transition: all .15s;
+    font-size: 14px;
+  }
+  .timer-opt:hover { background: rgba(255,255,255,0.1); }
+  .timer-opt.selected {
+    background: rgba(255, 179, 71, 0.15);
+    border-color: var(--warn);
+    color: var(--warn);
+    font-weight: 600;
+  }
+  .timer-opt.off.selected {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: var(--border-strong);
+    color: var(--text-1);
+  }
+
+  /* call modal (element-call iframe) */
+  #callModal .modal-body { display: flex; }
+  #callModal iframe { width: 100%; height: 100%; border: 0; background: #000; }
+
+  .info-row {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 14px; margin-bottom: 8px;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 13px;
+  }
+  .info-row .ic {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: rgba(74, 214, 138, 0.12); color: var(--ok);
+    display: grid; place-items: center; flex-shrink: 0;
+  }
+  .info-row strong { display: block; color: var(--text-0); margin-bottom: 2px; }
+  .info-row span { color: var(--text-2); font-size: 12px; }
+
+  .toast {
+    position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+    background: rgba(20, 20, 32, 0.95);
+    border: 1px solid var(--border-strong);
+    color: var(--text-0);
+    padding: 12px 18px; border-radius: 12px;
+    font-size: 13px;
+    box-shadow: var(--shadow);
+    z-index: 2000;
+    display: flex; align-items: center; gap: 10px;
+    opacity: 0; pointer-events: none;
+    transition: opacity .2s, transform .2s;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); pointer-events: auto; }
+  .toast.ok { border-color: rgba(74, 214, 138, 0.4); }
+  .toast.err { border-color: rgba(255, 84, 112, 0.4); }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 760px) {
+    .topbar { padding: 10px 14px; }
     .brand-name span { display: none; }
-    .secure-pill { padding: 6px 10px; font-size: 11px; }
     .secure-pill span { display: none; }
-    .login-card { padding: 24px 20px; border-radius: 18px; }
-    .login-card h1 { font-size: 20px; }
+    .sidebar { position: absolute; inset: 56px 0 0 0; width: 100%; z-index: 5; }
+    .sidebar.hidden-mobile { display: none; }
+    .chat-panel { width: 100%; }
     .chat-frame-container { margin: 8px; border-radius: 12px; }
-    .chat-overlay-banner { font-size: 11px; padding: 6px 10px; }
+    .modal { max-width: 95vw; }
+    .timer-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 </head>
@@ -226,17 +505,19 @@
   <!-- ========= TOP BAR ========= -->
   <header class="topbar">
     <div class="brand">
+      <button class="icon-btn mobile-only" id="toggleSidebar" style="display:none">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
       <div class="brand-logo" id="brandLogo">S</div>
       <div class="brand-name" id="brandName">Symbalyx<span>· secure</span></div>
     </div>
 
-    <div style="display:flex; align-items:center; gap:12px;">
+    <div style="display:flex; align-items:center; gap:10px;">
       <div class="secure-pill" title="Chiffrement de bout en bout actif">
         <span class="dot"></span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         <span>Chiffré E2E</span>
       </div>
-      <button class="logout-btn" id="logoutBtn" style="display:none">Déconnexion</button>
     </div>
   </header>
 
@@ -255,7 +536,7 @@
           <label for="pass">Mot de passe</label>
           <input id="pass" type="password" placeholder="••••••••" required />
         </div>
-        <button class="btn" type="submit" id="loginBtn">Se connecter</button>
+        <button class="btn full" type="submit" id="loginBtn">Se connecter</button>
         <div class="error-msg" id="loginError"></div>
       </form>
 
@@ -266,29 +547,224 @@
     </div>
   </main>
 
-  <!-- ========= CHAT (Element embedded) ========= -->
-  <section class="chat-wrap" id="chatView">
-    <div class="chat-frame-container">
-      <div class="chat-overlay-banner">
-        <svg class="lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-        Conversation chiffrée de bout en bout
+  <!-- ========= MAIN APP ========= -->
+  <section class="main-app" id="mainApp">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <h2>Mes conversations</h2>
+        <button class="new-group-btn" id="btnNewGroup">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Nouveau groupe privé
+        </button>
       </div>
-      <iframe id="elementFrame" src="about:blank" allow="camera; microphone; display-capture; autoplay; clipboard-read; clipboard-write"></iframe>
+
+      <div class="rooms-list" id="roomsList">
+        <div class="rooms-empty" id="roomsEmpty">
+          Aucune conversation pour l'instant.<br>
+          Créez un groupe privé pour démarrer.
+        </div>
+      </div>
+
+      <div class="sidebar-foot">
+        <div class="me">
+          <div class="avatar" id="myAvatar">?</div>
+          <div class="label" id="myLabel">…</div>
+        </div>
+        <button class="icon-btn" id="logoutBtn" title="Déconnexion">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Chat panel -->
+    <div class="chat-panel" id="chatPanel">
+
+      <div class="no-room-placeholder" id="noRoomView">
+        <div class="icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        </div>
+        <h2>Sélectionnez une conversation</h2>
+        <p>Ou créez un nouveau groupe privé chiffré pour démarrer. Tous les messages sont chiffrés de bout en bout — ni le serveur, ni nous ne pouvons les lire.</p>
+      </div>
+
+      <div id="roomView" style="display:none; flex:1; flex-direction: column; min-height: 0;">
+        <div class="chat-header">
+          <div class="chat-header-left">
+            <div class="room-avatar" id="curRoomAvatar" style="width:38px; height:38px; font-size:14px;">?</div>
+            <div style="min-width:0;">
+              <div class="chat-header-name" id="curRoomName">…</div>
+              <div class="chat-header-sub">
+                <span class="ok">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                  Chiffré
+                </span>
+                <span id="curRoomTimer" style="display:none" class="warn">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                  <span id="curRoomTimerLabel"></span>
+                </span>
+                <span id="curRoomMembers"></span>
+              </div>
+            </div>
+          </div>
+          <div class="chat-actions">
+            <button class="action-btn timer" id="btnTimer" title="Messages éphémères">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </button>
+            <button class="action-btn call" id="btnVoiceCall" title="Appel voix">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            </button>
+            <button class="action-btn video" id="btnVideoCall" title="Appel vidéo">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
+            </button>
+            <button class="action-btn" id="btnInvite" title="Inviter des membres">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="chat-frame-container">
+          <iframe id="elementFrame" src="about:blank" allow="camera; microphone; display-capture; autoplay; clipboard-read; clipboard-write"></iframe>
+        </div>
+      </div>
+
     </div>
   </section>
 
 </div>
 
+<!-- ========= MODALES ========= -->
+
+<!-- Création groupe -->
+<div class="modal-overlay" id="modalNewGroup">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Nouveau groupe privé chiffré</h3>
+      <button class="close-btn" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="info-row">
+        <div class="ic">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        </div>
+        <div>
+          <strong>Chiffrement automatique</strong>
+          <span>Tous les messages, fichiers et appels seront chiffrés de bout en bout.</span>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:18px;">
+        <label>Nom du groupe</label>
+        <input id="newGroupName" type="text" placeholder="Équipe projet, Famille, …" maxlength="80" />
+      </div>
+
+      <div class="field">
+        <label>Inviter des membres</label>
+        <input id="newGroupInvite" type="text" placeholder="alice, bob, carol… (sans @)" autocapitalize="off" autocorrect="off" />
+        <div class="user-suggestions" id="inviteSuggestions"></div>
+        <div class="chip-list" id="newGroupChips"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close>Annuler</button>
+      <button class="btn signal" id="btnCreateGroup">Créer le groupe</button>
+    </div>
+  </div>
+</div>
+
+<!-- Invitations dans groupe existant -->
+<div class="modal-overlay" id="modalInvite">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Inviter des membres</h3>
+      <button class="close-btn" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Utilisateurs à inviter</label>
+        <input id="inviteInput" type="text" placeholder="bob, carol… (sans @)" autocapitalize="off" autocorrect="off" />
+        <div class="user-suggestions" id="inviteRoomSuggestions"></div>
+        <div class="chip-list" id="inviteChips"></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close>Annuler</button>
+      <button class="btn signal" id="btnSendInvites">Inviter</button>
+    </div>
+  </div>
+</div>
+
+<!-- Timer messages éphémères -->
+<div class="modal-overlay" id="modalTimer">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Messages éphémères</h3>
+      <button class="close-btn" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="info-row">
+        <div class="ic" style="background: rgba(255, 179, 71, 0.12); color: var(--warn);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        </div>
+        <div>
+          <strong>Auto-disparition serveur</strong>
+          <span>Les messages plus anciens que la durée choisie sont effacés automatiquement par le serveur.</span>
+        </div>
+      </div>
+
+      <p style="color: var(--text-2); font-size: 13px; margin: 18px 0 10px;">Durée de rétention :</p>
+      <div class="timer-grid" id="timerGrid">
+        <div class="timer-opt off" data-ms="0">Désactivé</div>
+        <div class="timer-opt" data-ms="3600000">1 heure</div>
+        <div class="timer-opt" data-ms="21600000">6 heures</div>
+        <div class="timer-opt" data-ms="86400000">24 heures</div>
+        <div class="timer-opt" data-ms="604800000">7 jours</div>
+        <div class="timer-opt" data-ms="2592000000">30 jours</div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close>Annuler</button>
+      <button class="btn" id="btnApplyTimer">Appliquer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Appel en cours (Element Call iframe) -->
+<div class="modal-overlay" id="callModal">
+  <div class="modal modal-full">
+    <div class="modal-head">
+      <h3 id="callTitle">Appel en cours</h3>
+      <button class="close-btn" id="btnEndCall" title="Quitter l'appel">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <iframe id="callFrame" src="about:blank" allow="camera; microphone; display-capture; autoplay; clipboard-read; clipboard-write"></iframe>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
 <script>
 /* =======================================================================
-   Symbalyx UI — personnalisation
+   Symbalyx UI — config
    ======================================================================= */
 const CONFIG = {
-  brandName:   "Symbalyx",
-  brandSuffix: "· secure",
-  brandLetter: "S",
-  homeserver:  "http://localhost:8008",
-  elementUrl:  "http://localhost:8080"
+  brandName:    "Symbalyx",
+  brandSuffix:  "· secure",
+  brandLetter:  "S",
+  homeserver:   "http://localhost:8008",
+  elementUrl:   "http://localhost:8080",
+  elementCall:  "http://localhost:8181",
+  serverName:   "localhost"
 };
 
 document.getElementById("brandLogo").textContent = CONFIG.brandLetter;
@@ -296,84 +772,620 @@ document.getElementById("brandName").innerHTML   =
   `${CONFIG.brandName}<span>${CONFIG.brandSuffix}</span>`;
 document.title = `${CONFIG.brandName} · Messagerie chiffrée`;
 
-/* ===================== AUTH ===================== */
-const loginForm  = document.getElementById("loginForm");
-const loginBtn   = document.getElementById("loginBtn");
-const loginErr   = document.getElementById("loginError");
-const loginView  = document.getElementById("loginView");
-const chatView   = document.getElementById("chatView");
-const logoutBtn  = document.getElementById("logoutBtn");
-const elFrame    = document.getElementById("elementFrame");
+/* =======================================================================
+   Matrix client minimal
+   ======================================================================= */
+const M = {
+  hs: CONFIG.homeserver,
+  token: null,
+  userId: null,
+  deviceId: null,
 
-function showError(msg) {
-  loginErr.textContent = msg;
-  loginErr.classList.add("show");
-}
-function clearError() {
-  loginErr.classList.remove("show");
-  loginErr.textContent = "";
-}
+  async req(method, path, body, opts = {}) {
+    const headers = { "Content-Type": "application/json" };
+    if (this.token) headers["Authorization"] = `Bearer ${this.token}`;
+    const res = await fetch(`${this.hs}${path}`, {
+      method, headers,
+      body: body ? JSON.stringify(body) : undefined
+    });
+    if (!res.ok && !opts.silent) {
+      const data = await res.json().catch(() => ({}));
+      const err = new Error(data.error || `HTTP ${res.status}`);
+      err.code = data.errcode; err.status = res.status;
+      throw err;
+    }
+    return res.ok ? res.json() : null;
+  },
 
-async function matrixLogin(user, pass) {
-  const res = await fetch(`${CONFIG.homeserver}/_matrix/client/v3/login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
+  async login(user, pass) {
+    const data = await this.req("POST", "/_matrix/client/v3/login", {
       type: "m.login.password",
-      identifier: { type: "m.id.user", user: user },
+      identifier: { type: "m.id.user", user },
       password: pass,
       initial_device_display_name: "Symbalyx Web"
-    })
-  });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data.error || `Échec de la connexion (${res.status})`);
+    });
+    this.token    = data.access_token;
+    this.userId   = data.user_id;
+    this.deviceId = data.device_id;
+    return data;
+  },
+
+  async logout() {
+    try { await this.req("POST", "/_matrix/client/v3/logout"); } catch {}
+    this.token = this.userId = this.deviceId = null;
+  },
+
+  async whoami() {
+    return this.req("GET", "/_matrix/client/v3/account/whoami");
+  },
+
+  async joinedRooms() {
+    const data = await this.req("GET", "/_matrix/client/v3/joined_rooms");
+    return data.joined_rooms || [];
+  },
+
+  async roomName(roomId) {
+    try {
+      const d = await this.req("GET",
+        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.name/`,
+        null, { silent: true });
+      return d?.name || null;
+    } catch { return null; }
+  },
+
+  async roomMembers(roomId) {
+    try {
+      const d = await this.req("GET",
+        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/joined_members`);
+      return Object.keys(d.joined || {});
+    } catch { return []; }
+  },
+
+  async roomRetention(roomId) {
+    try {
+      const d = await this.req("GET",
+        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.retention/`,
+        null, { silent: true });
+      return d?.max_lifetime || 0;
+    } catch { return 0; }
+  },
+
+  async setRoomRetention(roomId, maxLifetime) {
+    const body = maxLifetime > 0 ? { max_lifetime: maxLifetime } : {};
+    return this.req("PUT",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.retention/`,
+      body);
+  },
+
+  async createPrivateGroup(name, invites) {
+    return this.req("POST", "/_matrix/client/v3/createRoom", {
+      preset: "private_chat",
+      name: name || undefined,
+      invite: invites,
+      visibility: "private",
+      initial_state: [
+        {
+          type: "m.room.encryption",
+          state_key: "",
+          content: { algorithm: "m.megolm.v1.aes-sha2" }
+        },
+        {
+          type: "m.room.history_visibility",
+          state_key: "",
+          content: { history_visibility: "invited" }
+        },
+        {
+          type: "m.room.guest_access",
+          state_key: "",
+          content: { guest_access: "forbidden" }
+        }
+      ]
+    });
+  },
+
+  async invite(roomId, userId) {
+    return this.req("POST",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/invite`,
+      { user_id: userId });
+  },
+
+  async searchUsers(term) {
+    try {
+      const d = await this.req("POST", "/_matrix/client/v3/user_directory/search",
+        { search_term: term, limit: 8 });
+      return d?.results || [];
+    } catch { return []; }
   }
-  return res.json();
+};
+
+/* =======================================================================
+   UI state
+   ======================================================================= */
+const state = {
+  rooms: [],          // [{id, name, members, retention}]
+  currentRoomId: null,
+  newGroupInvites: [],
+  inviteChips: []
+};
+
+/* =======================================================================
+   Helpers
+   ======================================================================= */
+function $(sel) { return document.querySelector(sel); }
+function $$(sel) { return Array.from(document.querySelectorAll(sel)); }
+
+function toast(msg, type = "") {
+  const t = $("#toast");
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove("show"), 3000);
 }
 
-function openChat() {
-  loginView.style.display = "none";
-  chatView.classList.add("active");
-  logoutBtn.style.display = "inline-flex";
-  elFrame.src = CONFIG.elementUrl;
+function ensureMxid(handle) {
+  if (!handle) return null;
+  handle = handle.trim();
+  if (handle.startsWith("@")) return handle;
+  if (handle.includes(":")) return "@" + handle;
+  return `@${handle}:${CONFIG.serverName}`;
 }
+
+function initials(s) {
+  if (!s) return "?";
+  const parts = s.replace(/^[@#!]/, "").split(/[\s:_\-]+/).filter(Boolean);
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return s.replace(/^[@#!]/, "").slice(0, 2).toUpperCase();
+}
+
+function fmtRetention(ms) {
+  if (!ms) return null;
+  const h = ms / 3600000;
+  if (h < 24) return `${h}h`;
+  const d = h / 24;
+  if (d < 7) return `${d}j`;
+  if (d < 30) return `${Math.round(d / 7)}sem`;
+  return `${Math.round(d / 30)}mois`;
+}
+
+/* =======================================================================
+   Auth flow
+   ======================================================================= */
+const loginForm  = $("#loginForm");
+const loginBtn   = $("#loginBtn");
+const loginErr   = $("#loginError");
+const loginView  = $("#loginView");
+const mainApp    = $("#mainApp");
 
 function showLogin() {
-  chatView.classList.remove("active");
   loginView.style.display = "grid";
-  logoutBtn.style.display = "none";
-  elFrame.src = "about:blank";
+  mainApp.classList.remove("active");
+  sessionStorage.removeItem("symbalyx_token");
+}
+
+function enterApp() {
+  loginView.style.display = "none";
+  mainApp.classList.add("active");
+  const short = M.userId.replace(/^@/, "").split(":")[0];
+  $("#myAvatar").textContent = initials(short);
+  $("#myLabel").textContent  = short;
+  loadRooms();
+  startSyncLoop();
 }
 
 loginForm.addEventListener("submit", async (e) => {
   e.preventDefault();
-  clearError();
-  const user = document.getElementById("user").value.trim();
-  const pass = document.getElementById("pass").value;
+  loginErr.classList.remove("show");
+  const user = $("#user").value.trim();
+  const pass = $("#pass").value;
   if (!user || !pass) return;
-
-  loginBtn.disabled = true;
-  loginBtn.textContent = "Connexion…";
+  loginBtn.disabled = true; loginBtn.textContent = "Connexion…";
   try {
-    const data = await matrixLogin(user, pass);
-    sessionStorage.setItem("symbalyx_user", data.user_id || user);
-    openChat();
+    const data = await M.login(user, pass);
+    sessionStorage.setItem("symbalyx_token", JSON.stringify({
+      token: data.access_token, userId: data.user_id, deviceId: data.device_id
+    }));
+    enterApp();
   } catch (err) {
-    showError(err.message || "Identifiants invalides");
+    loginErr.textContent = err.message || "Identifiants invalides";
+    loginErr.classList.add("show");
   } finally {
-    loginBtn.disabled = false;
-    loginBtn.textContent = "Se connecter";
+    loginBtn.disabled = false; loginBtn.textContent = "Se connecter";
   }
 });
 
-logoutBtn.addEventListener("click", () => {
-  sessionStorage.removeItem("symbalyx_user");
+$("#logoutBtn").addEventListener("click", async () => {
+  await M.logout();
   showLogin();
 });
 
-/* Auto-show login on load */
-showLogin();
+/* Restore session on load */
+(function tryRestore() {
+  const raw = sessionStorage.getItem("symbalyx_token");
+  if (!raw) { showLogin(); return; }
+  try {
+    const s = JSON.parse(raw);
+    M.token = s.token; M.userId = s.userId; M.deviceId = s.deviceId;
+    M.whoami().then(enterApp).catch(() => showLogin());
+  } catch { showLogin(); }
+})();
+
+/* =======================================================================
+   Rooms list
+   ======================================================================= */
+async function loadRooms() {
+  try {
+    const ids = await M.joinedRooms();
+    const rooms = [];
+    for (const id of ids) {
+      const [name, members, retention] = await Promise.all([
+        M.roomName(id),
+        M.roomMembers(id),
+        M.roomRetention(id)
+      ]);
+      rooms.push({ id, name: name || "Conversation", members, retention });
+    }
+    rooms.sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+    state.rooms = rooms;
+    renderRooms();
+  } catch (err) {
+    console.error(err);
+    toast("Erreur de chargement des conversations", "err");
+  }
+}
+
+function renderRooms() {
+  const list = $("#roomsList");
+  if (!state.rooms.length) {
+    list.innerHTML = `<div class="rooms-empty">
+      Aucune conversation pour l'instant.<br>Créez un groupe privé pour démarrer.
+    </div>`;
+    return;
+  }
+  list.innerHTML = state.rooms.map(r => `
+    <div class="room-item ${r.id === state.currentRoomId ? "active" : ""}" data-id="${r.id}">
+      <div class="room-avatar">${initials(r.name)}</div>
+      <div class="room-info">
+        <div class="room-name">${escapeHtml(r.name)}</div>
+        <div class="room-meta">
+          <span class="lock-mini">
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          </span>
+          <span>${r.members.length} membre${r.members.length > 1 ? "s" : ""}</span>
+          ${r.retention ? `<span class="timer-mini">· ${fmtRetention(r.retention)}</span>` : ""}
+        </div>
+      </div>
+    </div>
+  `).join("");
+
+  $$("#roomsList .room-item").forEach(el => {
+    el.addEventListener("click", () => selectRoom(el.dataset.id));
+  });
+}
+
+function escapeHtml(s) {
+  return (s || "").replace(/[&<>"']/g, c => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[c]));
+}
+
+function selectRoom(roomId) {
+  state.currentRoomId = roomId;
+  const r = state.rooms.find(x => x.id === roomId);
+  if (!r) return;
+  $("#noRoomView").style.display = "none";
+  $("#roomView").style.display   = "flex";
+  $("#curRoomName").textContent  = r.name;
+  $("#curRoomAvatar").textContent = initials(r.name);
+  $("#curRoomMembers").textContent = `· ${r.members.length} membre${r.members.length > 1 ? "s" : ""}`;
+
+  if (r.retention) {
+    $("#curRoomTimer").style.display = "";
+    $("#curRoomTimerLabel").textContent = `Auto-suppression ${fmtRetention(r.retention)}`;
+    $("#btnTimer").classList.add("on");
+  } else {
+    $("#curRoomTimer").style.display = "none";
+    $("#btnTimer").classList.remove("on");
+  }
+
+  // Load Element on this room
+  $("#elementFrame").src =
+    `${CONFIG.elementUrl}/#/room/${encodeURIComponent(roomId)}`;
+
+  renderRooms();
+
+  // Mobile: hide sidebar after selection
+  if (window.innerWidth <= 760) $("#sidebar").classList.add("hidden-mobile");
+}
+
+/* =======================================================================
+   Sync loop (refresh rooms list periodically)
+   ======================================================================= */
+let syncTimer = null;
+function startSyncLoop() {
+  if (syncTimer) clearInterval(syncTimer);
+  syncTimer = setInterval(loadRooms, 15000);
+}
+
+/* =======================================================================
+   Modal helpers
+   ======================================================================= */
+function openModal(id) { $(id).classList.add("active"); }
+function closeModal(id) { $(id).classList.remove("active"); }
+$$(".modal-overlay [data-close]").forEach(b => {
+  b.addEventListener("click", e => {
+    e.target.closest(".modal-overlay").classList.remove("active");
+  });
+});
+$$(".modal-overlay").forEach(o => {
+  o.addEventListener("click", e => {
+    if (e.target === o) o.classList.remove("active");
+  });
+});
+
+/* =======================================================================
+   New group flow
+   ======================================================================= */
+$("#btnNewGroup").addEventListener("click", () => {
+  $("#newGroupName").value = "";
+  $("#newGroupInvite").value = "";
+  state.newGroupInvites = [];
+  refreshNewGroupChips();
+  openModal("#modalNewGroup");
+  setTimeout(() => $("#newGroupName").focus(), 100);
+});
+
+function renderChips(sel, arr, onRemove) {
+  const el = $(sel);
+  el.innerHTML = arr.map((u, i) => `
+    <div class="chip">
+      <span>${escapeHtml(u.replace(/^@/, "").split(":")[0])}</span>
+      <button data-i="${i}" title="Retirer">
+        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+  `).join("");
+  el.querySelectorAll("button").forEach(b => {
+    b.addEventListener("click", () => {
+      const idx = parseInt(b.dataset.i, 10);
+      if (onRemove) onRemove(idx);
+    });
+  });
+}
+
+function attachSuggest(inputSel, suggSel, chipArr, onAdd) {
+  const input = $(inputSel);
+  const box   = $(suggSel);
+  let timer = null;
+
+  input.addEventListener("input", () => {
+    const v = input.value.trim();
+    clearTimeout(timer);
+    if (!v) { box.classList.remove("show"); box.innerHTML = ""; return; }
+    timer = setTimeout(async () => {
+      const results = await M.searchUsers(v);
+      if (!results.length) {
+        box.innerHTML = `<div class="user-suggestion" data-id="${ensureMxid(v)}">
+          <div class="avatar">${initials(v)}</div>
+          <div>Inviter <strong>${escapeHtml(v)}</strong> (utilisateur local)</div>
+        </div>`;
+      } else {
+        box.innerHTML = results.map(r => `
+          <div class="user-suggestion" data-id="${escapeHtml(r.user_id)}">
+            <div class="avatar">${initials(r.display_name || r.user_id)}</div>
+            <div>
+              <div style="font-weight:600">${escapeHtml(r.display_name || r.user_id.replace(/^@/, "").split(":")[0])}</div>
+              <div style="font-size:11px; color:var(--text-2)">${escapeHtml(r.user_id)}</div>
+            </div>
+          </div>
+        `).join("");
+      }
+      box.classList.add("show");
+      box.querySelectorAll(".user-suggestion").forEach(el => {
+        el.addEventListener("click", () => {
+          const mxid = el.dataset.id;
+          if (mxid && mxid !== M.userId && !chipArr.includes(mxid)) {
+            chipArr.push(mxid);
+            onAdd();
+          }
+          input.value = "";
+          box.classList.remove("show");
+          input.focus();
+        });
+      });
+    }, 180);
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const v = input.value.trim();
+      if (v) {
+        const mxid = ensureMxid(v);
+        if (mxid !== M.userId && !chipArr.includes(mxid)) {
+          chipArr.push(mxid);
+          onAdd();
+        }
+        input.value = "";
+        box.classList.remove("show");
+      }
+    } else if (e.key === "Backspace" && !input.value && chipArr.length) {
+      chipArr.pop();
+      onAdd();
+    }
+  });
+}
+
+function refreshNewGroupChips() {
+  renderChips("#newGroupChips", state.newGroupInvites, (i) => {
+    state.newGroupInvites.splice(i, 1);
+    refreshNewGroupChips();
+  });
+}
+attachSuggest("#newGroupInvite", "#inviteSuggestions", state.newGroupInvites, refreshNewGroupChips);
+
+$("#btnCreateGroup").addEventListener("click", async () => {
+  const name = $("#newGroupName").value.trim();
+  // pickup any pending text in input
+  const pending = $("#newGroupInvite").value.trim();
+  if (pending) {
+    const mxid = ensureMxid(pending);
+    if (mxid !== M.userId && !state.newGroupInvites.includes(mxid)) {
+      state.newGroupInvites.push(mxid);
+    }
+  }
+  if (!name) { toast("Donnez un nom à votre groupe", "err"); return; }
+  if (state.newGroupInvites.length === 0) {
+    if (!confirm("Créer le groupe sans inviter personne pour l'instant ?")) return;
+  }
+
+  const btn = $("#btnCreateGroup");
+  btn.disabled = true; btn.textContent = "Création…";
+  try {
+    const res = await M.createPrivateGroup(name, state.newGroupInvites);
+    closeModal("#modalNewGroup");
+    toast("Groupe créé · chiffrement activé", "ok");
+    await loadRooms();
+    selectRoom(res.room_id);
+  } catch (err) {
+    toast(err.message || "Erreur lors de la création", "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "Créer le groupe";
+  }
+});
+
+/* =======================================================================
+   Invite existing
+   ======================================================================= */
+$("#btnInvite").addEventListener("click", () => {
+  if (!state.currentRoomId) return;
+  state.inviteChips = [];
+  $("#inviteInput").value = "";
+  renderChips("#inviteChips", state.inviteChips);
+  openModal("#modalInvite");
+  setTimeout(() => $("#inviteInput").focus(), 100);
+});
+
+function refreshInviteChips() {
+  renderChips("#inviteChips", state.inviteChips, (i) => {
+    state.inviteChips.splice(i, 1);
+    refreshInviteChips();
+  });
+}
+attachSuggest("#inviteInput", "#inviteRoomSuggestions", state.inviteChips, refreshInviteChips);
+
+$("#btnSendInvites").addEventListener("click", async () => {
+  const pending = $("#inviteInput").value.trim();
+  if (pending) {
+    const mxid = ensureMxid(pending);
+    if (mxid !== M.userId && !state.inviteChips.includes(mxid)) {
+      state.inviteChips.push(mxid);
+    }
+  }
+  if (!state.inviteChips.length) { toast("Aucun utilisateur sélectionné", "err"); return; }
+  const btn = $("#btnSendInvites");
+  btn.disabled = true; btn.textContent = "Envoi…";
+  let ok = 0, ko = 0;
+  for (const mxid of state.inviteChips) {
+    try { await M.invite(state.currentRoomId, mxid); ok++; }
+    catch { ko++; }
+  }
+  btn.disabled = false; btn.textContent = "Inviter";
+  closeModal("#modalInvite");
+  toast(`${ok} invitation${ok > 1 ? "s" : ""} envoyée${ok > 1 ? "s" : ""}${ko ? ` · ${ko} échec` : ""}`, ko ? "err" : "ok");
+  loadRooms();
+});
+
+/* =======================================================================
+   Retention / messages éphémères
+   ======================================================================= */
+let selectedTimerMs = 0;
+
+$("#btnTimer").addEventListener("click", async () => {
+  if (!state.currentRoomId) return;
+  const r = state.rooms.find(x => x.id === state.currentRoomId);
+  selectedTimerMs = r?.retention || 0;
+  $$("#timerGrid .timer-opt").forEach(el => {
+    el.classList.toggle("selected", parseInt(el.dataset.ms, 10) === selectedTimerMs);
+  });
+  openModal("#modalTimer");
+});
+
+$$("#timerGrid .timer-opt").forEach(el => {
+  el.addEventListener("click", () => {
+    selectedTimerMs = parseInt(el.dataset.ms, 10);
+    $$("#timerGrid .timer-opt").forEach(x => x.classList.remove("selected"));
+    el.classList.add("selected");
+  });
+});
+
+$("#btnApplyTimer").addEventListener("click", async () => {
+  if (!state.currentRoomId) return;
+  const btn = $("#btnApplyTimer");
+  btn.disabled = true; btn.textContent = "Application…";
+  try {
+    await M.setRoomRetention(state.currentRoomId, selectedTimerMs);
+    closeModal("#modalTimer");
+    toast(selectedTimerMs ? `Messages éphémères : ${fmtRetention(selectedTimerMs)}` : "Messages éphémères désactivés", "ok");
+    await loadRooms();
+    selectRoom(state.currentRoomId);
+  } catch (err) {
+    toast(err.message || "Erreur de configuration", "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "Appliquer";
+  }
+});
+
+/* =======================================================================
+   Appels voix / vidéo (Element Call)
+   ======================================================================= */
+function launchCall(audioOnly) {
+  if (!state.currentRoomId) return;
+  const r = state.rooms.find(x => x.id === state.currentRoomId);
+  $("#callTitle").textContent =
+    `${audioOnly ? "Appel voix" : "Appel vidéo"} · ${r?.name || ""}`;
+
+  // Element Call standalone embed URL.
+  // Les credentials Matrix sont passés via hash params pour éviter
+  // que le token ne soit logué (referer/history).
+  const hashParams = new URLSearchParams({
+    roomId: state.currentRoomId,
+    baseUrl: CONFIG.homeserver,
+    userId: M.userId,
+    deviceId: M.deviceId || "",
+    token: M.token,
+    displayName: M.userId.replace(/^@/, "").split(":")[0],
+    perParticipantE2EE: "true",
+    embed: "true",
+    hideHeader: "true",
+    appPrompt: "false",
+    confineToRoom: "true",
+    enableE2EE: "true",
+    initialAudioInput: "default",
+    initialVideoInput: audioOnly ? "off" : "default"
+  });
+  $("#callFrame").src = `${CONFIG.elementCall}/room/#?${hashParams.toString()}`;
+  openModal("#callModal");
+}
+
+$("#btnVoiceCall").addEventListener("click", () => launchCall(true));
+$("#btnVideoCall").addEventListener("click", () => launchCall(false));
+$("#btnEndCall").addEventListener("click", () => {
+  $("#callFrame").src = "about:blank";
+  closeModal("#callModal");
+});
+
+/* =======================================================================
+   Mobile sidebar toggle
+   ======================================================================= */
+function refreshMobile() {
+  const isMobile = window.innerWidth <= 760;
+  $("#toggleSidebar").style.display = isMobile ? "" : "none";
+  if (!isMobile) $("#sidebar").classList.remove("hidden-mobile");
+}
+window.addEventListener("resize", refreshMobile);
+refreshMobile();
+$("#toggleSidebar").addEventListener("click", () => {
+  $("#sidebar").classList.toggle("hidden-mobile");
+});
 </script>
 </body>
 </html>

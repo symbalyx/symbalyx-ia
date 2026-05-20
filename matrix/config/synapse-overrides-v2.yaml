@@ -1,0 +1,45 @@
+
+# ===========================================================
+#  Symbalyx — overrides v2
+#  Ajoute : MatrixRTC focus (Element Call), retention server,
+#  TURN refresh, et durcissement supplémentaire.
+#  À appender à data/synapse/homeserver.yaml.
+# ===========================================================
+
+public_baseurl: "http://localhost:8008"
+
+# --- MatrixRTC : annonce le focus LiveKit via .well-known ---
+extra_well_known_client_content:
+  org.matrix.msc4143.rtc_foci:
+    - type: livekit
+      livekit_service_url: "http://localhost:8881"
+
+# --- Rétention des messages (côté serveur) ---
+# Active la politique m.room.retention : les events plus
+# vieux que max_lifetime sont purgés automatiquement.
+retention:
+  enabled: true
+  default_policy:
+    min_lifetime: 1h
+    max_lifetime: 30d
+  allowed_lifetime_min: 1h
+  allowed_lifetime_max: 90d
+  purge_jobs:
+    - interval: 1d
+
+# --- Messages éphémères côté client (Element labs) ---
+# Le client envoie des events avec un flag d'expiration.
+# La feature 'feature_disappearing_messages' d'Element s'en charge.
+
+# --- Tweaks sécurité / vie privée ---
+allow_public_rooms_without_auth: false
+allow_public_rooms_over_federation: false
+require_auth_for_profile_requests: true
+limit_profile_requests_to_users_who_share_rooms: true
+
+# --- Caches / perf pour 10 users ---
+caches:
+  global_factor: 1.0
+
+# --- Désactive l'envoi de stats anonymes ---
+report_stats: false

@@ -2,17 +2,8 @@ version: "3.8"
 
 # ============================================================
 #  Symbalyx Secure Messaging — Matrix Synapse + Element Web
+#  + Element Call (group video, E2E via MatrixRTC + LiveKit SFU)
 #  Stack 100% locale, chiffrement E2E natif, zéro cloud.
-# ============================================================
-#
-#  Services :
-#   - postgres  : base de données du serveur Matrix
-#   - synapse   : serveur Matrix (homeserver)
-#   - element   : client Web Matrix officiel
-#   - coturn    : serveur TURN/STUN pour les appels voix/vidéo
-#   - ui        : interface custom Symbalyx (page d'accueil)
-#
-#  Réseau local uniquement. Aucun port n'est exposé sur Internet.
 # ============================================================
 
 services:
@@ -28,8 +19,7 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
     volumes:
       - ./data/postgres:/var/lib/postgresql/data
-    networks:
-      - symbalyx_net
+    networks: [symbalyx_net]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U synapse"]
       interval: 10s
@@ -41,8 +31,7 @@ services:
     container_name: symbalyx_synapse
     restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      postgres: { condition: service_healthy }
     environment:
       SYNAPSE_SERVER_NAME: "localhost"
       SYNAPSE_REPORT_STATS: "no"
@@ -53,8 +42,7 @@ services:
       - ./data/synapse:/data
     ports:
       - "8008:8008"
-    networks:
-      - symbalyx_net
+    networks: [symbalyx_net]
     healthcheck:
       test: ["CMD", "curl", "-fSs", "http://localhost:8008/health"]
       interval: 15s
@@ -65,15 +53,64 @@ services:
     image: vectorim/element-web:latest
     container_name: symbalyx_element
     restart: unless-stopped
-    depends_on:
-      - synapse
+    depends_on: [synapse]
     volumes:
       - ./element/config.json:/app/config.json:ro
     ports:
       - "8080:80"
-    networks:
-      - symbalyx_net
+    networks: [symbalyx_net]
 
+  # ------------------------------------------------------------
+  # LiveKit SFU — relais média pour les appels de groupe.
+  # Les flux audio/vidéo restent E2EE (clés Megolm/MatrixRTC),
+  # LiveKit ne relaye que du chiffré.
+  # ------------------------------------------------------------
+  livekit:
+    image: livekit/livekit-server:latest
+    container_name: symbalyx_livekit
+    restart: unless-stopped
+    command: --config /etc/livekit.yaml
+    volumes:
+      - ./config/livekit.yaml:/etc/livekit.yaml:ro
+    network_mode: host
+
+  # ------------------------------------------------------------
+  # LiveKit JWT Service — convertit un access_token Matrix
+  # en JWT LiveKit (validé contre Synapse).
+  # ------------------------------------------------------------
+  lk-jwt-service:
+    image: ghcr.io/element-hq/lk-jwt-service:latest-ci
+    container_name: symbalyx_lk_jwt
+    restart: unless-stopped
+    depends_on: [synapse, livekit]
+    environment:
+      LIVEKIT_URL: "ws://localhost:7880"
+      LIVEKIT_KEY: "symbalyx_lk_key"
+      LIVEKIT_SECRET: "symbalyx_lk_secret_change_me_min_32_chars"
+      LK_JWT_PORT: "8881"
+    ports:
+      - "8881:8881"
+    networks: [symbalyx_net]
+
+  # ------------------------------------------------------------
+  # Element Call — client d'appel vidéo de groupe E2EE
+  # (basé sur MatrixRTC + WebRTC + LiveKit SFU).
+  # ------------------------------------------------------------
+  element-call:
+    image: ghcr.io/element-hq/element-call:latest-ci
+    container_name: symbalyx_element_call
+    restart: unless-stopped
+    depends_on: [synapse, lk-jwt-service]
+    volumes:
+      - ./element-call/config.json:/app/config.json:ro
+    ports:
+      - "8181:8080"
+    networks: [symbalyx_net]
+
+  # ------------------------------------------------------------
+  # coturn — TURN/STUN pour les appels 1-to-1 (legacy WebRTC)
+  # et le NAT-traversal en LAN/mobile.
+  # ------------------------------------------------------------
   coturn:
     image: coturn/coturn:latest
     container_name: symbalyx_coturn
@@ -82,6 +119,10 @@ services:
     volumes:
       - ./config/turnserver.conf:/etc/coturn/turnserver.conf:ro
 
+  # ------------------------------------------------------------
+  # UI Symbalyx — interface custom (sidebar, groupes,
+  # timer messages éphémères, lancement d'appels).
+  # ------------------------------------------------------------
   ui:
     image: nginx:alpine
     container_name: symbalyx_ui
@@ -90,8 +131,7 @@ services:
       - ./ui:/usr/share/nginx/html:ro
     ports:
       - "8090:80"
-    networks:
-      - symbalyx_net
+    networks: [symbalyx_net]
 
 networks:
   symbalyx_net:

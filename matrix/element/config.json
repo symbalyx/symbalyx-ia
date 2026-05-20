@@ -27,12 +27,22 @@
     "UIFeature.registration": false,
     "UIFeature.passwordReset": false,
     "UIFeature.deactivate": false,
-    "UIFeature.advancedSettings": true
+    "UIFeature.advancedSettings": true,
+    "feature_disable_call_per_sender_encryption": false
   },
   "features": {
     "feature_video_rooms": true,
     "feature_group_calls": true,
-    "feature_element_call_video_rooms": true
+    "feature_element_call_video_rooms": true,
+    "feature_new_room_decoration_ui": true,
+    "feature_disappearing_messages": true,
+    "feature_voice_broadcast": true
+  },
+  "element_call": {
+    "url": "http://localhost:8181",
+    "participant_limit": 8,
+    "brand": "Symbalyx Call",
+    "use_exclusively": false
   },
   "default_widget_container_height": 280,
   "permalink_prefix": "http://localhost:8080",
