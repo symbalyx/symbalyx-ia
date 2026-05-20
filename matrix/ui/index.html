@@ -377,11 +377,17 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
   .room-meta {
-    font-size: 11px; color: var(--text-2); margin-top: 2px;
-    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; color: var(--text-2); margin-top: 3px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .room-meta .lock-mini { color: var(--ok); }
-  .room-meta .timer-mini { color: var(--warn); }
+  .room-preview { color: var(--text-2); font-size: 12px; }
+  .room-top-row { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+  .room-time { font-size: 11px; color: var(--text-2); flex-shrink: 0; }
+  .room-unread {
+    background: var(--accent); color: #fff;
+    border-radius: 12px; font-size: 11px; font-weight: 700;
+    padding: 1px 6px; flex-shrink: 0;
+  }
 
   .rooms-empty {
     padding: 40px 20px; text-align: center; color: var(--text-2);
@@ -1211,21 +1217,54 @@
     </div>
   </main>
 
+  <!-- ========= SETUP (premier démarrage) ========= -->
+  <main class="login-wrap" id="setupView" style="display:none">
+    <div class="login-card">
+      <div class="lock-hero">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+      </div>
+      <h1 style="text-align:center;">Première connexion</h1>
+      <div class="subtitle" style="text-align:center;">Créez votre compte sur ce serveur privé.</div>
+      <form id="setupForm" autocomplete="off">
+        <div class="field">
+          <label for="setupUser">Identifiant</label>
+          <input id="setupUser" type="text" placeholder="ex: alice" autocapitalize="off" autocorrect="off" required />
+        </div>
+        <div class="field">
+          <label for="setupPass">Mot de passe</label>
+          <input id="setupPass" type="password" placeholder="••••••••" required />
+        </div>
+        <div class="field">
+          <label for="setupPass2">Confirmer</label>
+          <input id="setupPass2" type="password" placeholder="••••••••" required />
+        </div>
+        <button class="btn full" type="submit" id="setupBtn">Créer mon compte</button>
+        <div class="error-msg" id="setupError"></div>
+      </form>
+      <div style="margin-top:14px; text-align:center;">
+        <button style="background:none;border:0;color:var(--text-2);font-size:12px;cursor:pointer;" id="setupToLogin">Déjà un compte ? Se connecter</button>
+      </div>
+    </div>
+  </main>
+
   <!-- ========= MAIN APP ========= -->
   <section class="main-app" id="mainApp">
 
     <!-- Sidebar -->
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-head">
-        <h2>Mes conversations</h2>
-        <button class="new-group-btn" id="btnNewGroup">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Nouveau groupe privé
-        </button>
-        <button class="self-note-btn" id="btnSelfNote">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><polygon points="18.5 2.5 22 6 12 16 8 17 9 13 18.5 2.5"/></svg>
-          Note à moi-même
-        </button>
+        <div class="sidebar-top">
+          <span class="sidebar-title">Messages</span>
+          <div class="sidebar-icon-actions">
+            <button class="sidebar-icon-btn" id="btnSelfNote" title="Note à moi-même">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><polygon points="18.5 2.5 22 6 12 16 8 17 9 13 18.5 2.5"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="search-wrap">
+          <svg class="search-icon-inner" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input class="search-input" id="roomSearch" type="text" placeholder="Rechercher…" autocomplete="off" />
+        </div>
       </div>
 
       <div class="rooms-list" id="roomsList">
@@ -1244,6 +1283,9 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </button>
       </div>
+        <button class="sidebar-fab" id="btnNewGroup" title="Nouveau groupe chiffré">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        </button>
     </aside>
 
     <!-- Chat panel -->
@@ -2120,6 +2162,12 @@ async function unlockApp() {
   document.body.classList.remove("calc");
   document.getElementById("calcView").style.display = "none";
 
+  // Si jamais aucun compte créé depuis cet appareil → setup
+  if (!localStorage.getItem("c_setup_done") && !sessionStorage.getItem("c_t")) {
+    showSetup();
+    return;
+  }
+
   // Restaure une session si dispo
   const raw = sessionStorage.getItem("c_t");
   if (raw) {
@@ -2244,6 +2292,56 @@ loginForm.addEventListener("submit", async (e) => {
   wireCalculator();
   showCalc();
 })();
+
+/* Search filter for room list */
+document.getElementById("roomSearch")?.addEventListener("input", (e) => {
+  const q = e.target.value.toLowerCase();
+  renderRooms(q);
+});
+
+/* Premier démarrage — affiche setup si jamais connecté, login sinon */
+function showSetup() {
+  document.body.classList.remove("calc");
+  document.getElementById("calcView").style.display = "none";
+  document.getElementById("loginView").style.display = "none";
+  document.getElementById("setupView").style.display = "grid";
+}
+
+document.getElementById("setupToLogin")?.addEventListener("click", () => {
+  document.getElementById("setupView").style.display = "none";
+  showLogin();
+});
+
+document.getElementById("setupForm")?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById("setupError");
+  errEl.classList.remove("show");
+  const user = document.getElementById("setupUser").value.trim().toLowerCase().replace(/[^a-z0-9._\-]/g, "");
+  const pass = document.getElementById("setupPass").value;
+  const pass2 = document.getElementById("setupPass2").value;
+  if (!user) { errEl.textContent = "Identifiant invalide (lettres et chiffres uniquement)"; errEl.classList.add("show"); return; }
+  if (pass.length < 8) { errEl.textContent = "Mot de passe trop court (8 caractères min)"; errEl.classList.add("show"); return; }
+  if (pass !== pass2) { errEl.textContent = "Les mots de passe ne correspondent pas"; errEl.classList.add("show"); return; }
+  const btn = document.getElementById("setupBtn");
+  btn.disabled = true; btn.textContent = "Création…";
+  try {
+    await M.req("POST", "/_matrix/client/v3/register", {
+      username: user, password: pass,
+      auth: { type: "m.login.dummy" }
+    });
+    localStorage.setItem("c_setup_done", "1");
+    // Auto-login
+    const data = await M.login(user, pass);
+    sessionStorage.setItem("c_t", JSON.stringify({ token: data.access_token, userId: data.user_id, deviceId: data.device_id }));
+    document.getElementById("setupView").style.display = "none";
+    enterApp();
+  } catch (err) {
+    errEl.textContent = err.message || "Erreur lors de la création du compte";
+    errEl.classList.add("show");
+  } finally {
+    btn.disabled = false; btn.textContent = "Créer mon compte";
+  }
+});
 
 /* =======================================================================
    Rooms list
@@ -3077,9 +3175,10 @@ function roomMaxLevel(room) {
 }
 
 const origRenderRooms = renderRooms;
-renderRooms = function () {
+renderRooms = function (query = "") {
   const list = $("#roomsList");
-  const filtered = state.rooms.filter(r => state.vault ? r.hidden : !r.hidden);
+  let filtered = state.rooms.filter(r => state.vault ? r.hidden : !r.hidden);
+  if (query) filtered = filtered.filter(r => r.name.toLowerCase().includes(query));
   if (!filtered.length) {
     list.innerHTML = `<div class="rooms-empty">
       ${state.vault
@@ -3115,13 +3214,12 @@ renderRooms = function () {
          data-id="${r.id}">
       <div class="avatar-wrap">${avatarHtml}${onlineDot}</div>
       <div class="room-info">
-        <div class="room-name">${star}${escapeHtml(r.name)}${lvlBadge}</div>
+        <div class="room-top-row">
+          <div class="room-name">${star}${escapeHtml(r.name)}${lvlBadge}</div>
+          <span class="room-time">${r.lastTime || ""}</span>
+        </div>
         <div class="room-meta">
-          <span class="lock-mini">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
-          </span>
-          <span>${r.members.length} membre${r.members.length > 1 ? "s" : ""}</span>
-          ${r.retention ? `<span class="timer-mini">· ${fmtRetention(r.retention)}</span>` : ""}
+          <span class="room-preview">${r.lastMsg ? escapeHtml(r.lastMsg) : "Chiffré E2E · " + r.members.length + " membre" + (r.members.length > 1 ? "s" : "")}</span>
         </div>
       </div>
     </div>
