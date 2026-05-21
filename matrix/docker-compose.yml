@@ -136,6 +136,51 @@ services:
     networks: [symbalyx_net]
 
   # ------------------------------------------------------------
+  # Ollama — LLM local pour résumés d'appels et assistant IA.
+  # Modèle à pull manuellement après le premier démarrage :
+  #   docker exec symbalyx_ollama ollama pull llama3.2:3b
+  # ~2 Go disque, ~3-4 Go RAM en inférence. CPU only.
+  # ------------------------------------------------------------
+  ollama:
+    image: ollama/ollama:latest
+    container_name: symbalyx_ollama
+    restart: unless-stopped
+    volumes:
+      - ./data/ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    networks: [symbalyx_net]
+
+  # ------------------------------------------------------------
+  # Bot Assistant — compte Matrix qui écoute les invitations,
+  # rejoint les conversations chiffrées (E2E Megolm via libolm),
+  # et répond via Ollama. Plusieurs personas configurables.
+  # Demande la création préalable du compte côté Synapse :
+  #   docker exec symbalyx_synapse register_new_matrix_user \
+  #     -u assistant -p VOTREMOTDEPASSE --no-admin \
+  #     -c /data/homeserver.yaml http://localhost:8008
+  # Puis configurer BOT_PASSWORD dans un fichier .env ou ici.
+  # ------------------------------------------------------------
+  assistant_bot:
+    build: ./bots
+    image: symbalyx-assistant-bot:latest
+    container_name: symbalyx_assistant_bot
+    restart: unless-stopped
+    depends_on: [synapse, ollama]
+    environment:
+      HOMESERVER: "http://synapse:8008"
+      SERVER_NAME: "localhost"
+      BOT_USERNAME: "assistant"
+      BOT_PASSWORD: "${ASSISTANT_BOT_PASSWORD:-}"
+      OLLAMA_URL: "http://ollama:11434"
+      OLLAMA_MODEL: "${OLLAMA_MODEL:-llama3.2:3b}"
+      BOT_STORE: "/data/store"
+    volumes:
+      - ./data/assistant_bot:/data
+    networks: [symbalyx_net]
+    profiles: ["ia"]
+
+  # ------------------------------------------------------------
   # UI Symbalyx — interface custom (sidebar, groupes,
   # timer messages éphémères, lancement d'appels).
   # ------------------------------------------------------------

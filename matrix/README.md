@@ -221,6 +221,73 @@ docker exec -it symbalyx_synapse register_new_matrix_user -u iris   -p MotDePass
 
 Le badge `Auto-suppression Xh` apparaît sous le nom du groupe. Le serveur purge les anciens events à chaque cycle (1×/jour).
 
+### Assistant IA local (Ollama + bot Matrix E2E)
+
+Symbalyx peut faire tourner un **assistant IA entièrement en local** : aucune donnée ne quitte ta machine. Le LLM est servi par Ollama, et un bot Matrix dédié (`@assistant:localhost`) rejoint les conversations chiffrées pour répondre, résumer, organiser.
+
+**Activation (une fois)** :
+
+```powershell
+# 1. Démarrer Ollama + télécharger un modèle léger (~2 Go)
+docker compose up -d ollama
+docker exec symbalyx_ollama ollama pull llama3.2:3b
+
+# 2. Créer le compte Matrix pour le bot
+docker exec -it symbalyx_synapse register_new_matrix_user `
+  -u assistant -p ChangeMoiAssistant2026 --no-admin `
+  -c /data/homeserver.yaml http://localhost:8008
+
+# 3. Mettre le mot de passe dans .env (à côté du docker-compose.yml)
+@"
+ASSISTANT_BOT_PASSWORD=ChangeMoiAssistant2026
+OLLAMA_MODEL=llama3.2:3b
+"@ | Out-File -Encoding ascii .env
+
+# 4. Démarrer le bot (build de l'image au premier coup, 2-3 min)
+docker compose --profile ia up -d --build assistant_bot
+docker compose logs -f assistant_bot
+```
+
+Tu dois voir `Connecté comme @assistant:localhost`. Le bot accepte ensuite **automatiquement** toutes les invitations.
+
+**Inviter le bot dans une conversation** :
+
+Dans Symbalyx, ouvre une conversation → bouton **Membres** → **Inviter l'Assistant IA**. Le bot rejoint sous 5 secondes et envoie un message d'accueil.
+
+**Commandes dans la conversation** :
+
+| Commande | Effet |
+|---|---|
+| `!help` | Liste les commandes |
+| `!persona assistant\|secrétaire\|coach\|expert` | Change le ton et l'approche |
+| `!summary [N]` | Résume les N derniers messages (par défaut 30) |
+| `!notes <texte>` | Enregistre une note formattée |
+| `!forget` | Efface le contexte conversationnel pour cette conversation |
+| `<texte libre>` | Conversation normale, gardée en mémoire (10 derniers tours) |
+
+**Résumé d'appel par l'IA** (au lieu de l'heuristique mots-clés) :
+
+L'icône "document" dans le bandeau d'une conversation utilise désormais Ollama (via le proxy `/ollama/` exposé par nginx) pour générer un vrai résumé en langage naturel. Si Ollama est éteint, fallback automatique sur l'heuristique.
+
+**Modèles disponibles** :
+
+| Modèle | Taille | RAM | Qualité |
+|---|---|---|---|
+| `llama3.2:3b` (défaut) | ~2 Go | ~3-4 Go | Bonne, rapide |
+| `qwen2.5:3b` | ~2 Go | ~3-4 Go | Très bonne en FR |
+| `llama3.1:8b` | ~5 Go | ~7-8 Go | Excellente |
+| `mistral-nemo:12b` | ~7 Go | ~10 Go | Pro |
+
+Change avec `docker exec symbalyx_ollama ollama pull <model>` puis ajuste `OLLAMA_MODEL` dans `.env` et `docker compose --profile ia up -d`.
+
+**Sécurité** :
+
+- Le bot **lit et écrit en clair vis-à-vis du protocole** : il déchiffre les messages des conversations où il est invité avec Megolm (libolm) et chiffre ses réponses pareillement. C'est strictement équivalent à un membre humain de plus.
+- Les conversations où **tu n'invites pas le bot** lui restent invisibles, comme pour n'importe quel autre membre du serveur.
+- **Tout reste local** : le LLM tourne sur ta machine via Ollama, aucune connexion sortante.
+
+---
+
 ### Compte coffre cryptographiquement isolé
 
 Le mode "Coffre" local (tag `u.symbalyx.hidden`) filtre les conversations dans la sidebar mais elles restent sur le même compte Matrix. Pour les **vraies infos sensibles**, utilise un **2e compte Matrix dédié**, dont les credentials sont chiffrés AES-GCM avec une clé dérivée de ton PIN coffre.
