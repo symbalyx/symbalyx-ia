@@ -600,6 +600,51 @@
     font-size: 0.92em;
   }
   .ai-msg.them strong { color: var(--text-0); }
+  .ai-msg-img {
+    max-width: 100%; max-height: 280px;
+    border-radius: 12px; display: block;
+    margin: -4px -4px 8px;
+  }
+  .ai-image-preview {
+    background: var(--bg-3); border-top: 1px solid var(--border);
+    padding: 10px 18px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .ai-image-preview img {
+    width: 56px; height: 56px;
+    border-radius: 10px; object-fit: cover;
+  }
+  .ai-image-preview #aiImageHint { font-size: 12px; color: var(--text-2); flex: 1; }
+  .ai-image-preview button {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--glass-strong); border: 0;
+    color: var(--text-1); cursor: pointer;
+    display: grid; place-items: center;
+  }
+  .ai-image-preview button:hover { background: rgba(255,84,112,0.18); color: var(--danger); }
+
+  .icon-btn.on { background: rgba(124,92,255,0.22); color: var(--accent); border-color: var(--accent); }
+
+  /* Mémoire IA */
+  .memory-list { margin-top: 18px; max-height: 320px; overflow-y: auto; }
+  .memory-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    background: var(--glass);
+    border: 1px solid var(--border);
+    margin-bottom: 6px;
+    font-size: 13.5px;
+  }
+  .memory-item .text { flex: 1; color: var(--text-1); }
+  .memory-item .when { font-size: 11px; color: var(--text-3); }
+  .memory-item button {
+    background: transparent; border: 0; color: var(--text-2);
+    cursor: pointer; width: 28px; height: 28px;
+    border-radius: 50%; display: grid; place-items: center;
+  }
+  .memory-item button:hover { background: rgba(255,84,112,0.15); color: var(--danger); }
+  .memory-empty { padding: 30px; text-align: center; color: var(--text-2); font-size: 13px; }
   .ai-typing {
     align-self: flex-start; background: var(--bg-3);
     padding: 12px 16px; border-radius: 18px;
@@ -793,6 +838,35 @@
     min-height: 0;
   }
   .chat-frame-container iframe { width: 100%; height: 100%; border: 0; display: block; background: var(--bg-2); }
+  .announce-bar {
+    position: absolute; top: 0; left: 0; right: 0; z-index: 10;
+    background: linear-gradient(135deg, rgba(255,179,71,0.15), rgba(255,111,141,0.12));
+    border-bottom: 1px solid rgba(255,179,71,0.3);
+    backdrop-filter: blur(14px);
+    padding: 8px 16px;
+    display: flex; align-items: center; gap: 10px;
+    color: var(--text-1); font-size: 13px;
+  }
+  .announce-bar .pin-ic { color: var(--warn); flex-shrink: 0; }
+  .announce-bar .text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; }
+  .announce-bar .text:hover { color: var(--text-0); }
+  .announce-bar .count {
+    background: var(--warn); color: #1a1500;
+    border-radius: 999px; font-size: 11px; font-weight: 700;
+    padding: 2px 8px;
+  }
+  #announceList .ann-item {
+    padding: 10px 12px; border-radius: 10px;
+    background: var(--glass); border: 1px solid var(--border);
+    margin-bottom: 6px;
+    display: flex; align-items: flex-start; gap: 10px;
+  }
+  #announceList .ann-item .text { flex: 1; font-size: 13px; line-height: 1.45; white-space: pre-wrap; }
+  #announceList .ann-item button {
+    background: transparent; border: 0; color: var(--text-2);
+    cursor: pointer; padding: 4px;
+  }
+  #announceList .ann-item button:hover { color: var(--danger); }
 
   .no-room-placeholder {
     flex: 1; display: flex; flex-direction: column;
@@ -1721,6 +1795,12 @@
             <button class="action-btn video" id="btnVideoCall" title="Appel vidéo">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/></svg>
             </button>
+            <button class="action-btn" id="btnAnnounce" title="Annonce épinglée">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+            </button>
+            <button class="action-btn" id="btnPoll" title="Lancer un sondage">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+            </button>
             <button class="action-btn" id="btnAttach" title="Joindre un fichier chiffré">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
             </button>
@@ -1741,6 +1821,7 @@
         </div>
 
         <div class="chat-frame-container" id="elementFrameWrap">
+          <div class="announce-bar" id="announceBar" style="display:none"></div>
           <iframe id="elementFrame" src="about:blank" allow="camera; microphone; display-capture; autoplay; clipboard-read; clipboard-write"></iframe>
         </div>
 
@@ -1772,6 +1853,12 @@
             </div>
           </div>
           <div style="display:flex; gap:6px;">
+            <button class="icon-btn" id="aiToggleReason" title="Raisonnement étape par étape">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M9 12l2 2 4-4"/></svg>
+            </button>
+            <button class="icon-btn" id="aiMemoryBtn" title="Ma mémoire">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+            </button>
             <button class="icon-btn" id="aiClear" title="Effacer la conversation">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
             </button>
@@ -1808,7 +1895,18 @@
           <button data-prefix="/rédige ">✍️ Rédiger</button>
           <button data-prefix="/résumer ">📄 Résumer</button>
         </div>
+        <div class="ai-image-preview" id="aiImagePreview" style="display:none">
+          <img id="aiImagePreviewImg" />
+          <button id="aiImageClear" title="Retirer l'image">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+          <span id="aiImageHint">Image jointe · l'IA analysera son contenu</span>
+        </div>
         <div class="ai-input-bar">
+          <button class="ai-mic" id="aiAttachImg" title="Joindre une image">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><polyline points="21 15 16 10 5 21"/></svg>
+          </button>
+          <input type="file" id="aiImageInput" accept="image/*" style="display:none" />
           <input id="aiInput" type="text" placeholder="Pose ta question à Mon IA…" autocomplete="off" />
           <button class="ai-mic" id="aiMic" title="Dicter (Web Speech API)" style="display:none">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -1974,6 +2072,10 @@
         <button class="btn ghost" id="btnInviteCall">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
           Inviter
+        </button>
+        <button class="btn ghost" id="btnCopyCallLink">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Copier le lien
         </button>
         <button class="close-btn" id="btnEndCall" title="Quitter l'appel">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
@@ -2213,6 +2315,92 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 8V4H8"/><rect x="2" y="2" width="20" height="14" rx="2" ry="2"/><path d="M2 12h20"/><path d="M6 16h4"/><path d="M14 16h4"/></svg>
         Inviter l'Assistant IA
       </button>
+    </div>
+  </div>
+</div>
+
+<!-- Annonce épinglée -->
+<div class="modal-overlay" id="modalAnnounce">
+  <div class="modal" style="max-width: 480px;">
+    <div class="modal-head">
+      <h3>Annonces du groupe</h3>
+      <button class="close-btn" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div id="announceList"></div>
+      <div class="field" style="margin-top:16px;">
+        <label>Nouvelle annonce</label>
+        <textarea id="announceInput" placeholder="Ex : Réunion exceptionnelle demain 10h en visio." rows="3"></textarea>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close>Annuler</button>
+      <button class="btn signal" id="btnAnnouncePost">Épingler</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sondage rapide -->
+<div class="modal-overlay" id="modalPoll">
+  <div class="modal" style="max-width: 460px;">
+    <div class="modal-head">
+      <h3>Nouveau sondage</h3>
+      <button class="close-btn" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Question</label>
+        <input id="pollQuestion" type="text" placeholder="Ex : On se voit quand ?" />
+      </div>
+      <div class="field">
+        <label>Options (une par ligne, 2 à 8 max)</label>
+        <textarea id="pollOptions" rows="6" placeholder="Vendredi 19h&#10;Samedi 14h&#10;Dimanche après-midi"></textarea>
+      </div>
+      <div class="info-row" style="margin-top:8px;">
+        <div class="ic"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12" y2="16"/></svg></div>
+        <div><strong>Comment ça marche</strong><span>Les membres réagissent aux options 1️⃣ 2️⃣ 3️⃣… pour voter dans Element.</span></div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" data-close>Annuler</button>
+      <button class="btn signal" id="btnPollSend">Publier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Mémoire long terme de Mon IA -->
+<div class="modal-overlay" id="modalMemory">
+  <div class="modal" style="max-width: 520px;">
+    <div class="modal-head">
+      <h3>Mémoire de Mon IA</h3>
+      <button class="close-btn" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="info-row">
+        <div class="ic">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        </div>
+        <div>
+          <strong>Ce que l'IA retient de toi</strong>
+          <span>Stocké uniquement sur cet appareil. Tu peux supprimer un fait, en ajouter, ou tout effacer.</span>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:14px;">
+        <input id="memAddInput" type="text" placeholder="Ajouter un fait que l'IA doit retenir…" />
+      </div>
+
+      <div id="memoryList" class="memory-list"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn ghost" id="memClearAll">Tout effacer</button>
+      <button class="btn" data-close>Fermer</button>
     </div>
   </div>
 </div>
@@ -3485,6 +3673,18 @@ $("#btnEndCall").addEventListener("click", () => {
   $("#callFrame").src = "about:blank";
   closeModal("#callModal");
 });
+$("#btnCopyCallLink").addEventListener("click", async () => {
+  if (!state.currentRoomId) return;
+  // Lien Element Call standalone vers ce room (les destinataires devront se loger)
+  const link = `${CONFIG.elementCall}/room/?roomId=${encodeURIComponent(state.currentRoomId)}`;
+  try {
+    await navigator.clipboard.writeText(link);
+    toast("Lien copié — colle-le dans la conversation pour inviter quelqu'un", "ok");
+  } catch {
+    prompt("Copie ce lien :", link);
+  }
+});
+
 $("#btnInviteCall").addEventListener("click", () => {
   // Ouvre la modale d'invitation sans fermer l'appel : l'utilisateur
   // invite, ferme la modale, l'invité reçoit la notif et peut rejoindre.
@@ -3635,6 +3835,20 @@ Object.assign(M, {
     return this.req("PUT",
       `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.pinned_events/`,
       { pinned: eventIds });
+  },
+  // ---- Annonces Symbalyx (state event custom) ----
+  async getAnnouncements(roomId) {
+    try {
+      const d = await this.req("GET",
+        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/org.symbalyx.announcements/`,
+        null, { silent: true });
+      return d?.announcements || [];
+    } catch { return []; }
+  },
+  async setAnnouncements(roomId, announcements) {
+    return this.req("PUT",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/org.symbalyx.announcements/`,
+      { announcements });
   }
 });
 
@@ -4487,9 +4701,48 @@ const ASSISTANT = {
   history: [],
   persona: "assistant",
   model: "llama3.2:3b",
+  visionModel: "llava:7b",
   busy: false,
-  abortCtrl: null
+  abortCtrl: null,
+  memory: [],          // [{fact, addedAt}]
+  reasoning: true,     // active le raisonnement étape par étape
+  pendingImage: null   // {dataUrl, base64, mime} en attente d'envoi
 };
+
+const AI_PERSONAS_BASE = {
+  assistant:   "Tu es un assistant personnel chaleureux et précis. Tu réponds en français.",
+  "secrétaire": "Tu es une secrétaire pro. Tu vouvoies, tu rédiges propre, tu reformules. En français.",
+  coach:       "Tu es un coach bienveillant et direct. Tu poses des questions ouvertes, tu reformules, tu suggères des actions concrètes. En français.",
+  expert:      "Tu es un expert généraliste précis. Tu vérifies tes faits, tu indiques quand tu ne sais pas. En français."
+};
+
+const AI_REASONING_INSTR = `\n\nMéthode :
+1. Avant de répondre, prends une seconde pour décomposer la question : que demande exactement la personne, quels sont les éléments en jeu.
+2. Si la question est complexe ou ambiguë, propose ta meilleure interprétation et précise si tu hypothèses quelque chose.
+3. Structure ta réponse avec des phrases courtes ou des puces si c'est une liste. Pas de blabla.
+4. Si tu ne sais pas, dis-le clairement plutôt que d'inventer.
+5. Quand c'est utile, finis par une action concrète ou une question de relance.`;
+
+const AI_MEMORY_INSTR = `\n\nMémoire :
+- Tu disposes d'une mémoire long terme de l'utilisateur (ci-dessous, le cas échéant). Utilise-la naturellement, sans la réciter.
+- Si tu apprends quelque chose de durable et utile sur l'utilisateur (préférence forte, prénom, profession, projet en cours, agenda récurrent, relation importante), ajoute en TOUTE FIN de ta réponse une ligne au format exact :
+  [MEMORISE: <fait court d'une ligne, sans guillemets, à la 3e personne>]
+- N'enregistre PAS les états passagers (humeur, sujet d'un seul message), uniquement ce qui sera utile à long terme.
+- Une seule ligne [MEMORISE: …] par réponse au maximum.`;
+
+const AI_PERSONAS = new Proxy({}, {
+  get(_t, key) {
+    const base = AI_PERSONAS_BASE[key] || AI_PERSONAS_BASE.assistant;
+    let prompt = base;
+    if (ASSISTANT.reasoning) prompt += AI_REASONING_INSTR;
+    prompt += AI_MEMORY_INSTR;
+    if (ASSISTANT.memory && ASSISTANT.memory.length) {
+      prompt += "\n\nCe que tu sais de l'utilisateur :\n" +
+        ASSISTANT.memory.slice(-30).map(m => "- " + m.fact).join("\n");
+    }
+    return prompt;
+  }
+});
 
 /* Mini renderer Markdown (gras, italique, code, listes, liens basiques) */
 function mdRender(text) {
@@ -4518,31 +4771,62 @@ function mdRender(text) {
   return h;
 }
 
-const AI_PERSONAS = {
-  assistant: "Tu es un assistant personnel concis et utile. Tu réponds en français en 3-4 phrases sauf si on te demande un développement. Pas d'emojis sauf si l'utilisateur en met.",
-  "secrétaire": "Tu es une secrétaire pro. Tu vouvoies, tu rédiges propre, tu reformules. Réponses synthétiques en français.",
-  coach: "Tu es un coach bienveillant et direct. Tu poses des questions ouvertes, tu reformules, tu suggères des actions concrètes. Réponses courtes en français.",
-  expert: "Tu es un expert généraliste précis. Tu vérifies tes faits, indiques quand tu ne sais pas. Français clair et structuré."
-};
+// AI_PERSONAS est maintenant un Proxy dynamique (cf. plus haut) qui injecte
+// raisonnement + mémoire long terme dans le system prompt.
 
-function aiKey() { return `c_ai_${M.userId || "anon"}`; }
+function aiKey()    { return `c_ai_${M.userId || "anon"}`; }
+function aiMemKey() { return `c_ai_mem_${M.userId || "anon"}`; }
 
 function aiLoad() {
   try {
     const raw = localStorage.getItem(aiKey());
-    if (!raw) return;
-    const data = JSON.parse(raw);
-    ASSISTANT.history = data.history || [];
-    ASSISTANT.persona = data.persona || "assistant";
+    if (raw) {
+      const data = JSON.parse(raw);
+      ASSISTANT.history   = data.history   || [];
+      ASSISTANT.persona   = data.persona   || "assistant";
+      ASSISTANT.reasoning = data.reasoning !== false;
+    }
+    const memRaw = localStorage.getItem(aiMemKey());
+    ASSISTANT.memory = memRaw ? JSON.parse(memRaw) : [];
   } catch {}
 }
 function aiSave() {
   try {
     localStorage.setItem(aiKey(), JSON.stringify({
-      history: ASSISTANT.history.slice(-200),  // garde les 200 derniers
-      persona: ASSISTANT.persona
+      history: ASSISTANT.history.slice(-200),
+      persona: ASSISTANT.persona,
+      reasoning: ASSISTANT.reasoning
     }));
   } catch {}
+}
+function aiMemSave() {
+  try {
+    localStorage.setItem(aiMemKey(), JSON.stringify(ASSISTANT.memory.slice(-200)));
+  } catch {}
+}
+function aiMemAdd(fact) {
+  fact = (fact || "").trim();
+  if (!fact || fact.length > 280) return;
+  // Dédupe approximatif
+  const lower = fact.toLowerCase();
+  if (ASSISTANT.memory.some(m => m.fact.toLowerCase() === lower)) return;
+  ASSISTANT.memory.push({ fact, addedAt: Date.now() });
+  aiMemSave();
+}
+function aiMemRemove(idx) {
+  ASSISTANT.memory.splice(idx, 1);
+  aiMemSave();
+}
+function aiMemClear() {
+  ASSISTANT.memory = [];
+  aiMemSave();
+}
+
+// Parse [MEMORISE: ...] dans une réponse, sauve + retourne le texte nettoyé
+function aiParseMemorize(text) {
+  const matches = [...text.matchAll(/\[MEMORISE:\s*([^\]]+?)\]/g)];
+  for (const m of matches) aiMemAdd(m[1]);
+  return text.replace(/\s*\[MEMORISE:\s*[^\]]+?\]\s*$/g, "").trim();
 }
 
 function aiOpen() {
@@ -4559,6 +4843,7 @@ function aiOpen() {
 
   aiLoad();
   aiRender();
+  $("#aiToggleReason").classList.toggle("on", ASSISTANT.reasoning);
 
   if (window.innerWidth <= 760) $("#sidebar").classList.add("hidden-mobile");
   setTimeout(() => $("#aiInput").focus(), 60);
@@ -4585,7 +4870,9 @@ function aiRender() {
     } else {
       const side = m.from === "me" ? "me" : "them";
       const content = m.from === "them" ? mdRender(m.text) : escapeHtml(m.text);
-      html += `<div class="ai-msg ${side}" data-idx="${idx}">${content}</div>`;
+      const imgHtml = (m.from === "me" && m.image)
+        ? `<img class="ai-msg-img" src="${m.image}" alt="image jointe">` : "";
+      html += `<div class="ai-msg ${side}" data-idx="${idx}">${imgHtml}${content}</div>`;
       if (m.from === "them") {
         html += `<div class="ai-msg-actions" data-idx="${idx}">
           <button data-act="copy" title="Copier"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier</button>
@@ -4745,18 +5032,24 @@ async function aiSkillResumer() {
   }
 }
 
-async function aiAskOllamaStream(userMsg, onChunk) {
-  const messages = [{ role: "system", content: AI_PERSONAS[ASSISTANT.persona] || AI_PERSONAS.assistant }];
+async function aiAskOllamaStream(userMsg, onChunk, imageBase64 = null) {
+  const messages = [{ role: "system", content: AI_PERSONAS[ASSISTANT.persona] }];
   const tail = ASSISTANT.history.filter(m => m.from === "me" || m.from === "them").slice(-20);
   for (const t of tail) {
     messages.push({ role: t.from === "me" ? "user" : "assistant", content: t.text });
   }
-  messages.push({ role: "user", content: userMsg });
+  const userTurn = { role: "user", content: userMsg };
+  if (imageBase64) userTurn.images = [imageBase64];
+  messages.push(userTurn);
+
+  // Si une image est jointe et que le modèle courant n'est pas vision,
+  // bascule automatiquement sur visionModel
+  const model = imageBase64 ? ASSISTANT.visionModel : ASSISTANT.model;
 
   const res = await fetch("/ollama/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ model: ASSISTANT.model, messages, stream: true })
+    body: JSON.stringify({ model, messages, stream: true })
   });
   if (!res.ok) throw new Error("LLM indisponible (HTTP " + res.status + ")");
 
@@ -4829,7 +5122,25 @@ async function aiHandle(text) {
 }
 
 async function aiRunUserMessage(text, skipPushUser = false) {
-  if (!skipPushUser) aiPush("me", text);
+  const pendingImage = ASSISTANT.pendingImage;
+  ASSISTANT.pendingImage = null;
+  $("#aiImagePreview") && ($("#aiImagePreview").style.display = "none");
+
+  if (!skipPushUser) {
+    if (pendingImage) {
+      // Push une bulle "me" avec l'image affichée puis le texte
+      ASSISTANT.history.push({
+        from: "me",
+        text,
+        image: pendingImage.dataUrl,
+        time: nowHHMM()
+      });
+      aiSave(); aiRender();
+    } else {
+      aiPush("me", text);
+    }
+  }
+
   ASSISTANT.busy = true;
   $("#aiSend").disabled = true;
 
@@ -4871,11 +5182,14 @@ async function aiRunUserMessage(text, skipPushUser = false) {
 
   try {
     const full = await aiAskOllamaStream(userMsg, (partial) => {
-      bubble.innerHTML = mdRender(partial) + "<span class=\"streaming-cursor\">▍</span>";
+      // Pendant le streaming, on retire les balises [MEMORISE: ...] pour pas qu'elles apparaissent
+      const clean = partial.replace(/\[MEMORISE:[^\]]*\]?\s*$/g, "");
+      bubble.innerHTML = mdRender(clean) + "<span class=\"streaming-cursor\">▍</span>";
       $("#aiMsgs").scrollTop = $("#aiMsgs").scrollHeight;
-    });
+    }, pendingImage ? pendingImage.base64 : null);
     bubble.remove();
-    aiPush("them", (full || "").trim() || "(réponse vide)");
+    const cleaned = aiParseMemorize(full || "");
+    aiPush("them", cleaned || "(réponse vide)");
   } catch (e) {
     bubble.remove();
     aiPush("them", "⚠ " + (e.message || "Erreur. Vérifie qu'Ollama tourne et qu'un modèle est téléchargé."));
@@ -4918,6 +5232,205 @@ document.querySelectorAll(".ai-quick button").forEach(b => {
     $("#aiInput").setSelectionRange(b.dataset.prefix.length, b.dataset.prefix.length);
   });
 });
+/* Toggle raisonnement étape par étape (affecte le system prompt) */
+$("#aiToggleReason").addEventListener("click", () => {
+  ASSISTANT.reasoning = !ASSISTANT.reasoning;
+  aiSave();
+  $("#aiToggleReason").classList.toggle("on", ASSISTANT.reasoning);
+  toast(ASSISTANT.reasoning ? "Mode raisonnement activé" : "Mode raisonnement désactivé", "ok");
+});
+
+/* Joindre une image au prochain message (vision) */
+$("#aiAttachImg").addEventListener("click", () => $("#aiImageInput").click());
+$("#aiImageInput").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  if (!f.type.startsWith("image/")) { toast("Doit être une image", "err"); return; }
+  if (f.size > 6 * 1024 * 1024) { toast("Image > 6 Mo", "err"); return; }
+  // Encode en base64
+  const reader = new FileReader();
+  reader.onload = () => {
+    const dataUrl = reader.result;
+    const base64 = String(dataUrl).split(",")[1];
+    ASSISTANT.pendingImage = { dataUrl, base64, mime: f.type };
+    $("#aiImagePreviewImg").src = dataUrl;
+    $("#aiImagePreview").style.display = "flex";
+    $("#aiInput").focus();
+  };
+  reader.readAsDataURL(f);
+});
+$("#aiImageClear").addEventListener("click", () => {
+  ASSISTANT.pendingImage = null;
+  $("#aiImagePreview").style.display = "none";
+});
+
+/* Mémoire long terme : ouverture modale */
+$("#aiMemoryBtn").addEventListener("click", () => {
+  renderMemoryList();
+  openModal("#modalMemory");
+});
+
+function renderMemoryList() {
+  const list = $("#memoryList");
+  if (!ASSISTANT.memory.length) {
+    list.innerHTML = `<div class="memory-empty">Aucun souvenir pour l'instant.<br>L'IA en ajoutera automatiquement au fil des conversations.</div>`;
+    return;
+  }
+  list.innerHTML = ASSISTANT.memory.map((m, i) => {
+    const dt = new Date(m.addedAt);
+    const when = `${String(dt.getDate()).padStart(2,"0")}/${String(dt.getMonth()+1).padStart(2,"0")}/${dt.getFullYear()}`;
+    return `
+      <div class="memory-item" data-i="${i}">
+        <div class="text">${escapeHtml(m.fact)}</div>
+        <div class="when">${when}</div>
+        <button data-act="del" title="Oublier">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+      </div>`;
+  }).join("");
+  list.querySelectorAll(".memory-item button").forEach(b => {
+    b.addEventListener("click", () => {
+      const i = parseInt(b.closest(".memory-item").dataset.i, 10);
+      aiMemRemove(i);
+      renderMemoryList();
+    });
+  });
+}
+
+$("#memAddInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    const v = e.target.value.trim();
+    if (v) { aiMemAdd(v); e.target.value = ""; renderMemoryList(); }
+  }
+});
+
+$("#memClearAll").addEventListener("click", () => {
+  if (!confirm("Effacer tous les souvenirs de l'IA ?")) return;
+  aiMemClear();
+  renderMemoryList();
+});
+
+/* =======================================================================
+   Annonces épinglées (state event custom org.symbalyx.announcements)
+   ======================================================================= */
+$("#btnAnnounce").addEventListener("click", async () => {
+  if (!state.currentRoomId) return;
+  await renderAnnouncementsModal();
+  $("#announceInput").value = "";
+  openModal("#modalAnnounce");
+});
+
+async function loadAnnouncementsBar() {
+  if (!state.currentRoomId) {
+    $("#announceBar").style.display = "none";
+    return;
+  }
+  const list = await M.getAnnouncements(state.currentRoomId);
+  const bar = $("#announceBar");
+  if (!list.length) { bar.style.display = "none"; return; }
+  const latest = list[list.length - 1];
+  bar.innerHTML = `
+    <svg class="pin-ic" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>
+    <span class="text" id="announceBarText">${escapeHtml(latest.text)}</span>
+    ${list.length > 1 ? `<span class="count">${list.length}</span>` : ""}
+  `;
+  bar.style.display = "flex";
+  $("#announceBarText").addEventListener("click", async () => {
+    await renderAnnouncementsModal(); openModal("#modalAnnounce");
+  });
+}
+
+async function renderAnnouncementsModal() {
+  const list = await M.getAnnouncements(state.currentRoomId);
+  const wrap = $("#announceList");
+  if (!list.length) {
+    wrap.innerHTML = `<div class="rooms-empty">Pas d'annonce épinglée.</div>`;
+    return;
+  }
+  wrap.innerHTML = list.map((a, i) => `
+    <div class="ann-item" data-i="${i}">
+      <div class="text">${escapeHtml(a.text)}</div>
+      <button title="Détacher">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+      </button>
+    </div>
+  `).join("");
+  wrap.querySelectorAll(".ann-item button").forEach(b => {
+    b.addEventListener("click", async () => {
+      const i = parseInt(b.closest(".ann-item").dataset.i, 10);
+      const cur = await M.getAnnouncements(state.currentRoomId);
+      cur.splice(i, 1);
+      await M.setAnnouncements(state.currentRoomId, cur);
+      await renderAnnouncementsModal();
+      await loadAnnouncementsBar();
+      toast("Annonce détachée", "ok");
+    });
+  });
+}
+
+$("#btnAnnouncePost").addEventListener("click", async () => {
+  const text = $("#announceInput").value.trim();
+  if (!text) return;
+  if (!state.currentRoomId) return;
+  const cur = await M.getAnnouncements(state.currentRoomId);
+  cur.push({ text, by: M.userId, at: Date.now() });
+  try {
+    await M.setAnnouncements(state.currentRoomId, cur);
+    $("#announceInput").value = "";
+    toast("Annonce épinglée", "ok");
+    await renderAnnouncementsModal();
+    await loadAnnouncementsBar();
+  } catch (e) {
+    toast(e.message || "Erreur", "err");
+  }
+});
+
+/* =======================================================================
+   Sondage rapide (message texte standardisé avec puces 1️⃣2️⃣3️⃣)
+   ======================================================================= */
+const POLL_EMOJIS = ["1️⃣","2️⃣","3️⃣","4️⃣","5️⃣","6️⃣","7️⃣","8️⃣"];
+
+$("#btnPoll").addEventListener("click", () => {
+  if (!state.currentRoomId) return;
+  $("#pollQuestion").value = "";
+  $("#pollOptions").value  = "";
+  openModal("#modalPoll");
+  setTimeout(() => $("#pollQuestion").focus(), 100);
+});
+
+$("#btnPollSend").addEventListener("click", async () => {
+  const q = $("#pollQuestion").value.trim();
+  const opts = $("#pollOptions").value.split("\n").map(s => s.trim()).filter(Boolean).slice(0, 8);
+  if (!q || opts.length < 2) {
+    toast("Question + au moins 2 options", "err");
+    return;
+  }
+  const body =
+    "📊 " + q + "\n\n" +
+    opts.map((o, i) => `${POLL_EMOJIS[i]}  ${o}`).join("\n") +
+    "\n\n_Réagis avec l'emoji correspondant pour voter._";
+  try {
+    const txnId = "t" + Date.now();
+    await M.req("PUT",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(state.currentRoomId)}/send/m.room.message/${txnId}`,
+      { msgtype: "m.text", body, format: "org.matrix.custom.html",
+        formatted_body: "<strong>📊 " + escapeHtml(q) + "</strong><br><br>" +
+          opts.map((o, i) => `${POLL_EMOJIS[i]}&nbsp;&nbsp;${escapeHtml(o)}`).join("<br>") +
+          "<br><br><em>Réagis avec l'emoji correspondant pour voter.</em>" });
+    toast("Sondage publié", "ok");
+    closeModal("#modalPoll");
+  } catch (e) {
+    toast(e.message || "Erreur", "err");
+  }
+});
+
+/* Refresh la barre d'annonces quand on change de room */
+const origSelectRoom2 = selectRoom;
+selectRoom = async function(roomId) {
+  await origSelectRoom2(roomId);
+  loadAnnouncementsBar();
+};
+
 /* Voice input via Web Speech API si supporté (Chrome / Safari récents) */
 (function setupAiMic() {
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
