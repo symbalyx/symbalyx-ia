@@ -209,8 +209,11 @@ const profileB = {
         { from: "them", text: "Petit rappel : déclaration sociale avant fin du mois.", time: "08:15" }
       ],
       autoreply: [
-        { match: /merci|ok/i, reply: "Bonne journée.", delay: 3000 },
-        { match: /factur|tva|impot/i, reply: "Je regarde et je reviens vers toi en début d'après-midi.", delay: 4000 }
+        { match: /merci|ok/i,                replies: ["Bonne journée.", "À bientôt.", "Avec plaisir."] },
+        { match: /factur|tva|imp[oô]t/i,     replies: ["Je regarde et je reviens vers toi en début d'après-midi.", "Je m'en occupe.", "Je vérifie ça aujourd'hui."] },
+        { match: /salaire|paie|virement/i,   replies: ["Tout est en ordre pour le mois.", "Je te fais le récap demain matin."] },
+        { match: /rdv|rendez-vous/i,         replies: ["Je propose mardi 14h ou jeudi 10h, qu'est-ce qui te va ?", "On peut se voir au bureau quand tu veux."] },
+        { match: /\b(bonjour|salut)\b/i,     replies: ["Bonjour Camille.", "Bonjour, j'espère que tu vas bien."] }
       ]
     },
     {
@@ -231,7 +234,10 @@ const profileB = {
         { from: "them", text: "Parfait. Bon week-end.", time: "16:30" }
       ],
       autoreply: [
-        { match: /question|comment|combien/i, reply: "Je vous appelle dans la journée pour en discuter.", delay: 4500 }
+        { match: /question|comment|combien/i, replies: ["Je vous appelle dans la journée pour en discuter.", "Je peux organiser un échange demain matin si vous voulez."] },
+        { match: /devis|tarif|prix/i,         replies: ["Je vous renvoie le devis actualisé d'ici demain.", "On en discute lors de notre prochain point."] },
+        { match: /délai|quand|livr/i,         replies: ["Sous 10 jours ouvrés.", "Je consulte l'équipe et je reviens vers vous."] },
+        { match: /merci/i,                    replies: ["Je vous en prie.", "À votre service."] }
       ]
     },
     {
@@ -333,9 +339,11 @@ const profileC = {
         { from: "them", text: "Bonne journée mon chéri. Pense à bien manger le midi.", time: "07:50" }
       ],
       autoreply: [
-        { match: /merci|ok/i, reply: "Bisous mon grand.", delay: 3000 },
-        { match: /examen|partiel|note/i, reply: "Tu vas y arriver. Je crois en toi.", delay: 3500 },
-        { match: /argent|virement/i, reply: "Je te fais un virement ce soir.", delay: 4000 }
+        { match: /merci|ok/i,              replies: ["Bisous mon grand.", "Bisous ❤️", "À bientôt mon chéri."] },
+        { match: /examen|partiel|note/i,   replies: ["Tu vas y arriver. Je crois en toi.", "Reste concentré, tu connais ton cours.", "Pense à bien dormir avant."] },
+        { match: /argent|virement/i,       replies: ["Je te fais un virement ce soir.", "C'est fait, vérifie demain.", "On en reparle ce week-end."] },
+        { match: /fatigué|crevé|dort?/i,   replies: ["Repose-toi bien.", "Tu travailles trop, fais des pauses."] },
+        { match: /weekend|samedi|dimanche/i, replies: ["Tu rentres samedi ?", "On vous attend dimanche midi."] }
       ]
     },
     {
@@ -357,9 +365,11 @@ const profileC = {
         { from: "them", text: "Je te l'envoie dans 2 min.", time: "09:22" }
       ],
       autoreply: [
-        { match: /liste|courses/i, reply: "Café · Lait · PQ · Pain · Yaourts · Pâtes", delay: 3500 },
-        { match: /soir|dîner|manger/i, reply: "OK pour ce soir alors.", delay: 2500 },
-        { match: /\b(salut|yo|hey)\b/i, reply: "Yo", delay: 1500 }
+        { match: /liste|courses/i,        replies: ["Café · Lait · PQ · Pain · Yaourts · Pâtes", "Rajoute du sopalin stp", "Et de la lessive aussi"] },
+        { match: /soir|dîner|manger/i,    replies: ["OK pour ce soir alors.", "Je passe au marché en rentrant.", "Pizza ce soir ?"] },
+        { match: /\b(salut|yo|hey)\b/i,   replies: ["Yo", "Salut", "Yo ça roule ?"] },
+        { match: /loyer|charges/i,        replies: ["Je te fais le virement demain.", "C'est noté, fin du mois."] },
+        { match: /tu rentres|rentre/i,    replies: ["Je sais pas encore, je te dis tt à l'heure", "Tard ce soir je pense"] }
       ]
     },
     {
@@ -398,8 +408,11 @@ const profileC = {
         { from: "them", text: "Bonne nuit", time: "23:40" }
       ],
       autoreply: [
-        { match: /concert|sortie/i, reply: "Je regarde et je te dis ce soir.", delay: 3000 },
-        { match: /vendredi|samedi/i, reply: "Ça marche pour moi.", delay: 2800 }
+        { match: /concert|sortie/i,    replies: ["Je regarde et je te dis ce soir.", "T'as pris les places ?", "Carrément partant."] },
+        { match: /vendredi|samedi/i,   replies: ["Ça marche pour moi.", "Je peux le soir oui.", "Note moi 20h."] },
+        { match: /\b(coucou|salut|hello|hi)\b/i, replies: ["Coucou", "Hey toi", "Salut 🙂"] },
+        { match: /bonne nuit|dodo/i,   replies: ["Bonne nuit", "Dors bien"] },
+        { match: /bisou|coeur|love/i,  replies: ["💜", "Bisous toi"] }
       ]
     },
     {
@@ -458,9 +471,11 @@ const profileD = {
         { from: "them", text: "On a 3 candidatures pour le poste vendeur. Tu peux jeter un œil ?", time: "09:10" }
       ],
       autoreply: [
-        { match: /chiffre|résultat|bilan/i, reply: "On regarde ça ensemble demain matin.", delay: 3500 },
-        { match: /banque|crédit/i, reply: "Je m'occupe du dossier dans la journée.", delay: 4000 },
-        { match: /merci|ok/i, reply: "👍", delay: 1500 }
+        { match: /chiffre|résultat|bilan/i, replies: ["On regarde ça ensemble demain matin.", "Le chiffre s'améliore, à voir si ça tient.", "Je te fais un point à 17h."] },
+        { match: /banque|crédit/i,          replies: ["Je m'occupe du dossier dans la journée.", "RDV calé mardi avec le conseiller.", "Je prépare les pièces ce soir."] },
+        { match: /merci|ok/i,               replies: ["👍", "Top.", "Bien noté."] },
+        { match: /fournisseur|commande/i,   replies: ["On gère, ne t'inquiète pas.", "Je vois ça demain matin."] },
+        { match: /embauche|candidat|recrut/i, replies: ["Je te fais le tri ce soir.", "On en parle après-demain."] }
       ]
     },
     {
@@ -483,9 +498,11 @@ const profileD = {
         { from: "them", text: "Bonne journée. Bisous.", time: "07:30" }
       ],
       autoreply: [
-        { match: /merci|ok/i, reply: "Bisous.", delay: 2500 },
-        { match: /soir|dîner/i, reply: "OK je rentre direct alors.", delay: 3000 },
-        { match: /léo|enfant/i, reply: "Je m'en occupe.", delay: 2800 }
+        { match: /merci|ok/i,               replies: ["Bisous.", "À ce soir.", "💜"] },
+        { match: /soir|dîner|manger/i,      replies: ["OK je rentre direct alors.", "Tu veux que je prépare ?", "On commande quelque chose ?"] },
+        { match: /léo|enfant|école/i,       replies: ["Je m'en occupe.", "Pense à signer le carnet.", "Il a oublié son goûter ce matin."] },
+        { match: /weekend|samedi|dimanche/i, replies: ["On voit chez les parents non ?", "Je dois confirmer pour samedi."] },
+        { match: /\b(bisou|love|❤️)/i,       replies: ["💜", "Je t'embrasse"] }
       ]
     },
     {
@@ -533,7 +550,9 @@ const profileD = {
         { from: "them", text: "Très bien fiston, je suis fier de toi.", time: "18:16" }
       ],
       autoreply: [
-        { match: /commerce|boutique|chiffre/i, reply: "Continue comme ça mon grand.", delay: 3500 }
+        { match: /commerce|boutique|chiffre/i, replies: ["Continue comme ça mon grand.", "Belle progression.", "Bravo fiston."] },
+        { match: /\b(papa|père)\b/i,           replies: ["Oui mon grand.", "Dis-moi."] },
+        { match: /santé|fatigué|forme/i,       replies: ["Ça va. Toi, repose-toi un peu.", "On vieillit tous, c'est la vie."] }
       ]
     },
     {
