@@ -373,6 +373,214 @@
   .sidebar-fab:hover { filter: brightness(1.12); transform: scale(1.08) rotate(8deg); box-shadow: 0 14px 32px rgba(124,92,255,0.55); }
   .sidebar-fab:active { transform: scale(0.96); }
 
+  /* ============ ASSISTANT IA (style "Mon IA" Snap) ============ */
+  .ai-pin {
+    width: 100%;
+    margin: 4px 0 12px;
+    padding: 10px 12px;
+    display: flex; align-items: center; gap: 12px;
+    background: linear-gradient(135deg, rgba(124,92,255,0.18), rgba(255,111,141,0.18));
+    border: 1px solid rgba(255,111,141,0.3);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: filter .15s, transform .08s;
+    font-family: inherit;
+    color: var(--text-0);
+    text-align: left;
+  }
+  .ai-pin:hover { filter: brightness(1.15); }
+  .ai-pin:active { transform: scale(0.985); }
+  .ai-pin.active {
+    background: linear-gradient(135deg, rgba(124,92,255,0.32), rgba(255,111,141,0.32));
+    border-color: rgba(255,111,141,0.55);
+  }
+  .ai-pin-avatar {
+    width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0;
+    background: var(--grad-brand);
+    display: grid; place-items: center;
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(124,92,255,0.45);
+    position: relative;
+  }
+  .ai-pin-avatar::after {
+    content: ""; position: absolute; inset: -3px;
+    border-radius: 50%;
+    background: var(--grad-warm); opacity: 0.4;
+    filter: blur(8px); z-index: -1;
+  }
+  .ai-pin-info { flex: 1; min-width: 0; }
+  .ai-pin-name {
+    font-size: 14px; font-weight: 700;
+    letter-spacing: -0.2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .ai-pin-badge {
+    display: inline-block;
+    background: rgba(74, 214, 138, 0.18);
+    color: #b6f0cf;
+    border: 1px solid rgba(74,214,138,0.35);
+    border-radius: 999px;
+    font-size: 9px; font-weight: 700;
+    padding: 1px 6px; text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .ai-pin-sub { font-size: 11px; color: var(--text-2); margin-top: 1px; }
+
+  .ai-view { flex: 1; display: none; flex-direction: column; min-height: 0; }
+  .ai-view.active { display: flex; }
+  .ai-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 22px;
+    background: linear-gradient(135deg, rgba(124,92,255,0.12), rgba(255,111,141,0.12));
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    backdrop-filter: blur(14px);
+  }
+  .ai-header-left { display: flex; align-items: center; gap: 12px; }
+  .ai-header-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: var(--grad-brand);
+    display: grid; place-items: center; color: #fff;
+    box-shadow: 0 4px 14px rgba(124,92,255,0.4);
+  }
+  .ai-header-name { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+  .ai-header-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
+  .ai-header-sub .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); display: inline-block; vertical-align: 1px; margin-right: 5px; }
+  .ai-msgs {
+    flex: 1; overflow-y: auto;
+    padding: 22px 18px 12px;
+    display: flex; flex-direction: column; gap: 4px;
+    background: var(--bg-1);
+  }
+  .ai-msg {
+    max-width: 78%;
+    padding: 11px 15px;
+    border-radius: 18px;
+    font-size: 14.5px; line-height: 1.45;
+    word-wrap: break-word; white-space: pre-wrap;
+    animation: msgIn .15s ease-out;
+  }
+  .ai-msg.them {
+    background: var(--bg-3);
+    color: var(--text-0);
+    border-bottom-left-radius: 6px;
+    align-self: flex-start;
+  }
+  .ai-msg.me {
+    background: var(--grad-brand);
+    color: #fff;
+    border-bottom-right-radius: 6px;
+    align-self: flex-end;
+  }
+  .ai-msg.system {
+    align-self: center;
+    background: rgba(74, 214, 138, 0.10);
+    border: 1px solid rgba(74,214,138,0.3);
+    color: #b6f0cf;
+    font-size: 12px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    text-align: center;
+    max-width: 90%;
+  }
+  .ai-msg-time {
+    font-size: 10px; color: var(--text-3);
+    padding: 0 8px; margin-top: 2px;
+  }
+  .ai-msg-time.me { align-self: flex-end; }
+  .ai-msg-time.them { align-self: flex-start; }
+  .ai-quick {
+    display: flex; gap: 8px; padding: 10px 18px 0;
+    flex-wrap: wrap;
+    background: var(--bg-1);
+  }
+  .ai-quick button {
+    background: var(--glass-strong);
+    border: 1px solid var(--border-strong);
+    color: var(--text-1);
+    padding: 7px 12px; border-radius: 999px;
+    font-size: 12px; font-weight: 500;
+    cursor: pointer; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+    transition: background .12s, color .12s, transform .08s;
+  }
+  .ai-quick button:hover { background: rgba(255,255,255,0.12); color: var(--text-0); }
+  .ai-quick button:active { transform: scale(0.94); }
+  .ai-input-bar {
+    display: flex; align-items: center; gap: 10px;
+    padding: 12px 18px 16px;
+    background: var(--bg-1);
+    border-top: 1px solid var(--border);
+  }
+  .ai-input-bar input {
+    flex: 1; padding: 12px 16px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-0); font-size: 14.5px;
+    outline: none; font-family: inherit;
+  }
+  .ai-input-bar input:focus { border-color: rgba(124,92,255,0.45); }
+  .ai-send {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: var(--grad-brand);
+    border: 0; color: #fff;
+    display: grid; place-items: center; cursor: pointer;
+    transition: transform .1s, filter .12s;
+    box-shadow: 0 6px 18px rgba(124,92,255,0.35);
+  }
+  .ai-send:hover { filter: brightness(1.1); }
+  .ai-send:active { transform: scale(0.92); }
+  .ai-send[disabled] { opacity: 0.5; cursor: not-allowed; }
+  .ai-typing {
+    align-self: flex-start; background: var(--bg-3);
+    padding: 12px 16px; border-radius: 18px;
+    border-bottom-left-radius: 6px;
+    display: none;
+  }
+  .ai-typing.show { display: inline-block; }
+  .ai-typing span {
+    display: inline-block;
+    width: 6px; height: 6px; border-radius: 50%;
+    background: var(--text-2); margin: 0 2px;
+    animation: typingDot 1.2s infinite;
+  }
+  .ai-typing span:nth-child(2) { animation-delay: 0.2s; }
+  .ai-typing span:nth-child(3) { animation-delay: 0.4s; }
+  .ai-empty {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px 30px; text-align: center;
+  }
+  .ai-empty .ai-empty-avatar {
+    width: 88px; height: 88px; border-radius: 50%;
+    background: var(--grad-brand);
+    display: grid; place-items: center; color: #fff;
+    margin-bottom: 22px;
+    box-shadow:
+      0 14px 40px rgba(124,92,255,0.4),
+      0 6px 18px rgba(255,111,141,0.3);
+  }
+  .ai-empty h2 {
+    margin: 0 0 8px;
+    font-size: 22px; font-weight: 700;
+    letter-spacing: -0.4px;
+    background: var(--grad-brand);
+    -webkit-background-clip: text; background-clip: text;
+    color: transparent;
+  }
+  .ai-empty p { margin: 0 0 24px; color: var(--text-2); max-width: 360px; line-height: 1.5; font-size: 14px; }
+  .ai-suggestions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; max-width: 400px; }
+  .ai-suggestion {
+    background: var(--glass-strong); border: 1px solid var(--border-strong);
+    color: var(--text-1); padding: 9px 14px;
+    border-radius: 999px; font-size: 13px;
+    cursor: pointer; font-family: inherit;
+    transition: background .12s, color .12s, transform .08s;
+  }
+  .ai-suggestion:hover { background: rgba(255,255,255,0.1); color: var(--text-0); }
+  .ai-suggestion:active { transform: scale(0.96); }
+
   .rooms-list { flex: 1; overflow-y: auto; padding: 4px 8px 100px; min-height: 0; }
   .room-item {
     display: flex; align-items: center; gap: 14px;
@@ -1324,6 +1532,15 @@
           <svg class="search-icon-inner" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
           <input class="search-input" id="roomSearch" type="text" placeholder="Rechercher…" autocomplete="off" />
         </div>
+        <button class="ai-pin" id="btnAssistant">
+          <div class="ai-pin-avatar">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.5 12 2"/></svg>
+          </div>
+          <div class="ai-pin-info">
+            <div class="ai-pin-name">Mon IA <span class="ai-pin-badge">local</span></div>
+            <div class="ai-pin-sub">Pose-moi n'importe quoi</div>
+          </div>
+        </button>
       </div>
 
       <div class="rooms-list" id="roomsList">
@@ -1422,6 +1639,63 @@
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Vue Assistant IA (style "My AI" Snapchat) -->
+      <div class="ai-view" id="assistantView">
+        <div class="ai-header">
+          <div class="ai-header-left">
+            <div class="ai-header-avatar">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.5 12 2"/></svg>
+            </div>
+            <div>
+              <div class="ai-header-name">Mon IA</div>
+              <div class="ai-header-sub"><span class="dot"></span>Modèle local · vos messages ne quittent jamais l'appareil</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="icon-btn" id="aiClear" title="Effacer la conversation">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="ai-msgs" id="aiMsgs">
+          <div id="aiMsgsList"></div>
+          <div class="ai-empty" id="aiEmpty">
+            <div class="ai-empty-avatar">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.5 12 2"/></svg>
+            </div>
+            <h2>Bonjour 👋</h2>
+            <p>Je suis ton assistant local. Pose-moi une question, demande-moi de rédiger, traduire, résumer, calculer, ou de te poser un rappel.</p>
+            <div class="ai-suggestions">
+              <button class="ai-suggestion" data-prompt="Rédige un mail poli pour décliner un rendez-vous">✍️ Rédige un mail</button>
+              <button class="ai-suggestion" data-prompt="/traduire en anglais Je vous prie d'agréer mes salutations distinguées">🌍 Traduire</button>
+              <button class="ai-suggestion" data-prompt="/calc 1250 * 1.20">🧮 Calcule</button>
+              <button class="ai-suggestion" data-prompt="/rappel 15m sortir le courrier">⏰ Rappel 15 min</button>
+              <button class="ai-suggestion" data-prompt="Donne-moi 5 idées pour un dîner rapide">💡 Idées</button>
+              <button class="ai-suggestion" data-prompt="Explique-moi simplement ce qu'est le chiffrement de bout en bout">📚 Explique</button>
+            </div>
+          </div>
+        </div>
+        <div class="ai-typing" id="aiTyping">
+          <span></span><span></span><span></span>
+        </div>
+
+        <div class="ai-quick">
+          <button data-prefix="/calc ">🧮 Calculer</button>
+          <button data-prefix="/note ">📝 Note</button>
+          <button data-prefix="/rappel 10m ">⏰ Rappel</button>
+          <button data-prefix="/traduire en anglais ">🌍 Traduire</button>
+          <button data-prefix="/rédige ">✍️ Rédiger</button>
+          <button data-prefix="/résumer ">📄 Résumer</button>
+        </div>
+        <div class="ai-input-bar">
+          <input id="aiInput" type="text" placeholder="Pose ta question à Mon IA…" autocomplete="off" />
+          <button class="ai-send" id="aiSend" title="Envoyer">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          </button>
         </div>
       </div>
 
@@ -3940,6 +4214,315 @@ $$("#ctxMenu .ctx-item").forEach(item => {
     }
   });
 });
+
+/* =======================================================================
+   ASSISTANT IA — Mon IA (style My AI Snap), 100% local via Ollama.
+   Skills :
+     /calc <expr>            calcul math sans appel LLM
+     /note <texte>           sauvegarde dans la conv "Note à moi-même"
+     /rappel <durée> <texte> notif locale à expiration
+     /traduire <texte>       traduction via LLM
+     /rédige <consigne>      rédaction (mail, message, lettre…)
+     /résumer                résumé de la conv courante
+     /persona <nom>          change le persona (assistant|secrétaire|coach|expert)
+     /clear                  vide l'historique
+     <texte>                 conversation libre avec contexte
+   ======================================================================= */
+const ASSISTANT = {
+  view: null,
+  history: [],        // [{from:"me"|"them"|"system", text, time}]
+  persona: "assistant",
+  busy: false
+};
+
+const AI_PERSONAS = {
+  assistant: "Tu es un assistant personnel concis et utile. Tu réponds en français en 3-4 phrases sauf si on te demande un développement. Pas d'emojis sauf si l'utilisateur en met.",
+  "secrétaire": "Tu es une secrétaire pro. Tu vouvoies, tu rédiges propre, tu reformules. Réponses synthétiques en français.",
+  coach: "Tu es un coach bienveillant et direct. Tu poses des questions ouvertes, tu reformules, tu suggères des actions concrètes. Réponses courtes en français.",
+  expert: "Tu es un expert généraliste précis. Tu vérifies tes faits, indiques quand tu ne sais pas. Français clair et structuré."
+};
+
+function aiKey() { return `c_ai_${M.userId || "anon"}`; }
+
+function aiLoad() {
+  try {
+    const raw = localStorage.getItem(aiKey());
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    ASSISTANT.history = data.history || [];
+    ASSISTANT.persona = data.persona || "assistant";
+  } catch {}
+}
+function aiSave() {
+  try {
+    localStorage.setItem(aiKey(), JSON.stringify({
+      history: ASSISTANT.history.slice(-200),  // garde les 200 derniers
+      persona: ASSISTANT.persona
+    }));
+  } catch {}
+}
+
+function aiOpen() {
+  $("#noRoomView").style.display = "none";
+  $("#roomView").style.display   = "none";
+  $("#decoyChat").style.display  = "none";
+  $("#elementFrameWrap") && ($("#elementFrameWrap").style.display = "none");
+  $("#assistantView").classList.add("active");
+  $("#btnAssistant").classList.add("active");
+
+  // Désactiver la sélection de room dans la sidebar
+  state.currentRoomId = null;
+  $$("#roomsList .room-item").forEach(el => el.classList.remove("active"));
+
+  aiLoad();
+  aiRender();
+
+  if (window.innerWidth <= 760) $("#sidebar").classList.add("hidden-mobile");
+  setTimeout(() => $("#aiInput").focus(), 60);
+}
+
+function aiClose() {
+  $("#assistantView").classList.remove("active");
+  $("#btnAssistant").classList.remove("active");
+}
+
+function aiRender() {
+  const list  = $("#aiMsgsList");
+  const empty = $("#aiEmpty");
+  if (!ASSISTANT.history.length) {
+    list.innerHTML = "";
+    if (empty) empty.style.display = "";
+    return;
+  }
+  if (empty) empty.style.display = "none";
+  let html = "";
+  for (const m of ASSISTANT.history) {
+    if (m.from === "system") {
+      html += `<div class="ai-msg system">${escapeHtml(m.text)}</div>`;
+    } else {
+      const side = m.from === "me" ? "me" : "them";
+      html += `<div class="ai-msg ${side}">${escapeHtml(m.text)}</div>`;
+      if (m.time) html += `<div class="ai-msg-time ${side}">${escapeHtml(m.time)}</div>`;
+    }
+  }
+  list.innerHTML = html;
+  const wrap = $("#aiMsgs");
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function aiPush(from, text) {
+  const t = new Date();
+  const time = `${String(t.getHours()).padStart(2,"0")}:${String(t.getMinutes()).padStart(2,"0")}`;
+  ASSISTANT.history.push({ from, text, time });
+  aiSave();
+  aiRender();
+}
+
+/* ============ Skills ============ */
+
+function aiSafeCalc(expr) {
+  if (!/^[\d+\-*/().,\s%]+$/.test(expr)) return null;
+  try {
+    const cleaned = expr.replace(/,/g, ".");
+    // eslint-disable-next-line no-new-func
+    const r = Function(`"use strict"; return (${cleaned})`)();
+    if (typeof r !== "number" || !Number.isFinite(r)) return null;
+    return r;
+  } catch { return null; }
+}
+
+function parseDuration(s) {
+  const m = String(s).match(/^(\d+)\s*([smhj])?$/i);
+  if (!m) return null;
+  const n = parseInt(m[1], 10);
+  const u = (m[2] || "m").toLowerCase();
+  const mult = { s: 1000, m: 60_000, h: 3_600_000, j: 86_400_000 }[u];
+  return mult ? n * mult : null;
+}
+
+async function aiSkillNote(text) {
+  // Trouve ou crée le room "Note à moi-même"
+  let r = state.rooms.find(x => /note à moi-même/i.test(x.name)
+    || (x.members.length === 1 && x.members[0] === M.userId));
+  if (!r) {
+    try {
+      const res = await M.createPrivateGroup("Note à moi-même", []);
+      await loadRooms();
+      r = state.rooms.find(x => x.id === res.room_id);
+    } catch (e) { return "Impossible de créer l'espace personnel : " + e.message; }
+  }
+  try {
+    const txnId = "t" + Date.now();
+    await M.req("PUT",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(r.id)}/send/m.room.message/${txnId}`,
+      { msgtype: "m.text", body: text });
+    return `📝 Note enregistrée dans ta conversation "Note à moi-même".`;
+  } catch (e) { return "Erreur lors de l'enregistrement : " + e.message; }
+}
+
+function aiSkillRappel(rest) {
+  const m = rest.match(/^(\d+\s*[smhj]?)\s+(.+)$/i);
+  if (!m) return "Format : /rappel 15m faire X  (s, m, h ou j)";
+  const ms = parseDuration(m[1]);
+  if (!ms) return "Durée invalide.";
+  const text = m[2];
+  setTimeout(() => {
+    toast(`⏰ Rappel : ${text}`, "ok");
+    try { new Notification("Rappel", { body: text }); } catch {}
+  }, ms);
+  if ("Notification" in window && Notification.permission === "default") {
+    Notification.requestPermission().catch(() => {});
+  }
+  const at = new Date(Date.now() + ms);
+  const hhmm = `${String(at.getHours()).padStart(2,"0")}:${String(at.getMinutes()).padStart(2,"0")}`;
+  return `⏰ OK, je te rappellerai à ${hhmm} : « ${text} »`;
+}
+
+async function aiSkillResumer() {
+  // Si on était dans un room avant d'ouvrir l'assistant, on a sauvé l'ID
+  const roomId = ASSISTANT.lastRoomId || state.currentRoomId;
+  if (!roomId) return "Aucune conversation à résumer. Ouvre une conversation d'abord, puis utilise /résumer.";
+  try {
+    const data = await M.req("GET",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/messages?dir=b&limit=50`);
+    const lines = [];
+    for (const ev of (data.chunk || []).reverse()) {
+      if (ev.type !== "m.room.message") continue;
+      const body = ev.content?.body;
+      if (!body) continue;
+      const sender = ev.sender.split(":")[0].replace(/^@/, "");
+      lines.push(`${sender}: ${body}`);
+    }
+    if (!lines.length) return "Pas de messages à résumer (ou messages chiffrés non lisibles depuis l'assistant).";
+    return await llmSummary(lines.join("\n"));
+  } catch (e) {
+    return "Erreur : " + e.message;
+  }
+}
+
+async function aiAskOllama(userMsg) {
+  const messages = [{ role: "system", content: AI_PERSONAS[ASSISTANT.persona] || AI_PERSONAS.assistant }];
+  // Inclut les 10 derniers tours pour la mémoire
+  const tail = ASSISTANT.history.filter(m => m.from === "me" || m.from === "them").slice(-20);
+  for (const t of tail) {
+    messages.push({ role: t.from === "me" ? "user" : "assistant", content: t.text });
+  }
+  messages.push({ role: "user", content: userMsg });
+
+  const r = await fetch("/ollama/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      model: "llama3.2:3b",
+      messages,
+      stream: false
+    })
+  });
+  if (!r.ok) throw new Error("LLM indisponible (HTTP " + r.status + ")");
+  const j = await r.json();
+  return (j.message?.content || "").trim() || "(réponse vide)";
+}
+
+async function aiHandle(text) {
+  // Skills à préfixe
+  if (/^\/clear\b/i.test(text)) {
+    ASSISTANT.history = [];
+    aiSave(); aiRender();
+    return null;
+  }
+  let m;
+  if ((m = text.match(/^\/persona\s+(\w+)/i))) {
+    const p = m[1].toLowerCase();
+    if (!AI_PERSONAS[p]) return `Personas dispo : ${Object.keys(AI_PERSONAS).join(", ")}`;
+    ASSISTANT.persona = p; aiSave();
+    return `Persona changé : ${p}`;
+  }
+  if ((m = text.match(/^\/calc\s+(.+)/i))) {
+    const r = aiSafeCalc(m[1]);
+    return r === null ? "Expression invalide." : `Résultat : ${r.toLocaleString("fr-FR")}`;
+  }
+  if ((m = text.match(/^\/note\s+(.+)/i))) {
+    return await aiSkillNote(m[1]);
+  }
+  if ((m = text.match(/^\/rappel\s+(.+)/i))) {
+    return aiSkillRappel(m[1]);
+  }
+  if (/^\/r[ée]sumer\b/i.test(text)) {
+    return await aiSkillResumer();
+  }
+  if ((m = text.match(/^\/traduire\b(.+)/i))) {
+    return await aiAskOllama("Traduis ceci en gardant le ton : " + m[1].trim());
+  }
+  if ((m = text.match(/^\/r[ée]dige[r]?\b(.+)/i))) {
+    return await aiAskOllama("Rédige ce qui est demandé : " + m[1].trim());
+  }
+  // Conversation libre
+  return await aiAskOllama(text);
+}
+
+async function aiSend() {
+  if (ASSISTANT.busy) return;
+  const input = $("#aiInput");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+
+  aiPush("me", text);
+  ASSISTANT.busy = true;
+  $("#aiSend").disabled = true;
+  $("#aiTyping").classList.add("show");
+
+  try {
+    const reply = await aiHandle(text);
+    $("#aiTyping").classList.remove("show");
+    if (reply) aiPush("them", reply);
+  } catch (e) {
+    $("#aiTyping").classList.remove("show");
+    aiPush("them", "⚠ " + (e.message || "Erreur. Vérifie que le service Ollama est lancé (docker compose up -d ollama) et qu'un modèle est téléchargé (ollama pull llama3.2:3b)."));
+  } finally {
+    ASSISTANT.busy = false;
+    $("#aiSend").disabled = false;
+  }
+}
+
+/* Wiring */
+$("#btnAssistant").addEventListener("click", () => {
+  // Mémorise le dernier room pour /résumer
+  ASSISTANT.lastRoomId = state.currentRoomId;
+  aiOpen();
+});
+
+$("#aiSend").addEventListener("click", aiSend);
+$("#aiInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); aiSend(); }
+});
+
+$("#aiClear").addEventListener("click", () => {
+  if (!confirm("Effacer toute la conversation avec Mon IA ?")) return;
+  ASSISTANT.history = []; aiSave(); aiRender();
+  toast("Conversation effacée", "ok");
+});
+
+document.querySelectorAll(".ai-quick button").forEach(b => {
+  b.addEventListener("click", () => {
+    $("#aiInput").value = b.dataset.prefix;
+    $("#aiInput").focus();
+    $("#aiInput").setSelectionRange(b.dataset.prefix.length, b.dataset.prefix.length);
+  });
+});
+document.querySelectorAll(".ai-suggestion").forEach(b => {
+  b.addEventListener("click", () => {
+    $("#aiInput").value = b.dataset.prompt;
+    aiSend();
+  });
+});
+
+// Fermer la vue assistant quand on clique sur une room normale
+const origSelectRoom = selectRoom;
+selectRoom = async function(roomId) {
+  aiClose();
+  return origSelectRoom(roomId);
+};
 
 /* Bootstrap autolock once logged in */
 const origEnterApp = enterApp;
