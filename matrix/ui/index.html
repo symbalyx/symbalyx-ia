@@ -532,6 +532,74 @@
   .ai-send:hover { filter: brightness(1.1); }
   .ai-send:active { transform: scale(0.92); }
   .ai-send[disabled] { opacity: 0.5; cursor: not-allowed; }
+  .ai-mic {
+    width: 42px; height: 42px; border-radius: 50%;
+    background: var(--glass-strong);
+    border: 1px solid var(--border-strong);
+    color: var(--text-1);
+    display: grid; place-items: center;
+    cursor: pointer; transition: background .12s, color .12s, transform .08s;
+  }
+  .ai-mic:hover { background: rgba(255,255,255,0.12); color: var(--text-0); }
+  .ai-mic.recording {
+    background: rgba(255,84,112,0.2);
+    color: var(--danger);
+    border-color: var(--danger);
+    animation: pulseMic 1.2s ease-in-out infinite;
+  }
+  @keyframes pulseMic { 0%,100% { box-shadow: 0 0 0 0 rgba(255,84,112,0.45); } 50% { box-shadow: 0 0 0 8px rgba(255,84,112,0); } }
+  .streaming-cursor {
+    display: inline-block; width: 8px; vertical-align: -1px;
+    animation: blink 1s steps(2) infinite;
+    color: var(--accent);
+  }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  /* Actions sous chaque bulle IA */
+  .ai-msg-actions {
+    display: flex; gap: 6px;
+    align-self: flex-start;
+    margin: -2px 0 6px;
+    opacity: 0; transition: opacity .15s;
+  }
+  .ai-msg.them:hover + .ai-msg-actions,
+  .ai-msg-actions:hover { opacity: 1; }
+  .ai-msg-actions button {
+    background: var(--glass-strong);
+    border: 1px solid var(--border-strong);
+    color: var(--text-2);
+    padding: 4px 9px;
+    border-radius: 999px;
+    font-size: 11px; font-family: inherit;
+    cursor: pointer;
+    display: inline-flex; align-items: center; gap: 4px;
+    transition: background .12s, color .12s;
+  }
+  .ai-msg-actions button:hover { background: rgba(255,255,255,0.1); color: var(--text-0); }
+
+  /* Markdown */
+  .ai-msg.them .md-list { margin: 6px 0 6px 18px; padding: 0; }
+  .ai-msg.them .md-list li { margin: 2px 0; }
+  .ai-msg.them .md-code {
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    margin: 8px 0;
+    overflow-x: auto;
+    font-family: "SF Mono", Consolas, Monaco, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .ai-msg.them .md-code code { background: transparent; padding: 0; }
+  .ai-msg.them .md-inline {
+    background: rgba(0,0,0,0.35);
+    padding: 1px 6px;
+    border-radius: 5px;
+    font-family: "SF Mono", Consolas, Monaco, monospace;
+    font-size: 0.92em;
+  }
+  .ai-msg.them strong { color: var(--text-0); }
   .ai-typing {
     align-self: flex-start; background: var(--bg-3);
     padding: 12px 16px; border-radius: 18px;
@@ -1284,6 +1352,55 @@
   }
   .decoy-send:active { transform: scale(0.92); }
 
+  /* ============ GROUP HEADER (édition photo / nom / topic) ============ */
+  .group-header {
+    display: flex; align-items: flex-start; gap: 16px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid var(--border);
+  }
+  .group-avatar-wrap {
+    position: relative; flex-shrink: 0;
+  }
+  .group-avatar-big {
+    width: 80px; height: 80px; border-radius: 50%;
+    background: var(--grad-brand);
+    background-size: cover; background-position: center;
+    display: grid; place-items: center;
+    color: #fff; font-weight: 700; font-size: 28px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  }
+  .group-avatar-edit {
+    position: absolute; bottom: 0; right: 0;
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--bg-3);
+    border: 2px solid var(--bg-2);
+    color: var(--text-1);
+    cursor: pointer;
+    display: grid; place-items: center;
+    transition: background .12s, color .12s;
+  }
+  .group-avatar-edit:hover { background: var(--accent); color: #fff; }
+  .group-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+  .group-name-input {
+    width: 100%; padding: 9px 12px;
+    background: var(--glass-strong);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    color: var(--text-0); font-size: 15px; font-weight: 600;
+    font-family: inherit; outline: none;
+  }
+  .group-name-input:focus { border-color: var(--accent); }
+  .group-topic-input {
+    width: 100%; padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text-1); font-size: 13px;
+    font-family: inherit; outline: none;
+  }
+  .group-topic-input:focus { border-color: var(--accent); }
+  .group-save-row { display: flex; justify-content: flex-end; }
+
   /* ============ MEMBERS / LEVELS ============ */
   .lvl-legend {
     margin: 16px 0 18px;
@@ -1693,6 +1810,9 @@
         </div>
         <div class="ai-input-bar">
           <input id="aiInput" type="text" placeholder="Pose ta question à Mon IA…" autocomplete="off" />
+          <button class="ai-mic" id="aiMic" title="Dicter (Web Speech API)" style="display:none">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+          </button>
           <button class="ai-send" id="aiSend" title="Envoyer">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           </button>
@@ -2052,7 +2172,24 @@
       </button>
     </div>
     <div class="modal-body">
-      <div class="info-row">
+      <div class="group-header" id="groupHeader">
+        <div class="group-avatar-wrap">
+          <div class="group-avatar-big" id="groupAvatarBig">?</div>
+          <button class="group-avatar-edit" id="groupAvatarEdit" title="Changer la photo">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </button>
+          <input type="file" id="groupAvatarInput" accept="image/*" style="display:none" />
+        </div>
+        <div class="group-meta">
+          <input type="text" class="group-name-input" id="groupNameInput" placeholder="Nom du groupe" />
+          <input type="text" class="group-topic-input" id="groupTopicInput" placeholder="Sujet / description du groupe (facultatif)" />
+          <div class="group-save-row">
+            <button class="btn" id="groupSaveBtn">Enregistrer les modifications</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-row" style="margin-top:18px;">
         <div class="ic">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
@@ -3219,8 +3356,70 @@ $("#btnMembers").addEventListener("click", async () => {
   if (!state.currentRoomId) return;
   const r = state.rooms.find(x => x.id === state.currentRoomId);
   if (!r) return;
+  await renderGroupHeader(r);
   await renderMembers(r);
   openModal("#modalMembers");
+});
+
+async function renderGroupHeader(room) {
+  const [topic, avatarMxc] = await Promise.all([
+    M.getRoomTopic(room.id),
+    M.getRoomAvatar(room.id)
+  ]);
+  const ab = $("#groupAvatarBig");
+  if (avatarMxc) {
+    ab.style.backgroundImage = `url("${M.mxcToHttp(avatarMxc, 192, 192)}")`;
+    ab.textContent = "";
+  } else {
+    ab.style.backgroundImage = "";
+    ab.textContent = initials(room.name);
+  }
+  $("#groupNameInput").value  = room.name === "Conversation" ? "" : room.name;
+  $("#groupTopicInput").value = topic || "";
+  $("#groupNameInput").dataset.original  = $("#groupNameInput").value;
+  $("#groupTopicInput").dataset.original = $("#groupTopicInput").value;
+}
+
+$("#groupAvatarEdit").addEventListener("click", () => $("#groupAvatarInput").click());
+$("#groupAvatarInput").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f || !state.currentRoomId) return;
+  if (!f.type.startsWith("image/")) { toast("Doit être une image", "err"); return; }
+  if (f.size > 5 * 1024 * 1024) { toast("Photo > 5 Mo", "err"); return; }
+  try {
+    const mxc = await M.uploadMedia(f, f.name);
+    await M.setRoomAvatar(state.currentRoomId, mxc);
+    $("#groupAvatarBig").style.backgroundImage = `url("${M.mxcToHttp(mxc, 192, 192)}")`;
+    $("#groupAvatarBig").textContent = "";
+    toast("Photo de groupe mise à jour", "ok");
+  } catch (err) {
+    toast("Échec : " + (err.message || "erreur"), "err");
+  }
+});
+
+$("#groupSaveBtn").addEventListener("click", async () => {
+  if (!state.currentRoomId) return;
+  const name  = $("#groupNameInput").value.trim();
+  const topic = $("#groupTopicInput").value.trim();
+  const origName  = $("#groupNameInput").dataset.original;
+  const origTopic = $("#groupTopicInput").dataset.original;
+  const btn = $("#groupSaveBtn");
+  btn.disabled = true; btn.textContent = "Enregistrement…";
+  try {
+    if (name && name !== origName) {
+      await M.setRoomName(state.currentRoomId, name);
+    }
+    if (topic !== origTopic) {
+      await M.setRoomTopic(state.currentRoomId, topic);
+    }
+    toast("Groupe mis à jour", "ok");
+    await loadRooms();
+    selectRoom(state.currentRoomId);
+  } catch (err) {
+    toast("Échec : " + (err.message || "erreur"), "err");
+  } finally {
+    btn.disabled = false; btn.textContent = "Enregistrer les modifications";
+  }
 });
 
 async function renderMembers(room) {
@@ -3387,10 +3586,55 @@ Object.assign(M, {
     } catch { return null; }
   },
   async setMyPresence(presence) {
-    // "online" / "offline" / "unavailable"
     return this.req("PUT",
       `/_matrix/client/v3/presence/${encodeURIComponent(this.userId)}/status`,
       { presence });
+  },
+  // ---- Métadonnées de groupe ----
+  async setRoomName(roomId, name) {
+    return this.req("PUT",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.name/`,
+      { name });
+  },
+  async setRoomTopic(roomId, topic) {
+    return this.req("PUT",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.topic/`,
+      { topic });
+  },
+  async getRoomTopic(roomId) {
+    try {
+      const d = await this.req("GET",
+        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.topic/`,
+        null, { silent: true });
+      return d?.topic || "";
+    } catch { return ""; }
+  },
+  async setRoomAvatar(roomId, mxc) {
+    return this.req("PUT",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.avatar/`,
+      { url: mxc });
+  },
+  async getRoomAvatar(roomId) {
+    try {
+      const d = await this.req("GET",
+        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.avatar/`,
+        null, { silent: true });
+      return d?.url || null;
+    } catch { return null; }
+  },
+  // ---- Messages épinglés (annonces) ----
+  async getPinnedEvents(roomId) {
+    try {
+      const d = await this.req("GET",
+        `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.pinned_events/`,
+        null, { silent: true });
+      return d?.pinned || [];
+    } catch { return []; }
+  },
+  async setPinnedEvents(roomId, eventIds) {
+    return this.req("PUT",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(roomId)}/state/m.room.pinned_events/`,
+      { pinned: eventIds });
   }
 });
 
@@ -3469,16 +3713,17 @@ loadRooms = async function () {
     } catch { state.contactLevels = {}; }
 
     for (const id of ids) {
-      const [name, members, retention, tags] = await Promise.all([
+      const [name, members, retention, tags, avatar] = await Promise.all([
         M.roomName(id),
         M.roomMembers(id),
         M.roomRetention(id),
-        M.getRoomTags(id)
+        M.getRoomTags(id),
+        M.getRoomAvatar(id)
       ]);
       const hidden    = !!tags[HIDDEN_TAG];
       const important = !!tags[IMPORTANT_TAG];
       if (hidden) state.hiddenRooms.add(id);
-      const room = { id, name: name || "Conversation", members, retention, hidden, important };
+      const room = { id, name: name || "Conversation", members, retention, hidden, important, avatar };
       room.level = roomMaxLevel(room);
       rooms.push(room);
 
@@ -3553,17 +3798,26 @@ renderRooms = function (query = "") {
     const star = r.important ? `<span class="star-mini">★</span>` : "";
 
     // Détermine l'avatar à afficher : pour un DM 1-1, photo de l'autre.
-    // Pour un groupe, initiales du nom.
+    // Pour un groupe : photo personnalisée si définie, sinon initiales.
+    // Pour un DM 1-1 : photo de l'autre personne + dot online.
     let avatarHtml = `<div class="room-avatar">${initials(r.name)}</div>`;
     let onlineDot = "";
     let wrapClass = "avatar-wrap";
+    if (r.avatar) {
+      // Photo de groupe explicite, priorité absolue
+      avatarHtml = `<div class="room-avatar" style="background-image:url('${M.mxcToHttp(r.avatar, 128, 128)}')"></div>`;
+    } else {
+      const others = (r.members || []).filter(m => m !== M.userId);
+      if (others.length === 1) {
+        const mxc = state.avatars[others[0]];
+        if (mxc) {
+          const url = M.mxcToHttp(mxc, 128, 128);
+          avatarHtml = `<div class="room-avatar" style="background-image:url('${url}')"></div>`;
+        }
+      }
+    }
     const others = (r.members || []).filter(m => m !== M.userId);
     if (others.length === 1) {
-      const mxc = state.avatars[others[0]];
-      if (mxc) {
-        const url = M.mxcToHttp(mxc, 128, 128);
-        avatarHtml = `<div class="room-avatar" style="background-image:url('${url}')"></div>`;
-      }
       const p = state.presences[others[0]];
       if (p === "online") {
         wrapClass += " is-online";
@@ -4230,10 +4484,39 @@ $$("#ctxMenu .ctx-item").forEach(item => {
    ======================================================================= */
 const ASSISTANT = {
   view: null,
-  history: [],        // [{from:"me"|"them"|"system", text, time}]
+  history: [],
   persona: "assistant",
-  busy: false
+  model: "llama3.2:3b",
+  busy: false,
+  abortCtrl: null
 };
+
+/* Mini renderer Markdown (gras, italique, code, listes, liens basiques) */
+function mdRender(text) {
+  if (!text) return "";
+  // Échappe d'abord, puis applique les transforms en travaillant sur du HTML.
+  let h = escapeHtml(text);
+  // Code blocks ```lang\n...```
+  h = h.replace(/```([a-zA-Z0-9]*)\n?([\s\S]*?)```/g,
+    (_, lang, code) => `<pre class="md-code"><code>${code.replace(/\n$/, "")}</code></pre>`);
+  // Inline code
+  h = h.replace(/`([^`\n]+)`/g, "<code class=\"md-inline\">$1</code>");
+  // Bold then italic
+  h = h.replace(/\*\*([^*\n]+)\*\*/g, "<strong>$1</strong>");
+  h = h.replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, "$1<em>$2</em>");
+  // Lists
+  h = h.replace(/^[ \t]*[-*][ \t]+(.+)$/gm, "<li>$1</li>");
+  h = h.replace(/^[ \t]*\d+\.[ \t]+(.+)$/gm, "<li class=\"md-ol\">$1</li>");
+  // Regroupe les <li> consécutifs
+  h = h.replace(/(<li[^>]*>.*?<\/li>(?:\s*<br>\s*)?)+/gs, m => {
+    const isOl = /class="md-ol"/.test(m);
+    const cleaned = m.replace(/\s*<br>\s*/g, "").replace(/ class="md-ol"/g, "");
+    return `<${isOl ? "ol" : "ul"} class="md-list">${cleaned}</${isOl ? "ol" : "ul"}>`;
+  });
+  // Newlines restants → <br>
+  h = h.replace(/\n/g, "<br>");
+  return h;
+}
 
 const AI_PERSONAS = {
   assistant: "Tu es un assistant personnel concis et utile. Tu réponds en français en 3-4 phrases sauf si on te demande un développement. Pas d'emojis sauf si l'utilisateur en met.",
@@ -4296,18 +4579,80 @@ function aiRender() {
   }
   if (empty) empty.style.display = "none";
   let html = "";
-  for (const m of ASSISTANT.history) {
+  ASSISTANT.history.forEach((m, idx) => {
     if (m.from === "system") {
       html += `<div class="ai-msg system">${escapeHtml(m.text)}</div>`;
     } else {
       const side = m.from === "me" ? "me" : "them";
-      html += `<div class="ai-msg ${side}">${escapeHtml(m.text)}</div>`;
+      const content = m.from === "them" ? mdRender(m.text) : escapeHtml(m.text);
+      html += `<div class="ai-msg ${side}" data-idx="${idx}">${content}</div>`;
+      if (m.from === "them") {
+        html += `<div class="ai-msg-actions" data-idx="${idx}">
+          <button data-act="copy" title="Copier"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg> Copier</button>
+          <button data-act="regen" title="Régénérer"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg> Refaire</button>
+          <button data-act="share" title="Envoyer vers une conversation"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg> Envoyer</button>
+        </div>`;
+      }
       if (m.time) html += `<div class="ai-msg-time ${side}">${escapeHtml(m.time)}</div>`;
     }
-  }
+  });
   list.innerHTML = html;
+  list.querySelectorAll(".ai-msg-actions").forEach(actions => {
+    const idx = parseInt(actions.dataset.idx, 10);
+    actions.querySelectorAll("button").forEach(btn => {
+      btn.addEventListener("click", () => aiAction(btn.dataset.act, idx));
+    });
+  });
   const wrap = $("#aiMsgs");
   wrap.scrollTop = wrap.scrollHeight;
+}
+
+async function aiAction(act, idx) {
+  const msg = ASSISTANT.history[idx];
+  if (!msg) return;
+  if (act === "copy") {
+    try {
+      await navigator.clipboard.writeText(msg.text);
+      toast("Copié dans le presse-papiers", "ok");
+    } catch {
+      toast("Copie impossible", "err");
+    }
+  } else if (act === "regen") {
+    // Trouve le dernier message "me" avant cette réponse
+    let prevUser = null;
+    for (let i = idx - 1; i >= 0; i--) {
+      if (ASSISTANT.history[i].from === "me") { prevUser = ASSISTANT.history[i]; break; }
+    }
+    if (!prevUser) { toast("Rien à refaire", "err"); return; }
+    // Retire le message IA actuel + relance
+    ASSISTANT.history.splice(idx, 1);
+    aiSave(); aiRender();
+    await aiRunUserMessage(prevUser.text, true);
+  } else if (act === "share") {
+    await aiShareToRoom(msg.text);
+  }
+}
+
+async function aiShareToRoom(text) {
+  if (!state.rooms || !state.rooms.length) {
+    toast("Aucune conversation où envoyer", "err");
+    return;
+  }
+  const names = state.rooms.filter(r => !r.hidden).map(r => `${r.name} → ${r.id}`).join("\n");
+  const choice = prompt(
+    "Envoyer vers quelle conversation ? Tape le nom (ou un mot du nom) :\n\n" +
+    state.rooms.filter(r => !r.hidden).map(r => "• " + r.name).join("\n")
+  );
+  if (!choice) return;
+  const room = state.rooms.find(r => !r.hidden && r.name.toLowerCase().includes(choice.toLowerCase()));
+  if (!room) { toast("Conversation introuvable", "err"); return; }
+  try {
+    const txnId = "t" + Date.now();
+    await M.req("PUT",
+      `/_matrix/client/v3/rooms/${encodeURIComponent(room.id)}/send/m.room.message/${txnId}`,
+      { msgtype: "m.text", body: text });
+    toast(`Envoyé dans "${room.name}"`, "ok");
+  } catch (e) { toast(e.message || "Erreur", "err"); }
 }
 
 function aiPush(from, text) {
@@ -4400,27 +4745,50 @@ async function aiSkillResumer() {
   }
 }
 
-async function aiAskOllama(userMsg) {
+async function aiAskOllamaStream(userMsg, onChunk) {
   const messages = [{ role: "system", content: AI_PERSONAS[ASSISTANT.persona] || AI_PERSONAS.assistant }];
-  // Inclut les 10 derniers tours pour la mémoire
   const tail = ASSISTANT.history.filter(m => m.from === "me" || m.from === "them").slice(-20);
   for (const t of tail) {
     messages.push({ role: t.from === "me" ? "user" : "assistant", content: t.text });
   }
   messages.push({ role: "user", content: userMsg });
 
-  const r = await fetch("/ollama/api/chat", {
+  const res = await fetch("/ollama/api/chat", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "llama3.2:3b",
-      messages,
-      stream: false
-    })
+    body: JSON.stringify({ model: ASSISTANT.model, messages, stream: true })
   });
-  if (!r.ok) throw new Error("LLM indisponible (HTTP " + r.status + ")");
-  const j = await r.json();
-  return (j.message?.content || "").trim() || "(réponse vide)";
+  if (!res.ok) throw new Error("LLM indisponible (HTTP " + res.status + ")");
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = "", full = "";
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buf += decoder.decode(value, { stream: true });
+    const lines = buf.split("\n");
+    buf = lines.pop();
+    for (const line of lines) {
+      const s = line.trim();
+      if (!s) continue;
+      try {
+        const obj = JSON.parse(s);
+        const chunk = obj.message?.content;
+        if (chunk) {
+          full += chunk;
+          onChunk(full);
+        }
+        if (obj.done) return full;
+      } catch {}
+    }
+  }
+  return full;
+}
+
+async function aiAskOllama(userMsg) {
+  // Compat non-stream pour les skills /traduire et /rédige
+  return aiAskOllamaStream(userMsg, () => {});
 }
 
 async function aiHandle(text) {
@@ -4460,29 +4828,69 @@ async function aiHandle(text) {
   return await aiAskOllama(text);
 }
 
+async function aiRunUserMessage(text, skipPushUser = false) {
+  if (!skipPushUser) aiPush("me", text);
+  ASSISTANT.busy = true;
+  $("#aiSend").disabled = true;
+
+  // Détecte d'abord les skills locaux (calc, note, rappel…). Si c'en est un,
+  // pas besoin de streaming.
+  const isSkill = /^\/(calc|note|rappel|persona|clear|r[ée]sumer)\b/i.test(text);
+
+  if (isSkill) {
+    $("#aiTyping").classList.add("show");
+    try {
+      const reply = await aiHandle(text);
+      $("#aiTyping").classList.remove("show");
+      if (reply) aiPush("them", reply);
+    } catch (e) {
+      $("#aiTyping").classList.remove("show");
+      aiPush("them", "⚠ " + e.message);
+    } finally {
+      ASSISTANT.busy = false; $("#aiSend").disabled = false;
+    }
+    return;
+  }
+
+  // Prompt LLM. Construit le message utilisateur (avec préfixe pour /traduire et /rédige)
+  let userMsg = text;
+  if (/^\/traduire\b/i.test(text)) {
+    userMsg = "Traduis ceci en gardant le ton, sans commentaire : " + text.replace(/^\/traduire\b/i, "").trim();
+  } else if (/^\/r[ée]dige[r]?\b/i.test(text)) {
+    userMsg = "Rédige ce qui est demandé, ton et longueur adaptés : " + text.replace(/^\/r[ée]dige[r]?\b/i, "").trim();
+  }
+
+  // Crée la bulle vide pour le streaming
+  if ($("#aiEmpty")) $("#aiEmpty").style.display = "none";
+  const list = $("#aiMsgsList");
+  const bubble = document.createElement("div");
+  bubble.className = "ai-msg them streaming";
+  bubble.innerHTML = "<span class=\"streaming-cursor\">▍</span>";
+  list.appendChild(bubble);
+  $("#aiMsgs").scrollTop = $("#aiMsgs").scrollHeight;
+
+  try {
+    const full = await aiAskOllamaStream(userMsg, (partial) => {
+      bubble.innerHTML = mdRender(partial) + "<span class=\"streaming-cursor\">▍</span>";
+      $("#aiMsgs").scrollTop = $("#aiMsgs").scrollHeight;
+    });
+    bubble.remove();
+    aiPush("them", (full || "").trim() || "(réponse vide)");
+  } catch (e) {
+    bubble.remove();
+    aiPush("them", "⚠ " + (e.message || "Erreur. Vérifie qu'Ollama tourne et qu'un modèle est téléchargé."));
+  } finally {
+    ASSISTANT.busy = false; $("#aiSend").disabled = false;
+  }
+}
+
 async function aiSend() {
   if (ASSISTANT.busy) return;
   const input = $("#aiInput");
   const text = input.value.trim();
   if (!text) return;
   input.value = "";
-
-  aiPush("me", text);
-  ASSISTANT.busy = true;
-  $("#aiSend").disabled = true;
-  $("#aiTyping").classList.add("show");
-
-  try {
-    const reply = await aiHandle(text);
-    $("#aiTyping").classList.remove("show");
-    if (reply) aiPush("them", reply);
-  } catch (e) {
-    $("#aiTyping").classList.remove("show");
-    aiPush("them", "⚠ " + (e.message || "Erreur. Vérifie que le service Ollama est lancé (docker compose up -d ollama) et qu'un modèle est téléchargé (ollama pull llama3.2:3b)."));
-  } finally {
-    ASSISTANT.busy = false;
-    $("#aiSend").disabled = false;
-  }
+  await aiRunUserMessage(text);
 }
 
 /* Wiring */
@@ -4510,6 +4918,35 @@ document.querySelectorAll(".ai-quick button").forEach(b => {
     $("#aiInput").setSelectionRange(b.dataset.prefix.length, b.dataset.prefix.length);
   });
 });
+/* Voice input via Web Speech API si supporté (Chrome / Safari récents) */
+(function setupAiMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  const mic = $("#aiMic");
+  if (!SR || !mic) return;
+  mic.style.display = "grid";
+  let rec = null, listening = false;
+  mic.addEventListener("click", () => {
+    if (listening) { rec && rec.stop(); return; }
+    rec = new SR();
+    rec.lang = "fr-FR";
+    rec.continuous = false;
+    rec.interimResults = true;
+    rec.onstart  = () => { listening = true;  mic.classList.add("recording"); };
+    rec.onend    = () => { listening = false; mic.classList.remove("recording"); };
+    rec.onerror  = () => { listening = false; mic.classList.remove("recording"); };
+    rec.onresult = (e) => {
+      let t = "";
+      for (const r of e.results) t += r[0].transcript;
+      $("#aiInput").value = t;
+      if (e.results[e.results.length - 1].isFinal) {
+        setTimeout(aiSend, 200);  // envoie automatiquement après la dictée finale
+      }
+    };
+    try { rec.start(); }
+    catch (e) { console.warn("speech rec failed:", e); }
+  });
+})();
+
 document.querySelectorAll(".ai-suggestion").forEach(b => {
   b.addEventListener("click", () => {
     $("#aiInput").value = b.dataset.prompt;
