@@ -443,7 +443,62 @@
     display: grid; place-items: center; color: #fff;
     box-shadow: 0 4px 14px rgba(124,92,255,0.4);
   }
-  .ai-header-name { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; }
+  .ai-header-name { font-size: 16px; font-weight: 700; letter-spacing: -0.2px; position: relative; }
+  .thread-switcher {
+    background: transparent; border: 0;
+    color: var(--text-0); font-weight: 700; font-size: 16px;
+    letter-spacing: -0.2px; cursor: pointer;
+    font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 8px; margin-left: -8px;
+    border-radius: 8px;
+    transition: background .12s;
+  }
+  .thread-switcher:hover { background: var(--glass-strong); }
+  .thread-switcher svg { opacity: 0.6; }
+  .thread-menu {
+    position: absolute; top: 36px; left: 0;
+    width: 280px; max-height: 380px;
+    background: rgba(20, 20, 32, 0.98);
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    z-index: 50;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    animation: slideUp .12s ease-out;
+  }
+  .thread-menu-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 12px; text-transform: uppercase;
+    letter-spacing: 0.5px; color: var(--text-2);
+    font-weight: 700;
+  }
+  .thread-menu-head button {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--accent); border: 0; color: #fff;
+    cursor: pointer; display: grid; place-items: center;
+  }
+  .thread-list { flex: 1; overflow-y: auto; padding: 6px; }
+  .thread-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 10px; border-radius: 9px;
+    cursor: pointer; transition: background .1s;
+    margin-bottom: 2px;
+  }
+  .thread-item:hover { background: var(--glass-strong); }
+  .thread-item.active { background: rgba(124,92,255,0.18); }
+  .thread-item-title { flex: 1; font-size: 13px; font-weight: 500; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-0); }
+  .thread-item-actions { display: flex; gap: 2px; opacity: 0; transition: opacity .12s; }
+  .thread-item:hover .thread-item-actions { opacity: 1; }
+  .thread-item-actions button {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: transparent; border: 0; color: var(--text-2);
+    cursor: pointer; display: grid; place-items: center;
+  }
+  .thread-item-actions button:hover { background: rgba(255,84,112,0.18); color: var(--danger); }
   .ai-header-sub { font-size: 11px; color: var(--text-2); margin-top: 2px; }
   .ai-header-sub .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--ok); display: inline-block; vertical-align: 1px; margin-right: 5px; }
   .ai-msgs {
@@ -775,6 +830,23 @@
   }
   .brain-links-list .chip:hover { background: rgba(124,92,255,0.2); color: var(--text-0); }
   .brain-links-list .empty { color: var(--text-3); font-size: 12px; font-style: italic; }
+
+  .brain-suggest {
+    margin-top: -2px; padding: 8px 10px;
+    background: rgba(124,92,255,0.08);
+    border: 1px solid rgba(124,92,255,0.25);
+    border-radius: 10px;
+  }
+  .brain-suggest-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-2); margin-bottom: 6px; }
+  .brain-suggest-list { display: flex; flex-wrap: wrap; gap: 5px; }
+  .brain-suggest-list .sg {
+    background: var(--bg-3); border: 1px solid var(--border-strong);
+    color: var(--text-1);
+    padding: 3px 9px; border-radius: 999px;
+    font-size: 12px; cursor: pointer;
+    transition: background .1s, color .1s;
+  }
+  .brain-suggest-list .sg:hover, .brain-suggest-list .sg.focus { background: var(--accent); color: #fff; border-color: var(--accent); }
 
   .brain-edit-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
 
@@ -1994,8 +2066,22 @@
             <div class="ai-header-avatar">
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15 8.5 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.5 12 2"/></svg>
             </div>
-            <div>
-              <div class="ai-header-name">Mon IA</div>
+            <div style="min-width:0;">
+              <div class="ai-header-name">
+                <button class="thread-switcher" id="threadSwitcher">
+                  <span id="threadTitle">Mon IA</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+                <div class="thread-menu" id="threadMenu" style="display:none">
+                  <div class="thread-menu-head">
+                    <span>Conversations</span>
+                    <button id="threadNew" title="Nouvelle conversation">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    </button>
+                  </div>
+                  <div class="thread-list" id="threadList"></div>
+                </div>
+              </div>
               <div class="ai-header-sub"><span class="dot"></span>Modèle local · vos messages ne quittent jamais l'appareil</div>
             </div>
           </div>
@@ -2057,6 +2143,10 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><polyline points="21 15 16 10 5 21"/></svg>
           </button>
           <input type="file" id="aiImageInput" accept="image/*" style="display:none" />
+          <button class="ai-mic" id="aiAttachFile" title="Joindre un fichier texte (.txt, .md, .csv, .json)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          </button>
+          <input type="file" id="aiFileInput" accept=".txt,.md,.csv,.json,.log,.yml,.yaml,text/*" style="display:none" />
           <input id="aiInput" type="text" placeholder="Pose ta question à Mon IA…" autocomplete="off" />
           <button class="ai-mic" id="aiMic" title="Dicter (Web Speech API)" style="display:none">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
@@ -2533,9 +2623,18 @@
           <button class="brain-tab" data-tab="graph">Graphe</button>
         </div>
       </div>
-      <button class="close-btn" data-close>
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button class="icon-btn" id="brainExportBtn" title="Exporter (JSON ou Markdown)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        </button>
+        <button class="icon-btn" id="brainImportBtn" title="Importer un export JSON">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        </button>
+        <input type="file" id="brainImportInput" accept=".json,application/json" style="display:none" />
+        <button class="close-btn" data-close>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
     </div>
     <div class="modal-body brain-body">
       <!-- Vue Notes : liste à gauche + éditeur à droite -->
@@ -2563,6 +2662,10 @@
               <button class="brain-mode" data-mode="preview">Aperçu</button>
             </div>
             <textarea class="brain-content" id="brainContent" placeholder="Contenu (markdown). Tu peux lier d'autres notes avec [[Titre]]."></textarea>
+            <div class="brain-suggest" id="brainSuggest" style="display:none">
+              <div class="brain-suggest-label">Liens suggérés (Tab pour insérer)</div>
+              <div class="brain-suggest-list" id="brainSuggestList"></div>
+            </div>
             <div class="brain-preview" id="brainPreview" style="display:none"></div>
             <div class="brain-links">
               <div class="brain-links-section">
@@ -4920,18 +5023,64 @@ $$("#ctxMenu .ctx-item").forEach(item => {
    ======================================================================= */
 const ASSISTANT = {
   view: null,
-  history: [],
+  history: [],         // Alias vers le thread courant (compatibilité)
+  threads: [],         // [{id, title, history, createdAt, updatedAt}]
+  currentThreadId: null,
   persona: "assistant",
   model: "llama3.2:3b",
   visionModel: "llava:7b",
   busy: false,
   abortCtrl: null,
-  memory: [],          // [{fact, addedAt}]
-  brain: [],           // [{id, title, content, tags, createdAt, updatedAt}] - cerveau Obsidian-like
-  brainCurrent: null,  // id de la note ouverte dans l'éditeur
+  memory: [],
+  brain: [],
+  brainCurrent: null,
   reasoning: true,
-  pendingImage: null
+  pendingImage: null,
+  pendingFile: null    // {name, content} pour les fichiers texte joints
 };
+
+function threadGenId() { return "th_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 6); }
+function threadCurrent() { return ASSISTANT.threads.find(t => t.id === ASSISTANT.currentThreadId); }
+function threadCreate(title) {
+  const t = { id: threadGenId(), title: title || "Nouvelle conversation", history: [], createdAt: Date.now(), updatedAt: Date.now() };
+  ASSISTANT.threads.unshift(t);
+  ASSISTANT.currentThreadId = t.id;
+  ASSISTANT.history = t.history;
+  aiSave();
+  return t;
+}
+function threadSwitch(id) {
+  const t = ASSISTANT.threads.find(x => x.id === id);
+  if (!t) return;
+  ASSISTANT.currentThreadId = t.id;
+  ASSISTANT.history = t.history;
+  aiSave(); aiRender(); renderThreadList();
+}
+function threadDelete(id) {
+  const i = ASSISTANT.threads.findIndex(t => t.id === id);
+  if (i < 0) return;
+  ASSISTANT.threads.splice(i, 1);
+  if (ASSISTANT.currentThreadId === id) {
+    const next = ASSISTANT.threads[0];
+    if (next) { ASSISTANT.currentThreadId = next.id; ASSISTANT.history = next.history; }
+    else { threadCreate("Nouvelle conversation"); }
+  }
+  aiSave(); aiRender(); renderThreadList();
+}
+function threadRename(id, title) {
+  const t = ASSISTANT.threads.find(x => x.id === id);
+  if (t) { t.title = title.trim() || "Sans titre"; t.updatedAt = Date.now(); aiSave(); renderThreadList(); }
+}
+// Auto-titrage du thread : prend les premiers mots du 1er message utilisateur
+function threadAutoTitle() {
+  const t = threadCurrent();
+  if (!t || t.title !== "Nouvelle conversation") return;
+  const firstUser = t.history.find(m => m.from === "me");
+  if (!firstUser) return;
+  t.title = firstUser.text.replace(/\s+/g, " ").slice(0, 40).trim() + (firstUser.text.length > 40 ? "…" : "");
+  aiSave();
+  renderThreadList();
+}
 
 const AI_PERSONAS_BASE = {
   assistant:   "Tu es un assistant personnel chaleureux et précis. Tu réponds en français.",
@@ -5139,9 +5288,23 @@ function aiLoad() {
     const raw = localStorage.getItem(aiKey());
     if (raw) {
       const data = JSON.parse(raw);
-      ASSISTANT.history   = data.history   || [];
       ASSISTANT.persona   = data.persona   || "assistant";
       ASSISTANT.reasoning = data.reasoning !== false;
+      // Migration : si pas de threads mais un historique simple, on encapsule
+      if (Array.isArray(data.threads) && data.threads.length) {
+        ASSISTANT.threads = data.threads;
+        ASSISTANT.currentThreadId = data.currentThreadId || data.threads[0].id;
+      } else if (Array.isArray(data.history) && data.history.length) {
+        const t = { id: threadGenId(), title: "Conversation", history: data.history, createdAt: Date.now(), updatedAt: Date.now() };
+        ASSISTANT.threads = [t];
+        ASSISTANT.currentThreadId = t.id;
+      }
+    }
+    if (!ASSISTANT.threads.length) {
+      threadCreate("Nouvelle conversation");
+    } else {
+      const cur = threadCurrent();
+      ASSISTANT.history = cur ? cur.history : [];
     }
     const memRaw = localStorage.getItem(aiMemKey());
     ASSISTANT.memory = memRaw ? JSON.parse(memRaw) : [];
@@ -5149,10 +5312,14 @@ function aiLoad() {
 }
 function aiSave() {
   try {
+    // Synchronise le thread courant avec ASSISTANT.history (alias)
+    const cur = threadCurrent();
+    if (cur) { cur.history = ASSISTANT.history.slice(-200); cur.updatedAt = Date.now(); }
     localStorage.setItem(aiKey(), JSON.stringify({
-      history: ASSISTANT.history.slice(-200),
       persona: ASSISTANT.persona,
-      reasoning: ASSISTANT.reasoning
+      reasoning: ASSISTANT.reasoning,
+      threads: ASSISTANT.threads.slice(0, 50),
+      currentThreadId: ASSISTANT.currentThreadId
     }));
   } catch {}
 }
@@ -5201,6 +5368,8 @@ function aiOpen() {
   aiLoad();
   brainLoad();
   aiRender();
+  const cur = threadCurrent();
+  if ($("#threadTitle")) $("#threadTitle").textContent = cur ? cur.title : "Mon IA";
   $("#aiToggleReason").classList.toggle("on", ASSISTANT.reasoning);
 
   if (window.innerWidth <= 760) $("#sidebar").classList.add("hidden-mobile");
@@ -5483,18 +5652,19 @@ async function aiHandle(text) {
 
 async function aiRunUserMessage(text, skipPushUser = false) {
   const pendingImage = ASSISTANT.pendingImage;
+  const pendingFile  = ASSISTANT.pendingFile;
   ASSISTANT.pendingImage = null;
-  $("#aiImagePreview") && ($("#aiImagePreview").style.display = "none");
+  ASSISTANT.pendingFile  = null;
+  if ($("#aiImagePreview")) $("#aiImagePreview").style.display = "none";
+  $("#aiImagePreviewImg") && ($("#aiImagePreviewImg").style.display = "");
+  $("#aiImageHint") && ($("#aiImageHint").textContent = "Image jointe · l'IA analysera son contenu");
 
   if (!skipPushUser) {
     if (pendingImage) {
-      // Push une bulle "me" avec l'image affichée puis le texte
-      ASSISTANT.history.push({
-        from: "me",
-        text,
-        image: pendingImage.dataUrl,
-        time: nowHHMM()
-      });
+      ASSISTANT.history.push({ from: "me", text, image: pendingImage.dataUrl, time: nowHHMM() });
+      aiSave(); aiRender();
+    } else if (pendingFile) {
+      ASSISTANT.history.push({ from: "me", text: `📄 ${pendingFile.name}\n\n${text || "(analyse le fichier)"}`, time: nowHHMM() });
       aiSave(); aiRender();
     } else {
       aiPush("me", text);
@@ -5529,6 +5699,10 @@ async function aiRunUserMessage(text, skipPushUser = false) {
     userMsg = "Traduis ceci en gardant le ton, sans commentaire : " + text.replace(/^\/traduire\b/i, "").trim();
   } else if (/^\/r[ée]dige[r]?\b/i.test(text)) {
     userMsg = "Rédige ce qui est demandé, ton et longueur adaptés : " + text.replace(/^\/r[ée]dige[r]?\b/i, "").trim();
+  }
+  // Si un fichier texte est joint, on l'injecte dans le message
+  if (pendingFile) {
+    userMsg = `${text || "Analyse ce fichier et résume-le."}\n\n--- Contenu du fichier "${pendingFile.name}" ---\n${pendingFile.content}\n--- Fin du fichier ---`;
   }
 
   // Crée la bulle vide pour le streaming
@@ -5572,7 +5746,76 @@ async function aiSend() {
   if (!text) return;
   input.value = "";
   await aiRunUserMessage(text);
+  threadAutoTitle();
 }
+
+/* ===== Multi-threads UI ===== */
+function renderThreadList() {
+  const list = $("#threadList");
+  if (!ASSISTANT.threads.length) { list.innerHTML = ""; return; }
+  list.innerHTML = ASSISTANT.threads.map(t => `
+    <div class="thread-item ${t.id === ASSISTANT.currentThreadId ? "active" : ""}" data-id="${t.id}">
+      <div class="thread-item-title">${escapeHtml(t.title || "Sans titre")}</div>
+      <div class="thread-item-actions">
+        <button data-act="rename" title="Renommer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        </button>
+        <button data-act="delete" title="Supprimer">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+        </button>
+      </div>
+    </div>
+  `).join("");
+  const cur = threadCurrent();
+  $("#threadTitle").textContent = cur ? cur.title : "Mon IA";
+  list.querySelectorAll(".thread-item").forEach(el => {
+    const id = el.dataset.id;
+    el.addEventListener("click", (e) => {
+      if (e.target.closest("[data-act]")) return;
+      threadSwitch(id);
+      $("#threadMenu").style.display = "none";
+    });
+    el.querySelectorAll("[data-act]").forEach(btn => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (btn.dataset.act === "rename") {
+          const newTitle = prompt("Nouveau titre :", ASSISTANT.threads.find(t => t.id === id)?.title);
+          if (newTitle) threadRename(id, newTitle);
+        } else if (btn.dataset.act === "delete") {
+          if (confirm("Supprimer cette conversation ?")) threadDelete(id);
+        }
+      });
+    });
+  });
+}
+
+$("#threadSwitcher").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const menu = $("#threadMenu");
+  if (menu.style.display === "none") {
+    renderThreadList();
+    menu.style.display = "flex";
+  } else {
+    menu.style.display = "none";
+  }
+});
+
+$("#threadNew").addEventListener("click", () => {
+  threadCreate("Nouvelle conversation");
+  aiRender();
+  renderThreadList();
+  $("#threadMenu").style.display = "none";
+  setTimeout(() => $("#aiInput").focus(), 60);
+});
+
+document.addEventListener("click", (e) => {
+  const menu = $("#threadMenu");
+  if (menu && menu.style.display !== "none"
+      && !menu.contains(e.target)
+      && !$("#threadSwitcher").contains(e.target)) {
+    menu.style.display = "none";
+  }
+});
 
 /* Wiring */
 $("#btnAssistant").addEventListener("click", () => {
@@ -5629,6 +5872,37 @@ $("#aiImageInput").addEventListener("change", async (e) => {
 $("#aiImageClear").addEventListener("click", () => {
   ASSISTANT.pendingImage = null;
   $("#aiImagePreview").style.display = "none";
+});
+
+/* Joindre un fichier texte au prochain message */
+$("#aiAttachFile").addEventListener("click", () => $("#aiFileInput").click());
+$("#aiFileInput").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  if (f.size > 500 * 1024) { toast("Fichier > 500 Ko", "err"); return; }
+  try {
+    const text = await f.text();
+    if (text.length > 80000) {
+      toast("Fichier trop volumineux (~80 000 caractères max)", "err");
+      return;
+    }
+    ASSISTANT.pendingFile = { name: f.name, content: text };
+    // Réutilise le bandeau preview avec un message différent
+    $("#aiImagePreviewImg").src = "";
+    $("#aiImagePreviewImg").style.display = "none";
+    $("#aiImageHint").textContent = `📄 ${f.name} · ${Math.ceil(text.length/1000)} k caractères · sera analysé par l'IA`;
+    $("#aiImagePreview").style.display = "flex";
+    $("#aiInput").focus();
+  } catch (err) {
+    toast("Lecture échouée : " + err.message, "err");
+  }
+});
+
+// Le bouton clear vide aussi le fichier
+const _aiImgClearOrig = () => {};
+$("#aiImageClear").addEventListener("click", () => {
+  ASSISTANT.pendingFile = null;
+  $("#aiImagePreviewImg").style.display = "";
 });
 
 /* Mémoire long terme : ouverture modale */
@@ -5783,8 +6057,103 @@ $("#brainDelete").addEventListener("click", () => {
 
 $("#brainSearch").addEventListener("input", (e) => renderBrainList(e.target.value));
 
+/* ===== Export / Import du cerveau ===== */
+function downloadFile(filename, content, mime) {
+  const blob = new Blob([content], { type: mime });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 1000);
+}
+function slugify(s) { return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 50) || "note"; }
+
+function brainExportJson() {
+  const data = {
+    type: "symbalyx-brain-export",
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    notes: ASSISTANT.brain,
+    memory: ASSISTANT.memory
+  };
+  const stamp = new Date().toISOString().slice(0, 10);
+  downloadFile(`cerveau-${stamp}.json`, JSON.stringify(data, null, 2), "application/json");
+}
+
+function brainExportMarkdown() {
+  if (!ASSISTANT.brain.length) { toast("Cerveau vide", "err"); return; }
+  // Format simple : un seul .md avec front-matter par note séparé par ---
+  const stamp = new Date().toISOString().slice(0, 10);
+  const parts = ASSISTANT.brain.map(n => {
+    const fm = [
+      "---",
+      `title: "${n.title.replace(/"/g, '\\"')}"`,
+      `tags: [${(n.tags || []).map(t => `"${t}"`).join(", ")}]`,
+      `created: ${new Date(n.createdAt).toISOString()}`,
+      `updated: ${new Date(n.updatedAt).toISOString()}`,
+      "---"
+    ].join("\n");
+    return `${fm}\n\n# ${n.title}\n\n${n.content}\n`;
+  });
+  const memBlock = ASSISTANT.memory.length
+    ? `\n\n---\n# Mémoire long terme\n\n${ASSISTANT.memory.map(m => "- " + m.fact).join("\n")}\n`
+    : "";
+  downloadFile(`cerveau-${stamp}.md`, parts.join("\n\n") + memBlock, "text/markdown");
+}
+
+$("#brainExportBtn").addEventListener("click", () => {
+  const fmt = prompt(`Format d'export ?\n  1 = JSON (réimportable)\n  2 = Markdown (lisible / portable Obsidian)\n\nTape 1 ou 2 :`, "1");
+  if (fmt === "1") brainExportJson();
+  else if (fmt === "2") brainExportMarkdown();
+});
+
+$("#brainImportBtn").addEventListener("click", () => $("#brainImportInput").click());
+$("#brainImportInput").addEventListener("change", async (e) => {
+  const f = e.target.files[0]; e.target.value = "";
+  if (!f) return;
+  try {
+    const text = await f.text();
+    const data = JSON.parse(text);
+    if (data.type !== "symbalyx-brain-export" || !Array.isArray(data.notes)) {
+      throw new Error("Format non reconnu");
+    }
+    const mode = prompt(`Importer ${data.notes.length} notes (export du ${data.exportedAt?.slice(0,10)}) :\n  1 = fusionner avec le cerveau actuel\n  2 = remplacer le cerveau actuel (efface tout)\n\nTape 1 ou 2 :`, "1");
+    if (mode === "2") {
+      ASSISTANT.brain = [];
+    }
+    let added = 0, updated = 0;
+    for (const n of data.notes) {
+      if (!n.title) continue;
+      const existing = brainFindByTitle(n.title);
+      if (existing) {
+        Object.assign(existing, n, { id: existing.id, updatedAt: Date.now() });
+        updated++;
+      } else {
+        ASSISTANT.brain.push({
+          id: n.id || brainGenId(),
+          title: n.title,
+          content: n.content || "",
+          tags: n.tags || [],
+          createdAt: n.createdAt || Date.now(),
+          updatedAt: Date.now()
+        });
+        added++;
+      }
+    }
+    if (Array.isArray(data.memory) && confirm("Importer aussi la mémoire long terme ?")) {
+      for (const m of data.memory) if (m.fact) aiMemAdd(m.fact);
+    }
+    brainSave();
+    renderBrainList();
+    toast(`Import : ${added} ajoutées, ${updated} mises à jour`, "ok");
+  } catch (err) {
+    toast("Import échoué : " + (err.message || "format invalide"), "err");
+  }
+});
+
 /* Auto-save sur blur du contenu */
 $("#brainContent").addEventListener("blur", () => {
+  setTimeout(() => $("#brainSuggest").style.display = "none", 200);
   if (ASSISTANT.brainCurrent && $("#brainEdit").style.display !== "none") {
     const title = $("#brainTitle").value.trim() || "Sans titre";
     const content = $("#brainContent").value;
@@ -5792,6 +6161,70 @@ $("#brainContent").addEventListener("blur", () => {
     brainUpdate(ASSISTANT.brainCurrent, { title, content, tags });
     const n = brainGet(ASSISTANT.brainCurrent);
     renderBrainLinks(n);
+  }
+});
+
+/* ===== Suggestions de liens style Obsidian ===== */
+function getCurrentWord(textarea) {
+  const pos = textarea.selectionStart;
+  const before = textarea.value.slice(0, pos);
+  const m = before.match(/([\wÀ-ÿ]{2,})$/);
+  return m ? { word: m[1], start: pos - m[1].length, end: pos } : null;
+}
+
+function refreshBrainSuggestions() {
+  const ta = $("#brainContent");
+  const wrap = $("#brainSuggest");
+  const list = $("#brainSuggestList");
+  const cur = getCurrentWord(ta);
+  if (!cur || !ASSISTANT.brainCurrent) { wrap.style.display = "none"; return; }
+  // On ne suggère pas dans un [[lien]] en cours
+  const ctx = ta.value.slice(Math.max(0, cur.start - 2), cur.start);
+  if (ctx === "[[") { wrap.style.display = "none"; return; }
+  const candidates = ASSISTANT.brain
+    .filter(n => n.id !== ASSISTANT.brainCurrent
+              && n.title.toLowerCase().includes(cur.word.toLowerCase())
+              && n.title.toLowerCase() !== cur.word.toLowerCase())
+    .slice(0, 6);
+  if (!candidates.length) { wrap.style.display = "none"; return; }
+  list.innerHTML = candidates.map((n, i) =>
+    `<span class="sg ${i === 0 ? "focus" : ""}" data-id="${n.id}" data-title="${escapeHtml(n.title)}">${escapeHtml(n.title)}</span>`
+  ).join("");
+  wrap.style.display = "block";
+  list.querySelectorAll(".sg").forEach(el => {
+    el.addEventListener("mousedown", (e) => {
+      e.preventDefault();
+      insertBrainLink(el.dataset.title);
+    });
+  });
+}
+
+function insertBrainLink(title) {
+  const ta = $("#brainContent");
+  const cur = getCurrentWord(ta);
+  if (!cur) return;
+  const before = ta.value.slice(0, cur.start);
+  const after  = ta.value.slice(cur.end);
+  const replacement = `[[${title}]]`;
+  ta.value = before + replacement + after;
+  const newPos = (before + replacement).length;
+  ta.focus();
+  ta.setSelectionRange(newPos, newPos);
+  $("#brainSuggest").style.display = "none";
+}
+
+$("#brainContent").addEventListener("input", refreshBrainSuggestions);
+$("#brainContent").addEventListener("keyup", (e) => {
+  if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) refreshBrainSuggestions();
+});
+$("#brainContent").addEventListener("keydown", (e) => {
+  if (e.key !== "Tab") return;
+  const wrap = $("#brainSuggest");
+  if (wrap.style.display === "none") return;
+  const focused = wrap.querySelector(".sg.focus");
+  if (focused) {
+    e.preventDefault();
+    insertBrainLink(focused.dataset.title);
   }
 });
 
