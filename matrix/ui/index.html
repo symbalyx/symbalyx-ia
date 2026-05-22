@@ -645,6 +645,153 @@
   }
   .memory-item button:hover { background: rgba(255,84,112,0.15); color: var(--danger); }
   .memory-empty { padding: 30px; text-align: center; color: var(--text-2); font-size: 13px; }
+
+  /* ============ Cerveau (Obsidian-like) ============ */
+  .brain-tabs { display: flex; gap: 4px; background: var(--glass-strong); padding: 3px; border-radius: 999px; }
+  .brain-tab {
+    background: transparent; border: 0;
+    color: var(--text-2);
+    padding: 6px 14px; border-radius: 999px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    font-family: inherit; transition: background .12s, color .12s;
+  }
+  .brain-tab.on { background: var(--bg-3); color: var(--text-0); }
+  .brain-tab:hover:not(.on) { color: var(--text-1); }
+
+  .brain-body { padding: 0 !important; height: 100%; }
+  .brain-pane { height: 100%; display: flex; }
+  .brain-notes-pane { display: flex; }
+  .brain-sidebar {
+    width: 280px; flex-shrink: 0;
+    border-right: 1px solid var(--border);
+    display: flex; flex-direction: column;
+    background: rgba(0,0,0,0.18);
+  }
+  .brain-search-wrap {
+    padding: 14px;
+    display: flex; gap: 8px; align-items: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .brain-search-wrap input {
+    flex: 1; padding: 8px 12px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-0); font-size: 13px;
+    outline: none; font-family: inherit;
+  }
+  .brain-search-wrap input:focus { border-color: var(--accent); }
+  .brain-new {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: var(--grad-brand);
+    border: 0; color: #fff; cursor: pointer;
+    display: grid; place-items: center;
+    transition: transform .08s, filter .12s;
+  }
+  .brain-new:hover { filter: brightness(1.1); }
+  .brain-new:active { transform: scale(0.92); }
+  .brain-list { flex: 1; overflow-y: auto; padding: 6px; }
+  .brain-list-item {
+    padding: 10px 12px;
+    border-radius: 10px;
+    cursor: pointer; transition: background .1s;
+    margin-bottom: 2px;
+  }
+  .brain-list-item:hover { background: var(--glass-strong); }
+  .brain-list-item.active { background: rgba(124,92,255,0.18); }
+  .brain-list-title { font-size: 13.5px; font-weight: 600; color: var(--text-0); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .brain-list-excerpt { font-size: 11.5px; color: var(--text-2); margin-top: 3px; line-height: 1.4; max-height: 32px; overflow: hidden; }
+  .brain-list-meta { font-size: 10.5px; color: var(--text-3); margin-top: 4px; display: flex; gap: 8px; align-items: center; }
+  .brain-list-tag { background: rgba(124,92,255,0.2); color: #c8b8ff; padding: 1px 6px; border-radius: 999px; font-size: 10px; }
+
+  .brain-editor { flex: 1; display: flex; flex-direction: column; min-width: 0; overflow-y: auto; }
+  .brain-empty {
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    padding: 40px; text-align: center;
+  }
+  .brain-empty h3 { margin: 16px 0 6px; font-size: 18px; }
+  .brain-empty p { color: var(--text-2); font-size: 13px; max-width: 320px; line-height: 1.5; margin: 0; }
+  .brain-edit { padding: 22px 26px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+  .brain-title {
+    background: transparent; border: 0; border-bottom: 1px solid var(--border);
+    padding: 8px 0; color: var(--text-0);
+    font-size: 22px; font-weight: 700; letter-spacing: -0.4px;
+    font-family: inherit; outline: none;
+  }
+  .brain-title:focus { border-color: var(--accent); }
+  .brain-tags {
+    background: transparent; border: 0;
+    padding: 2px 0;
+    color: var(--text-2); font-size: 12px;
+    font-family: inherit; outline: none;
+  }
+  .brain-tabs-content { display: flex; gap: 4px; }
+  .brain-mode {
+    background: var(--glass-strong); border: 0;
+    color: var(--text-2);
+    padding: 5px 12px; border-radius: 999px;
+    font-size: 11px; font-weight: 600; cursor: pointer;
+    font-family: inherit;
+  }
+  .brain-mode.on { background: var(--accent); color: #fff; }
+  .brain-content {
+    width: 100%; min-height: 220px;
+    background: var(--bg-1); border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    color: var(--text-0); font-size: 14px;
+    font-family: "SF Mono", Consolas, Monaco, monospace;
+    line-height: 1.55;
+    outline: none; resize: vertical;
+  }
+  .brain-content:focus { border-color: var(--accent); }
+  .brain-preview {
+    min-height: 220px;
+    background: var(--bg-1); border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+    color: var(--text-0); font-size: 14px;
+    line-height: 1.6;
+  }
+  .brain-preview a.wikilink {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px dashed var(--accent);
+    cursor: pointer;
+  }
+  .brain-preview a.wikilink:hover { color: var(--accent-warm); border-color: var(--accent-warm); }
+  .brain-preview a.wikilink.missing { color: var(--text-3); border-color: var(--text-3); }
+
+  .brain-links { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 10px; }
+  @media (max-width: 700px) { .brain-links { grid-template-columns: 1fr; } }
+  .brain-links-title { font-size: 11px; color: var(--text-2); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+  .brain-links-list { display: flex; flex-wrap: wrap; gap: 6px; min-height: 28px; }
+  .brain-links-list .chip {
+    background: var(--glass-strong); border: 1px solid var(--border-strong);
+    padding: 4px 10px; border-radius: 999px;
+    font-size: 12px; cursor: pointer;
+    transition: background .1s, color .1s;
+  }
+  .brain-links-list .chip:hover { background: rgba(124,92,255,0.2); color: var(--text-0); }
+  .brain-links-list .empty { color: var(--text-3); font-size: 12px; font-style: italic; }
+
+  .brain-edit-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); }
+
+  /* Graphe */
+  .brain-graph-wrap { width: 100%; height: 100%; position: relative; background: var(--bg-1); }
+  #brainGraph { width: 100%; height: 100%; }
+  .brain-graph-empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-2); text-align: center; padding: 30px; font-size: 13px; line-height: 1.5; }
+  .brain-graph-empty.show { display: grid; }
+  #brainGraph .gnode-bg { fill: var(--bg-3); stroke: var(--accent); stroke-width: 1.8; cursor: pointer; transition: fill .12s; }
+  #brainGraph .gnode:hover .gnode-bg { fill: var(--accent); }
+  #brainGraph .gnode-label { fill: var(--text-0); font-size: 11px; font-family: var(--font); pointer-events: none; }
+  #brainGraph .gedge { stroke: var(--text-3); stroke-width: 1.2; opacity: 0.6; }
+
+  @media (max-width: 700px) {
+    .brain-sidebar { width: 200px; }
+    .brain-edit { padding: 16px; }
+  }
   .ai-typing {
     align-self: flex-start; background: var(--bg-3);
     padding: 12px 16px; border-radius: 18px;
@@ -1859,6 +2006,9 @@
             <button class="icon-btn" id="aiMemoryBtn" title="Ma mémoire">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
             </button>
+            <button class="icon-btn" id="aiBrainBtn" title="Cerveau (notes liées)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2"/><circle cx="12" cy="4" r="2"/><circle cx="19" cy="6" r="2"/><circle cx="5" cy="18" r="2"/><circle cx="12" cy="20" r="2"/><circle cx="19" cy="18" r="2"/><circle cx="12" cy="12" r="2"/><line x1="7" y1="7" x2="11" y2="11"/><line x1="17" y1="7" x2="13" y2="11"/><line x1="7" y1="17" x2="11" y2="13"/><line x1="17" y1="17" x2="13" y2="13"/><line x1="12" y1="6" x2="12" y2="10"/><line x1="12" y1="14" x2="12" y2="18"/></svg>
+            </button>
             <button class="icon-btn" id="aiClear" title="Effacer la conversation">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
             </button>
@@ -2368,6 +2518,78 @@
     <div class="modal-foot">
       <button class="btn ghost" data-close>Annuler</button>
       <button class="btn signal" id="btnPollSend">Publier</button>
+    </div>
+  </div>
+</div>
+
+<!-- Cerveau Obsidian-like de Mon IA -->
+<div class="modal-overlay" id="modalBrain">
+  <div class="modal modal-full">
+    <div class="modal-head">
+      <div style="display:flex; align-items:center; gap:14px;">
+        <h3 style="margin:0;">Cerveau</h3>
+        <div class="brain-tabs">
+          <button class="brain-tab on" data-tab="notes">Notes</button>
+          <button class="brain-tab" data-tab="graph">Graphe</button>
+        </div>
+      </div>
+      <button class="close-btn" data-close>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body brain-body">
+      <!-- Vue Notes : liste à gauche + éditeur à droite -->
+      <div class="brain-pane brain-notes-pane" data-pane="notes">
+        <div class="brain-sidebar">
+          <div class="brain-search-wrap">
+            <input type="text" id="brainSearch" placeholder="Rechercher dans le cerveau…" />
+            <button class="brain-new" id="brainNew" title="Nouvelle note">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+          </div>
+          <div class="brain-list" id="brainList"></div>
+        </div>
+        <div class="brain-editor" id="brainEditor">
+          <div class="brain-empty" id="brainEditorEmpty">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="opacity:0.5;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <h3>Aucune note ouverte</h3>
+            <p>Sélectionne une note à gauche ou crée-en une nouvelle. L'IA en crée aussi automatiquement quand tu lui demandes de retenir quelque chose d'important.</p>
+          </div>
+          <div class="brain-edit" id="brainEdit" style="display:none">
+            <input type="text" class="brain-title" id="brainTitle" placeholder="Titre" />
+            <input type="text" class="brain-tags" id="brainTags" placeholder="tags séparés par des virgules" />
+            <div class="brain-tabs-content">
+              <button class="brain-mode on" data-mode="edit">Édition</button>
+              <button class="brain-mode" data-mode="preview">Aperçu</button>
+            </div>
+            <textarea class="brain-content" id="brainContent" placeholder="Contenu (markdown). Tu peux lier d'autres notes avec [[Titre]]."></textarea>
+            <div class="brain-preview" id="brainPreview" style="display:none"></div>
+            <div class="brain-links">
+              <div class="brain-links-section">
+                <div class="brain-links-title">Liens sortants</div>
+                <div id="brainOutlinks" class="brain-links-list"></div>
+              </div>
+              <div class="brain-links-section">
+                <div class="brain-links-title">Mentionné dans (backlinks)</div>
+                <div id="brainBacklinks" class="brain-links-list"></div>
+              </div>
+            </div>
+            <div class="brain-edit-actions">
+              <button class="btn ghost" id="brainDelete">Supprimer</button>
+              <button class="btn" id="brainSave">Enregistrer</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- Vue Graphe : visualisation force-directed -->
+      <div class="brain-pane" data-pane="graph" style="display:none">
+        <div class="brain-graph-wrap">
+          <svg id="brainGraph" preserveAspectRatio="xMidYMid meet"></svg>
+          <div class="brain-graph-empty" id="brainGraphEmpty" style="display:none">
+            Aucune note pour le moment.<br>Crée des notes et relie-les avec [[Titre]] pour voir le graphe.
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -4705,8 +4927,10 @@ const ASSISTANT = {
   busy: false,
   abortCtrl: null,
   memory: [],          // [{fact, addedAt}]
-  reasoning: true,     // active le raisonnement étape par étape
-  pendingImage: null   // {dataUrl, base64, mime} en attente d'envoi
+  brain: [],           // [{id, title, content, tags, createdAt, updatedAt}] - cerveau Obsidian-like
+  brainCurrent: null,  // id de la note ouverte dans l'éditeur
+  reasoning: true,
+  pendingImage: null
 };
 
 const AI_PERSONAS_BASE = {
@@ -4730,19 +4954,152 @@ const AI_MEMORY_INSTR = `\n\nMémoire :
 - N'enregistre PAS les états passagers (humeur, sujet d'un seul message), uniquement ce qui sera utile à long terme.
 - Une seule ligne [MEMORISE: …] par réponse au maximum.`;
 
+const AI_BRAIN_INSTR = `\n\nCerveau (base de notes Obsidian-like) :
+- Tu peux créer des notes structurées pour stocker des informations détaillées (recettes, projets, listes, méthodes, références, résumés). Les notes survivent entre les conversations.
+- Pour CRÉER ou METTRE À JOUR une note, ajoute à la fin de ta réponse une ligne :
+  [NOTE: <Titre court> || <contenu markdown> || tags: <tag1, tag2>]
+  (le tags est facultatif)
+- Tu peux lier des notes entre elles avec la syntaxe [[Titre exact d'une autre note]] dans le contenu.
+- Quand l'utilisateur évoque un sujet qui te rappelle une note (cf. "Notes pertinentes" ci-dessous), réfère-t'y naturellement.
+- Tu ne peux créer qu'UNE note par réponse. Pour modifier une note existante, réutilise EXACTEMENT le même titre.
+- N'inonde pas le cerveau : crée une note uniquement quand l'info mérite d'être conservée structurée (pas juste mémorisée comme un fait court).`;
+
 const AI_PERSONAS = new Proxy({}, {
   get(_t, key) {
     const base = AI_PERSONAS_BASE[key] || AI_PERSONAS_BASE.assistant;
     let prompt = base;
     if (ASSISTANT.reasoning) prompt += AI_REASONING_INSTR;
     prompt += AI_MEMORY_INSTR;
+    prompt += AI_BRAIN_INSTR;
     if (ASSISTANT.memory && ASSISTANT.memory.length) {
       prompt += "\n\nCe que tu sais de l'utilisateur :\n" +
         ASSISTANT.memory.slice(-30).map(m => "- " + m.fact).join("\n");
     }
+    // Le RAG (recherche dans le cerveau pour la requête courante) est ajouté
+    // juste-avant-l'appel dans aiAskOllamaStream via brainContextForQuery().
     return prompt;
   }
 });
+
+/* =======================================================================
+   Cerveau (Obsidian-like) — notes liées + backlinks + recherche + RAG
+   ======================================================================= */
+function brainKey() { return `c_ai_brain_${M.userId || "anon"}`; }
+
+function brainLoad() {
+  try {
+    const raw = localStorage.getItem(brainKey());
+    ASSISTANT.brain = raw ? JSON.parse(raw) : [];
+  } catch { ASSISTANT.brain = []; }
+}
+function brainSave() {
+  try { localStorage.setItem(brainKey(), JSON.stringify(ASSISTANT.brain)); } catch {}
+}
+
+function brainGenId() {
+  return "n_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 7);
+}
+
+function brainFindByTitle(title) {
+  const t = (title || "").trim().toLowerCase();
+  return ASSISTANT.brain.find(n => n.title.toLowerCase() === t);
+}
+function brainGet(id) { return ASSISTANT.brain.find(n => n.id === id); }
+
+function brainCreate({ title, content, tags }) {
+  const note = {
+    id: brainGenId(),
+    title: (title || "Sans titre").trim(),
+    content: (content || "").trim(),
+    tags: Array.isArray(tags) ? tags : [],
+    createdAt: Date.now(),
+    updatedAt: Date.now()
+  };
+  ASSISTANT.brain.push(note);
+  brainSave();
+  return note;
+}
+function brainUpdate(id, patch) {
+  const n = brainGet(id);
+  if (!n) return null;
+  Object.assign(n, patch, { updatedAt: Date.now() });
+  brainSave();
+  return n;
+}
+function brainDelete(id) {
+  const i = ASSISTANT.brain.findIndex(n => n.id === id);
+  if (i >= 0) { ASSISTANT.brain.splice(i, 1); brainSave(); }
+}
+
+/* Backlinks : trouve toutes les notes qui mentionnent [[title]] de cette note */
+function brainBacklinks(noteId) {
+  const n = brainGet(noteId);
+  if (!n) return [];
+  const linkRe = new RegExp("\\[\\[\\s*" + escapeRegex(n.title) + "\\s*\\]\\]", "i");
+  return ASSISTANT.brain.filter(x => x.id !== noteId && linkRe.test(x.content));
+}
+/* Liens sortants : noms cités via [[X]] dans la note */
+function brainOutlinks(noteId) {
+  const n = brainGet(noteId);
+  if (!n) return [];
+  const titles = [...n.content.matchAll(/\[\[([^\]]+?)\]\]/g)].map(m => m[1].trim());
+  const out = [];
+  for (const t of titles) {
+    const target = brainFindByTitle(t);
+    if (target && !out.some(o => o.id === target.id)) out.push(target);
+  }
+  return out;
+}
+function escapeRegex(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
+
+/* Recherche full-text simple : score par occurrences pondérées */
+function brainSearch(query, limit = 50) {
+  const q = (query || "").trim().toLowerCase();
+  if (!q) return ASSISTANT.brain.slice().sort((a, b) => b.updatedAt - a.updatedAt).slice(0, limit);
+  const words = [...new Set(q.match(/\b[\wÀ-ÿ]{2,}\b/g) || [])];
+  const scored = ASSISTANT.brain.map(n => {
+    const hay = (n.title + " " + n.content + " " + (n.tags||[]).join(" ")).toLowerCase();
+    let s = 0;
+    for (const w of words) {
+      const re = new RegExp("\\b" + escapeRegex(w), "g");
+      const occ = (hay.match(re) || []).length;
+      s += occ;
+      if (n.title.toLowerCase().includes(w)) s += 5;
+      if ((n.tags||[]).some(t => t.toLowerCase().includes(w))) s += 3;
+    }
+    return { n, s };
+  }).filter(x => x.s > 0).sort((a, b) => b.s - a.s);
+  return scored.slice(0, limit).map(x => x.n);
+}
+
+/* RAG : injecte les 3 notes les plus pertinentes dans le system prompt */
+function brainContextForQuery(query) {
+  const relevant = brainSearch(query, 3);
+  if (!relevant.length) return "";
+  return "\n\nNotes pertinentes (extraits de ton cerveau, à réutiliser quand pertinent) :\n" +
+    relevant.map(n => `\n## ${n.title}${n.tags?.length ? "  ·  tags: " + n.tags.join(", ") : ""}\n${n.content.slice(0, 800)}`).join("\n");
+}
+
+/* Parse [NOTE: titre || contenu || tags: a,b] dans une réponse IA */
+function aiParseNotes(text) {
+  const re = /\[NOTE:\s*([^|]+?)\s*\|\|\s*([\s\S]+?)(?:\s*\|\|\s*tags?:\s*([^\]]+?))?\]/gi;
+  let m;
+  let created = null;
+  while ((m = re.exec(text)) !== null) {
+    const title = m[1].trim();
+    const content = m[2].trim();
+    const tags = m[3] ? m[3].split(",").map(t => t.trim()).filter(Boolean) : [];
+    const existing = brainFindByTitle(title);
+    if (existing) {
+      brainUpdate(existing.id, { content, tags });
+      created = existing;
+    } else {
+      created = brainCreate({ title, content, tags });
+    }
+  }
+  const cleaned = text.replace(re, "").trim();
+  return { cleaned, created };
+}
 
 /* Mini renderer Markdown (gras, italique, code, listes, liens basiques) */
 function mdRender(text) {
@@ -4842,6 +5199,7 @@ function aiOpen() {
   $$("#roomsList .room-item").forEach(el => el.classList.remove("active"));
 
   aiLoad();
+  brainLoad();
   aiRender();
   $("#aiToggleReason").classList.toggle("on", ASSISTANT.reasoning);
 
@@ -5033,7 +5391,9 @@ async function aiSkillResumer() {
 }
 
 async function aiAskOllamaStream(userMsg, onChunk, imageBase64 = null) {
-  const messages = [{ role: "system", content: AI_PERSONAS[ASSISTANT.persona] }];
+  // System prompt = persona dynamique + RAG (notes pertinentes pour cette requête)
+  const systemPrompt = AI_PERSONAS[ASSISTANT.persona] + brainContextForQuery(userMsg);
+  const messages = [{ role: "system", content: systemPrompt }];
   const tail = ASSISTANT.history.filter(m => m.from === "me" || m.from === "them").slice(-20);
   for (const t of tail) {
     messages.push({ role: t.from === "me" ? "user" : "assistant", content: t.text });
@@ -5182,14 +5542,21 @@ async function aiRunUserMessage(text, skipPushUser = false) {
 
   try {
     const full = await aiAskOllamaStream(userMsg, (partial) => {
-      // Pendant le streaming, on retire les balises [MEMORISE: ...] pour pas qu'elles apparaissent
-      const clean = partial.replace(/\[MEMORISE:[^\]]*\]?\s*$/g, "");
+      // Pendant le streaming, on retire les balises spéciales [MEMORISE: ...] [NOTE: ...] pour pas qu'elles apparaissent
+      const clean = partial
+        .replace(/\[MEMORISE:[^\]]*\]?\s*$/g, "")
+        .replace(/\[NOTE:[\s\S]*?\]?\s*$/g, "");
       bubble.innerHTML = mdRender(clean) + "<span class=\"streaming-cursor\">▍</span>";
       $("#aiMsgs").scrollTop = $("#aiMsgs").scrollHeight;
     }, pendingImage ? pendingImage.base64 : null);
     bubble.remove();
-    const cleaned = aiParseMemorize(full || "");
+    // Parsing : d'abord NOTE (peut contenir des sauts de ligne), puis MEMORISE
+    const { cleaned: noteClean, created } = aiParseNotes(full || "");
+    const cleaned = aiParseMemorize(noteClean);
     aiPush("them", cleaned || "(réponse vide)");
+    if (created) {
+      toast(`Note ajoutée : "${created.title}"`, "ok");
+    }
   } catch (e) {
     bubble.remove();
     aiPush("them", "⚠ " + (e.message || "Erreur. Vérifie qu'Ollama tourne et qu'un modèle est téléchargé."));
@@ -5269,6 +5636,257 @@ $("#aiMemoryBtn").addEventListener("click", () => {
   renderMemoryList();
   openModal("#modalMemory");
 });
+
+/* =======================================================================
+   Cerveau Obsidian-like : UI
+   ======================================================================= */
+$("#aiBrainBtn").addEventListener("click", () => {
+  brainLoad();
+  renderBrainList();
+  switchBrainTab("notes");
+  openModal("#modalBrain");
+});
+
+function switchBrainTab(name) {
+  document.querySelectorAll(".brain-tab").forEach(b => b.classList.toggle("on", b.dataset.tab === name));
+  document.querySelectorAll(".brain-pane").forEach(p => p.style.display = p.dataset.pane === name ? "flex" : "none");
+  if (name === "graph") setTimeout(renderBrainGraph, 50);
+}
+document.querySelectorAll(".brain-tab").forEach(b => {
+  b.addEventListener("click", () => switchBrainTab(b.dataset.tab));
+});
+
+function renderBrainList(q = "") {
+  const list = $("#brainList");
+  const items = brainSearch(q);
+  if (!items.length) {
+    list.innerHTML = `<div class="memory-empty" style="padding:24px;">${q ? "Aucune note ne correspond." : "Aucune note pour l'instant. Crée-en une avec le bouton +, ou demande à l'IA d'en créer."}</div>`;
+    return;
+  }
+  list.innerHTML = items.map(n => {
+    const excerpt = n.content.replace(/\[\[/g, "").replace(/\]\]/g, "").slice(0, 80);
+    const tags = (n.tags || []).slice(0, 3).map(t => `<span class="brain-list-tag">${escapeHtml(t)}</span>`).join(" ");
+    const back = brainBacklinks(n.id).length;
+    return `
+      <div class="brain-list-item ${n.id === ASSISTANT.brainCurrent ? "active" : ""}" data-id="${n.id}">
+        <div class="brain-list-title">${escapeHtml(n.title)}</div>
+        <div class="brain-list-excerpt">${escapeHtml(excerpt)}</div>
+        <div class="brain-list-meta">${tags}${back ? `<span>↩ ${back}</span>` : ""}</div>
+      </div>
+    `;
+  }).join("");
+  list.querySelectorAll(".brain-list-item").forEach(el => {
+    el.addEventListener("click", () => openBrainNote(el.dataset.id));
+  });
+}
+
+function openBrainNote(id) {
+  const n = brainGet(id);
+  if (!n) return;
+  ASSISTANT.brainCurrent = id;
+  $("#brainEditorEmpty").style.display = "none";
+  $("#brainEdit").style.display = "flex";
+  $("#brainTitle").value   = n.title;
+  $("#brainTags").value    = (n.tags || []).join(", ");
+  $("#brainContent").value = n.content;
+  renderBrainLinks(n);
+  renderBrainPreview();
+  // Switch en mode edit par défaut
+  document.querySelectorAll(".brain-mode").forEach(b => b.classList.toggle("on", b.dataset.mode === "edit"));
+  $("#brainContent").style.display = "block";
+  $("#brainPreview").style.display = "none";
+  renderBrainList($("#brainSearch").value);
+}
+
+function renderBrainLinks(n) {
+  const out = brainOutlinks(n.id);
+  const back = brainBacklinks(n.id);
+  $("#brainOutlinks").innerHTML = out.length
+    ? out.map(x => `<div class="chip" data-id="${x.id}">${escapeHtml(x.title)}</div>`).join("")
+    : `<span class="empty">aucun</span>`;
+  $("#brainBacklinks").innerHTML = back.length
+    ? back.map(x => `<div class="chip" data-id="${x.id}">${escapeHtml(x.title)}</div>`).join("")
+    : `<span class="empty">aucun</span>`;
+  document.querySelectorAll("#brainOutlinks .chip, #brainBacklinks .chip").forEach(c => {
+    c.addEventListener("click", () => openBrainNote(c.dataset.id));
+  });
+}
+
+function renderBrainPreview() {
+  const raw = $("#brainContent").value;
+  // Convertit [[Titre]] en lien wiki
+  let html = mdRender(raw);
+  html = html.replace(/\[\[([^\]]+?)\]\]/g, (_, t) => {
+    const exists = !!brainFindByTitle(t.trim());
+    return `<a class="wikilink${exists ? "" : " missing"}" data-title="${escapeHtml(t.trim())}">${escapeHtml(t.trim())}</a>`;
+  });
+  $("#brainPreview").innerHTML = html;
+  $("#brainPreview").querySelectorAll(".wikilink").forEach(a => {
+    a.addEventListener("click", () => {
+      const title = a.dataset.title;
+      const target = brainFindByTitle(title);
+      if (target) openBrainNote(target.id);
+      else {
+        // Crée la note si elle n'existe pas
+        if (confirm(`La note "${title}" n'existe pas. La créer ?`)) {
+          const n = brainCreate({ title, content: "", tags: [] });
+          renderBrainList(); openBrainNote(n.id);
+        }
+      }
+    });
+  });
+}
+
+document.querySelectorAll(".brain-mode").forEach(b => {
+  b.addEventListener("click", () => {
+    const mode = b.dataset.mode;
+    document.querySelectorAll(".brain-mode").forEach(x => x.classList.toggle("on", x === b));
+    if (mode === "edit") {
+      $("#brainContent").style.display = "block";
+      $("#brainPreview").style.display = "none";
+    } else {
+      renderBrainPreview();
+      $("#brainContent").style.display = "none";
+      $("#brainPreview").style.display = "block";
+    }
+  });
+});
+
+$("#brainNew").addEventListener("click", () => {
+  const n = brainCreate({ title: "Nouvelle note", content: "", tags: [] });
+  renderBrainList();
+  openBrainNote(n.id);
+  setTimeout(() => $("#brainTitle").select(), 60);
+});
+
+$("#brainSave").addEventListener("click", () => {
+  if (!ASSISTANT.brainCurrent) return;
+  const title = $("#brainTitle").value.trim() || "Sans titre";
+  const content = $("#brainContent").value;
+  const tags = $("#brainTags").value.split(",").map(t => t.trim()).filter(Boolean);
+  brainUpdate(ASSISTANT.brainCurrent, { title, content, tags });
+  toast("Note enregistrée", "ok");
+  renderBrainList($("#brainSearch").value);
+  const n = brainGet(ASSISTANT.brainCurrent);
+  renderBrainLinks(n);
+});
+
+$("#brainDelete").addEventListener("click", () => {
+  if (!ASSISTANT.brainCurrent) return;
+  if (!confirm("Supprimer cette note ? (les backlinks d'autres notes resteront cassés)")) return;
+  brainDelete(ASSISTANT.brainCurrent);
+  ASSISTANT.brainCurrent = null;
+  $("#brainEdit").style.display = "none";
+  $("#brainEditorEmpty").style.display = "flex";
+  renderBrainList($("#brainSearch").value);
+});
+
+$("#brainSearch").addEventListener("input", (e) => renderBrainList(e.target.value));
+
+/* Auto-save sur blur du contenu */
+$("#brainContent").addEventListener("blur", () => {
+  if (ASSISTANT.brainCurrent && $("#brainEdit").style.display !== "none") {
+    const title = $("#brainTitle").value.trim() || "Sans titre";
+    const content = $("#brainContent").value;
+    const tags = $("#brainTags").value.split(",").map(t => t.trim()).filter(Boolean);
+    brainUpdate(ASSISTANT.brainCurrent, { title, content, tags });
+    const n = brainGet(ASSISTANT.brainCurrent);
+    renderBrainLinks(n);
+  }
+});
+
+/* ===== Graphe force-directed simple ===== */
+function renderBrainGraph() {
+  const svg = $("#brainGraph");
+  const empty = $("#brainGraphEmpty");
+  if (!ASSISTANT.brain.length) {
+    empty.style.display = "grid"; svg.innerHTML = "";
+    return;
+  }
+  empty.style.display = "none";
+  const rect = svg.getBoundingClientRect();
+  const W = rect.width || 800, H = rect.height || 500;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+
+  // Construit nodes & edges
+  const nodes = ASSISTANT.brain.map((n, i) => ({
+    id: n.id, title: n.title,
+    x: W/2 + Math.cos(i * 2 * Math.PI / ASSISTANT.brain.length) * Math.min(W, H) * 0.3,
+    y: H/2 + Math.sin(i * 2 * Math.PI / ASSISTANT.brain.length) * Math.min(W, H) * 0.3,
+    vx: 0, vy: 0
+  }));
+  const idIndex = {};
+  nodes.forEach((n, i) => idIndex[n.id] = i);
+  const edges = [];
+  for (const n of ASSISTANT.brain) {
+    const outs = brainOutlinks(n.id);
+    for (const o of outs) {
+      const a = idIndex[n.id], b = idIndex[o.id];
+      if (a != null && b != null) edges.push([a, b]);
+    }
+  }
+
+  // Simulation force-directed (Fruchterman-Reingold simplifié)
+  const area = W * H, k = Math.sqrt(area / Math.max(nodes.length, 1)) * 0.6;
+  for (let iter = 0; iter < 120; iter++) {
+    // Répulsion entre tous les nodes
+    for (let i = 0; i < nodes.length; i++) {
+      let fx = 0, fy = 0;
+      for (let j = 0; j < nodes.length; j++) {
+        if (i === j) continue;
+        const dx = nodes[i].x - nodes[j].x, dy = nodes[i].y - nodes[j].y;
+        const d2 = dx*dx + dy*dy + 0.01;
+        const d = Math.sqrt(d2);
+        const f = (k*k) / d;
+        fx += (dx/d) * f;
+        fy += (dy/d) * f;
+      }
+      nodes[i].vx = fx;
+      nodes[i].vy = fy;
+    }
+    // Attraction sur les arêtes
+    for (const [a, b] of edges) {
+      const dx = nodes[b].x - nodes[a].x, dy = nodes[b].y - nodes[a].y;
+      const d = Math.sqrt(dx*dx + dy*dy + 0.01);
+      const f = (d*d) / k;
+      const ux = (dx/d) * f, uy = (dy/d) * f;
+      nodes[a].vx += ux; nodes[a].vy += uy;
+      nodes[b].vx -= ux; nodes[b].vy -= uy;
+    }
+    // Applique avec amortissement, contraintes border
+    const temp = 0.05;
+    for (const n of nodes) {
+      const sp = Math.sqrt(n.vx*n.vx + n.vy*n.vy);
+      const m = Math.min(sp, 30) * temp;
+      n.x += (n.vx/sp || 0) * m;
+      n.y += (n.vy/sp || 0) * m;
+      n.x = Math.max(30, Math.min(W - 30, n.x));
+      n.y = Math.max(30, Math.min(H - 30, n.y));
+    }
+  }
+
+  // Rendu SVG
+  let html = "";
+  for (const [a, b] of edges) {
+    html += `<line class="gedge" x1="${nodes[a].x}" y1="${nodes[a].y}" x2="${nodes[b].x}" y2="${nodes[b].y}"/>`;
+  }
+  for (const n of nodes) {
+    const label = n.title.length > 22 ? n.title.slice(0, 20) + "…" : n.title;
+    html += `<g class="gnode" data-id="${n.id}" transform="translate(${n.x}, ${n.y})">
+      <circle class="gnode-bg" r="22"/>
+      <text class="gnode-label" text-anchor="middle" dy="40">${escapeHtml(label)}</text>
+    </g>`;
+  }
+  svg.innerHTML = html;
+  svg.querySelectorAll(".gnode").forEach(g => {
+    g.addEventListener("click", () => {
+      switchBrainTab("notes");
+      openBrainNote(g.dataset.id);
+    });
+  });
+}
+
+/* Mémoire long terme : ouverture modale (déjà au-dessus) */
 
 function renderMemoryList() {
   const list = $("#memoryList");
